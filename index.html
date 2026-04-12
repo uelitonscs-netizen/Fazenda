@@ -574,10 +574,10 @@ function startListening(){
     var data=snap.val();
     if(data){
       state.lotes=data.lotes||[];
-      state.insumos=data.insumos||[];
-      state.custos=data.custos||[];
-      state.animais=data.animais||[];
-      state.baixas=data.baixas||[];
+      state.insumos=Array.isArray(data.insumos)?data.insumos:(data.insumos?Object.values(data.insumos):[]);
+      state.custos=Array.isArray(data.custos)?data.custos:(data.custos?Object.values(data.custos):[]);
+      state.animais=Array.isArray(data.animais)?data.animais:(data.animais?Object.values(data.animais):[]);
+      state.baixas=Array.isArray(data.baixas)?data.baixas:(data.baixas?Object.values(data.baixas):[]);
       renderAll();
     } else {
       // Primeiro acesso — popula dados iniciais
