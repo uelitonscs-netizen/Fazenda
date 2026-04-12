@@ -1379,36 +1379,30 @@ var _confirmCallback = null;
 function confirmarModal(msg, icon, okLabel, callback) {
   icon = icon || '🗑️';
   okLabel = okLabel || 'Remover';
-  // Remove existing if any
   var existing = document.getElementById('modal-confirmar-dyn');
   if(existing) existing.parentNode.removeChild(existing);
+  // Scroll to top first so fixed works correctly
+  window.scrollTo(0, 0);
   // Create overlay
   var overlay = document.createElement('div');
   overlay.id = 'modal-confirmar-dyn';
   overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:1rem;box-sizing:border-box';
-  // Create box
   var box = document.createElement('div');
-  box.style.cssText = 'background:#2C1810;border:1px solid #4A2C1A;border-radius:16px;padding:1.5rem;width:100%;max-width:300px;text-align:center;box-sizing:border-box';
-  // Icon
+  box.style.cssText = 'background:#2C1810;border:1px solid #4A2C1A;border-radius:16px;padding:1.5rem;width:88%;max-width:300px;text-align:center;box-sizing:border-box;position:relative;z-index:100000';
   var ic = document.createElement('div');
   ic.style.cssText = 'font-size:1.5rem;margin-bottom:.75rem';
   ic.textContent = icon;
-  // Message
   var mg = document.createElement('div');
   mg.style.cssText = 'font-size:1rem;color:#F5EDD8;margin-bottom:1.5rem;line-height:1.4';
   mg.textContent = msg;
-  // Buttons row
   var row = document.createElement('div');
   row.style.cssText = 'display:flex;gap:.75rem';
-  // Cancel button
   var btnCancel = document.createElement('button');
   btnCancel.style.cssText = 'flex:1;padding:.75rem;background:rgba(255,255,255,.05);border:1px solid #4A2C1A;border-radius:10px;color:#F5EDD8;font-size:.9rem;cursor:pointer';
   btnCancel.textContent = 'Cancelar';
-  // OK button
   var btnOk = document.createElement('button');
   btnOk.style.cssText = 'flex:1;padding:.75rem;background:#C0392B;border:none;border-radius:10px;color:#fff;font-size:.9rem;font-weight:700;cursor:pointer';
   btnOk.textContent = okLabel;
-  // Assemble
   row.appendChild(btnCancel);
   row.appendChild(btnOk);
   box.appendChild(ic);
@@ -1416,17 +1410,13 @@ function confirmarModal(msg, icon, okLabel, callback) {
   box.appendChild(row);
   overlay.appendChild(box);
   document.body.appendChild(overlay);
-  document.body.style.overflow = 'hidden';
   _confirmCallback = callback;
-  // Listeners
   btnCancel.addEventListener('click', function() {
     overlay.parentNode.removeChild(overlay);
-    document.body.style.overflow = '';
     _confirmCallback = null;
   });
   btnOk.addEventListener('click', function() {
     overlay.parentNode.removeChild(overlay);
-    document.body.style.overflow = '';
     if(_confirmCallback) { _confirmCallback(); _confirmCallback = null; }
   });
 }
