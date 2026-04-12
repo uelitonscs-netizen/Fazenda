@@ -482,6 +482,18 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
+<!-- MODAL CONFIRMAR -->
+<div class="modal-overlay" id="modal-confirmar" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;padding:1.5rem">
+  <div style="background:#2C1810;border:1px solid #4A2C1A;border-radius:16px;padding:1.5rem;max-width:320px;width:100%;text-align:center">
+    <div style="font-size:1.5rem;margin-bottom:.75rem" id="confirm-icon">⚠️</div>
+    <div style="font-size:1rem;color:#F5EDD8;margin-bottom:1.5rem;line-height:1.4" id="confirm-msg">Confirmar?</div>
+    <div style="display:flex;gap:.75rem">
+      <button id="confirm-cancel" style="flex:1;padding:.75rem;background:rgba(255,255,255,.05);border:1px solid #4A2C1A;border-radius:10px;color:#F5EDD8;font-size:.9rem;cursor:pointer">Cancelar</button>
+      <button id="confirm-ok" style="flex:1;padding:.75rem;background:#C0392B;border:none;border-radius:10px;color:#fff;font-size:.9rem;font-weight:700;cursor:pointer">Remover</button>
+    </div>
+  </div>
+</div>
+
 <!-- FIREBASE SDK (compat mode - works on all browsers) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -1022,9 +1034,10 @@ function editarLote(id){
   showSectionById('rebanho');window.scrollTo(0,0);
 }
 function deletarLote(id){
-  if(!confirm('Remover este lote?'))return;
-  state.lotes=state.lotes.filter(function(l){return l.id!==id;});
-  saveToFirebase();toast('🗑️ Lote removido.');renderRebanho();
+  confirmarModal('Remover este lote?', '🗑️', 'Remover', function(){
+    state.lotes=state.lotes.filter(function(l){return l.id!==id;});
+    saveToFirebase();toast('🗑️ Lote removido.');renderRebanho();
+  });
 }
 function limparFormRebanho(){['r-nome','r-qtd','r-peso-entrada','r-peso-atual','r-peso-meta','r-preco-compra','r-data','r-obs'].forEach(function(id){var el=document.getElementById(id);if(el){el.value='';delete el.dataset.editId;}});}
 
@@ -1053,9 +1066,10 @@ function editarInsumo(id){
   showSectionById('suplementacao');
 }
 function deletarInsumo(id){
-  if(!confirm('Remover este insumo?'))return;
-  state.insumos=state.insumos.filter(function(i){return i.id!==id;});
-  saveToFirebase();toast('🗑️ Insumo removido.');renderSuplementacao();
+  confirmarModal('Remover este insumo?', '🗑️', 'Remover', function(){
+    state.insumos=state.insumos.filter(function(i){return i.id!==id;});
+    saveToFirebase();toast('🗑️ Insumo removido.');renderSuplementacao();
+  });
 }
 
 // ===== CRUD CUSTOS =====
@@ -1080,9 +1094,10 @@ function editarCusto(id){
   document.getElementById('c-obs').value=c.obs||'';showSectionById('custos');
 }
 function deletarCusto(id){
-  if(!confirm('Remover?'))return;
-  state.custos=state.custos.filter(function(c){return c.id!==id;});
-  saveToFirebase();toast('🗑️ Custo removido.');renderCustos();
+  confirmarModal('Remover este custo?', '🗑️', 'Remover', function(){
+    state.custos=state.custos.filter(function(c){return c.id!==id;});
+    saveToFirebase();toast('🗑️ Custo removido.');renderCustos();
+  });
 }
 
 // ===== CRUD ANIMAIS =====
@@ -1127,9 +1142,10 @@ function editarAnimal(id){
   showSectionById('animais');window.scrollTo(0,0);
 }
 function deletarAnimal(id){
-  if(!confirm('Remover este animal?'))return;
-  state.animais=state.animais.filter(function(a){return a.id!==id;});
-  saveToFirebase();toast('🗑️ Animal removido.');fecharModal();renderAnimais();
+  confirmarModal('Remover este animal?', '⚠️', 'Remover', function(){
+    state.animais=state.animais.filter(function(a){return a.id!==id;});
+    saveToFirebase();toast('🗑️ Animal removido.');fecharModal();renderAnimais();
+  });
 }
 
 // MODAL ANIMAL
@@ -1201,9 +1217,10 @@ function salvarEvento(){
   }
 }
 function deletarEvento(aid,eid){
-  if(!confirm('Remover evento?'))return;
-  var idx=state.animais.findIndex(function(a){return a.id===aid;});
-  if(idx!==-1){state.animais[idx].eventos=(state.animais[idx].eventos||[]).filter(function(e){return e.id!==eid;});saveToFirebase();abrirAnimal(aid);}
+  confirmarModal('Remover este evento?', '🗑️', 'Remover', function(){
+    var idx=state.animais.findIndex(function(a){return a.id===aid;});
+    if(idx!==-1){state.animais[idx].eventos=(state.animais[idx].eventos||[]).filter(function(e){return e.id!==eid;});saveToFirebase();abrirAnimal(aid);}
+  });
 }
 
 // ACESSO RÁPIDO FAB
@@ -1365,6 +1382,28 @@ document.addEventListener('click',function(e){
     }
   } catch(e){}
 })();
+
+// MODAL DE CONFIRMAÇÃO
+var _confirmCallback = null;
+function confirmarModal(msg, icon, okLabel, callback) {
+  icon = icon || '🗑️';
+  okLabel = okLabel || 'Remover';
+  document.getElementById('confirm-msg').textContent = msg;
+  document.getElementById('confirm-icon').textContent = icon;
+  document.getElementById('confirm-ok').textContent = okLabel;
+  document.getElementById('modal-confirmar').style.display = 'flex';
+  _confirmCallback = callback;
+}
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('confirm-cancel').addEventListener('click', function() {
+    document.getElementById('modal-confirmar').style.display = 'none';
+    _confirmCallback = null;
+  });
+  document.getElementById('confirm-ok').addEventListener('click', function() {
+    document.getElementById('modal-confirmar').style.display = 'none';
+    if(_confirmCallback) { _confirmCallback(); _confirmCallback = null; }
+  });
+});
 
 // REGISTRAR SERVICE WORKER (PWA)
 if('serviceWorker' in navigator){
