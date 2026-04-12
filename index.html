@@ -298,7 +298,8 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
             <div class="field"><label>Qtd de Sacos</label><input type="number" id="s-qtd" placeholder="30"></div>
             <div class="field"><label>Kg por Saco</label><input type="number" id="s-kg-saco" placeholder="30"></div>
             <div class="field"><label>Preço por Saco (R$)</label><input type="number" id="s-preco" placeholder="126" step="0.01"></div>
-            <div class="field"><label>Consumo Mensal (sacos)</label><input type="number" id="s-consumo" placeholder="3" step="0.1"></div>
+            <div class="field"><label>Consumo por Cabeça/mês (kg)</label><input type="number" id="s-kg-cabeca" placeholder="ex: 2.14" step="0.01"><small style="color:var(--clay);font-size:.7rem">Deixe 0 para usar consumo fixo</small></div>
+            <div class="field"><label>Consumo Mensal (sacos) — fixo</label><input type="number" id="s-consumo" placeholder="3" step="0.1"></div>
             <div class="field"><label>Data da Compra</label><input type="date" id="s-data"></div>
           </div>
           <button class="btn" style="margin-top:1rem" onclick="salvarInsumo()">+ Registrar Insumo</button>
@@ -520,18 +521,26 @@ function catLabel(c){ var m={mao_de_obra:'Mão de Obra',sanidade:'Sanidade',manu
 function freqLabel(f){ var m={mensal:'Mensal',bimestral:'Bimestral',trimestral:'Trimestral',semestral:'Semestral',anual:'Anual',unico:'Pontual'}; return m[f]||f; }
 function custoMensal(c){ var d={mensal:1,bimestral:2,trimestral:3,semestral:6,anual:12,unico:0}; return c.valor/(d[c.freq]||1); }
 function totalCustoMensal(){ return state.custos.reduce(function(a,c){return a+custoMensal(c);},0); }
-function totalSupMensal(){ return state.insumos.reduce(function(a,i){return a+(i.consumoMensal*i.preco);},0); }
+function totalSupMensal(){ return state.insumos.reduce(function(a,i){return a+(consumoEfetivo(i)*i.preco);},0); }
 function custoMensalTotal(){ return totalCustoMensal()+totalSupMensal(); }
 function sacosRestantes(i){
   var qtd=parseFloat(i.qtd)||0;
-  var consumo=parseFloat(i.consumoMensal)||0;
+  var consumo=consumoEfetivo(i);
   if(!i.data||consumo<=0) return qtd;
   var inicio=new Date(i.data+'T00:00:00'), hoje=new Date();
   if(isNaN(inicio.getTime())) return qtd;
   var dias=Math.max(0,(hoje-inicio)/(1000*60*60*24));
   return Math.max(0, qtd-(dias/30.44)*consumo);
 }
-function mesesRestantesInsumo(i){ var r=sacosRestantes(i); var c=parseFloat(i.consumoMensal)||0; return c>0?r/c:99; }
+function consumoEfetivo(i){
+  var totalCabecas = state.lotes.reduce(function(a,l){ return a+(parseFloat(l.qtd)||0); }, 0);
+  var kgSaco = parseFloat(i.kgSaco)||30;
+  if(i.kgPorCabeca && parseFloat(i.kgPorCabeca) > 0){
+    return (parseFloat(i.kgPorCabeca) * totalCabecas) / kgSaco;
+  }
+  return parseFloat(i.consumoMensal)||0;
+}
+function mesesRestantesInsumo(i){ var r=sacosRestantes(i); var c=consumoEfetivo(i); return c>0?r/c:99; }
 
 // TOAST
 function toast(msg,tipo){
@@ -574,8 +583,8 @@ function startListening(){
       // Primeiro acesso — popula dados iniciais
       state.lotes=[{id:1,nome:'Novilhas Nelore (Lote Principal)',tipo:'novilha',qtd:43,pesoEntrada:6.5,pesoAtual:9.0,pesoMeta:14.0,precoCompra:290,data:'2025-01-01',obs:'Nelore cruzado, recria para engorda e venda'}];
       state.insumos=[
-        {id:1,nome:'Sal Mineral 80',tipo:'sal',qtd:30,kgSaco:30,preco:126,consumoMensal:3,data:'2026-02-21'},
-        {id:2,nome:'Ração Engorda',tipo:'racao',qtd:10,kgSaco:40,preco:65,consumoMensal:1,data:'2026-02-21'}
+        {id:1,nome:'Sal Mineral 80',tipo:'sal',qtd:30,kgSaco:30,preco:126,consumoMensal:3,kgPorCabeca:2.14,data:'2026-02-21'},
+        {id:2,nome:'Ração Engorda',tipo:'racao',qtd:10,kgSaco:40,preco:65,consumoMensal:1,kgPorCabeca:0.71,data:'2026-02-21'}
       ];
       state.custos=[
         {id:1,desc:'Salário Vaqueiro',cat:'mao_de_obra',valor:1300,freq:'mensal',data:'2025-01-01',obs:''},
@@ -712,7 +721,7 @@ function renderDashboard(){
       estHtml+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem">';
       estHtml+='<span style="font-size:.85rem">'+i.nome+'</span><span class="badge '+cor+'">'+fmtN(mr,1)+' meses</span></div>';
       estHtml+='<div style="font-size:.72rem;color:var(--clay);margin-bottom:.25rem">'+fmtN(sr,1)+' sacos restantes de '+i.qtd;
-      if(perfil==='dono') estHtml+=' · '+fmt(i.consumoMensal*i.preco)+'/mês';
+      if(perfil==='dono') estHtml+=' · '+fmt(i.consumoEfetivo(i)*i.preco)+'/mês';
       estHtml+='</div>';
       estHtml+='<div class="progress-bar"><div class="progress-fill'+(cor==='green'?' green':'')+'" style="width:'+pct+'%"></div></div>';
       estHtml+='</div>';
@@ -812,8 +821,8 @@ function renderSuplementacao(){
       html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;font-size:.75rem;color:var(--clay)">';
       html+='<div>Comprado: <strong style="color:var(--cream)">'+i.qtd+' sacos</strong></div>';
       html+='<div>Restante: <strong style="color:var(--straw)">'+fmtN(sr,1)+' sacos</strong></div>';
-      html+='<div>Consumo: <strong style="color:var(--cream)">'+i.consumoMensal+'/mês</strong></div>';
-      if(perfil==='dono') html+='<div>Custo/mês: <strong style="color:var(--cream)">'+fmt(i.consumoMensal*i.preco)+'</strong></div>';
+      html+='<div>Consumo: <strong style="color:var(--cream)">'+i.fmtN(consumoEfetivo(i),1)+' sacos/mês</strong></div>';
+      if(perfil==='dono') html+='<div>Custo/mês: <strong style="color:var(--cream)">'+fmt(i.consumoEfetivo(i)*i.preco)+'</strong></div>';
       html+='</div>';
       html+='<div style="font-size:.7rem;color:var(--clay);margin-top:.3rem">Início: '+(i.data?new Date(i.data+'T00:00:00').toLocaleDateString('pt-BR'):'—')+'</div>';
       html+='<div class="progress-bar" style="margin-top:.4rem"><div class="progress-fill'+(cor==='green'?' green':'')+'" style="width:'+pct+'%"></div></div></div>';
@@ -826,12 +835,12 @@ function renderSuplementacao(){
     if(state.insumos.length===0){ document.getElementById('tabela-insumos').innerHTML='<div class="empty"><div class="icon">📦</div><p>Nenhum insumo</p></div>'; return; }
     var rows='';
     state.insumos.forEach(function(i){
-      var sr=sacosRestantes(i),cor=sr<i.consumoMensal*2?'neg':'pos';
+      var sr=sacosRestantes(i),cor=sr<i.consumoEfetivo(i)*2?'neg':'pos';
       var df=i.data?new Date(i.data+'T00:00:00').toLocaleDateString('pt-BR'):'—';
       rows+='<tr><td><strong>'+i.nome+'</strong></td><td><span class="badge '+(i.tipo==='sal'?'sky':'yellow')+'">'+i.tipo+'</span></td>'+
       '<td class="mono">'+i.qtd+'</td><td class="mono '+cor+'">'+fmtN(sr,1)+'</td>'+
       '<td class="mono">'+fmt(i.preco)+'</td><td class="mono">'+fmt(i.qtd*i.preco)+'</td>'+
-      '<td class="mono">'+i.consumoMensal+'</td><td class="mono">'+fmt(i.consumoMensal*i.preco)+'</td>'+
+      '<td class="mono">'+i.fmtN(consumoEfetivo(i),1)+'</td><td class="mono">'+fmt(consumoEfetivo(i)*i.preco)+'</td>'+
       '<td style="font-size:.75rem;color:var(--clay)">'+df+'</td>'+
       '<td><button class="btn sm outline" onclick="editarInsumo('+i.id+')">✏️</button> <button class="btn sm danger" onclick="deletarInsumo('+i.id+')">🗑️</button></td></tr>';
     });
@@ -1025,6 +1034,7 @@ function salvarInsumo(){
   if(!nome||!qtd||!preco){toast('Preencha nome, quantidade e preço.','error');return;}
   var ins={id:Date.now(),nome:nome,tipo:document.getElementById('s-tipo').value,qtd:qtd,
     kgSaco:parseFloat(document.getElementById('s-kg-saco').value)||0,preco:preco,
+    kgPorCabeca:parseFloat(document.getElementById('s-kg-cabeca').value)||0,
     consumoMensal:parseFloat(document.getElementById('s-consumo').value)||0,
     data:document.getElementById('s-data').value||new Date().toISOString().split('T')[0]};
   var eid=document.getElementById('s-nome').dataset.editId;
@@ -1037,7 +1047,7 @@ function editarInsumo(id){
   document.getElementById('s-nome').value=i.nome;document.getElementById('s-nome').dataset.editId=id;
   document.getElementById('s-tipo').value=i.tipo;document.getElementById('s-qtd').value=i.qtd;
   document.getElementById('s-kg-saco').value=i.kgSaco;document.getElementById('s-preco').value=i.preco;
-  document.getElementById('s-consumo').value=i.consumoMensal;document.getElementById('s-data').value=i.data;
+  document.getElementById('s-kg-cabeca').value=i.kgPorCabeca||0;document.getElementById('s-consumo').value=i.consumoMensal;document.getElementById('s-data').value=i.data;
   showSectionById('suplementacao');
 }
 function deletarInsumo(id){
