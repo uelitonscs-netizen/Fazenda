@@ -821,8 +821,8 @@ function renderSuplementacao(){
       html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;font-size:.75rem;color:var(--clay)">';
       html+='<div>Comprado: <strong style="color:var(--cream)">'+i.qtd+' sacos</strong></div>';
       html+='<div>Restante: <strong style="color:var(--straw)">'+fmtN(sr,1)+' sacos</strong></div>';
-      html+='<div>Consumo: <strong style="color:var(--cream)">'+i.fmtN(consumoEfetivo(i),1)+' sacos/mês</strong></div>';
-      if(perfil==='dono') html+='<div>Custo/mês: <strong style="color:var(--cream)">'+fmt(i.consumoEfetivo(i)*i.preco)+'</strong></div>';
+      html+='<div>Consumo: <strong style="color:var(--cream)">'+fmtN(consumoEfetivo(i),1)+' sacos/mês</strong></div>';
+      if(perfil==='dono') html+='<div>Custo/mês: <strong style="color:var(--cream)">'+fmt(consumoEfetivo(i)*i.preco)+'</strong></div>';
       html+='</div>';
       html+='<div style="font-size:.7rem;color:var(--clay);margin-top:.3rem">Início: '+(i.data?new Date(i.data+'T00:00:00').toLocaleDateString('pt-BR'):'—')+'</div>';
       html+='<div class="progress-bar" style="margin-top:.4rem"><div class="progress-fill'+(cor==='green'?' green':'')+'" style="width:'+pct+'%"></div></div></div>';
