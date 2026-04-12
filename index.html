@@ -747,7 +747,7 @@ function renderDashboard(){
     var rec=novilhas.reduce(function(a,l){return a+(l.qtd*pw*pv);},0);
     var cc=novilhas.reduce(function(a,l){return a+(l.qtd*l.pesoEntrada*l.precoCompra);},0);
     var co=custoMes*pr, luc=rec-cc-co-estoqueTotal;
-    var rfHtml='<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">';
+    var rfHtml='<div style="display:flex;flex-direction:column;gap:.75rem">';
     rfHtml+='<div><p style="font-size:.72rem;color:var(--clay);margin-bottom:.6rem;font-family:\'DM Mono\',monospace">COMPOSIÇÃO DE CUSTOS</p>';
     rfHtml+='<div class="result-row"><span class="label">Compra do rebanho</span><span class="value neg">'+fmt(cc)+'</span></div>';
     rfHtml+='<div class="result-row"><span class="label">Estoque suplementação</span><span class="value neg">'+fmt(estoqueTotal)+'</span></div>';
@@ -779,11 +779,24 @@ function renderRebanho(){
   var rows='';
   state.lotes.forEach(function(l){
     var tb=l.tipo==='novilha'?'green':l.tipo==='vaca'?'sky':'yellow';
-    rows+='<tr><td><strong>'+l.nome+'</strong>'+(l.obs?'<br><span style="font-size:.7rem;color:var(--clay)">'+l.obs+'</span>':'')+
-    '</td><td><span class="badge '+tb+'">'+l.tipo+'</span></td><td class="mono">'+l.qtd+'</td><td class="mono">'+fmtN(l.pesoEntrada)+'</td><td class="mono">'+fmtN(l.pesoAtual)+'</td><td class="mono">'+fmtN(l.pesoMeta)+'</td><td class="mono">'+fmt(l.precoCompra)+'</td><td class="mono">'+fmt(l.qtd*l.pesoEntrada*l.precoCompra)+'</td>'+
-    '<td><button class="btn sm outline" onclick="editarLote('+l.id+')">✏️</button> <button class="btn sm" style="background:var(--red);color:white;margin-left:.25rem" onclick="abrirModalBaixa('+l.id+')">📉</button> <button class="btn sm danger" onclick="deletarLote('+l.id+')" style="margin-left:.25rem">🗑️</button></td></tr>';
+    rows+='<div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:.9rem;margin-bottom:.75rem">';
+    rows+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.6rem">';
+    rows+='<div><strong style="font-size:.9rem">'+l.nome+'</strong>'+(l.obs?'<br><span style="font-size:.72rem;color:var(--clay)">'+l.obs+'</span>':'')+' <span class="badge '+tb+'">'+l.tipo+'</span></div>';
+    rows+='<div style="display:flex;gap:.4rem">';
+    rows+='<button class="btn sm outline" onclick="editarLote('+l.id+')">✏️</button>';
+    rows+='<button class="btn sm" style="background:var(--red);color:white" onclick="abrirModalBaixa('+l.id+')">📉</button>';
+    rows+='<button class="btn sm danger" onclick="deletarLote('+l.id+')">🗑️</button>';
+    rows+='</div></div>';
+    rows+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem .6rem;font-size:.78rem;color:var(--clay)">';
+    rows+='<div>Cabeças: <strong style="color:var(--cream)">'+l.qtd+'</strong></div>';
+    rows+='<div>Investido: <strong style="color:var(--cream)">'+fmt(l.qtd*l.pesoEntrada*l.precoCompra)+'</strong></div>';
+    rows+='<div>Peso entrada: <strong style="color:var(--cream)">'+fmtN(l.pesoEntrada)+'@</strong></div>';
+    rows+='<div>Peso atual: <strong style="color:var(--cream)">'+fmtN(l.pesoAtual)+'@</strong></div>';
+    rows+='<div>Peso meta: <strong style="color:var(--cream)">'+fmtN(l.pesoMeta)+'@</strong></div>';
+    rows+='<div>R$/@: <strong style="color:var(--cream)">'+fmt(l.precoCompra)+'</strong></div>';
+    rows+='</div></div>';
   });
-  document.getElementById('tabela-rebanho').innerHTML='<table><thead><tr><th>Lote</th><th>Tipo</th><th>Cab.</th><th>Entrada</th><th>Atual</th><th>Meta</th><th>R$/@</th><th>Investido</th><th>Ações</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  document.getElementById('tabela-rebanho').innerHTML=rows;
 
   // Histórico de baixas
   var baixas=(state.baixas||[]).filter(function(b){return true;});
