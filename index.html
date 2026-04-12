@@ -721,7 +721,7 @@ function renderDashboard(){
       estHtml+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem">';
       estHtml+='<span style="font-size:.85rem">'+i.nome+'</span><span class="badge '+cor+'">'+fmtN(mr,1)+' meses</span></div>';
       estHtml+='<div style="font-size:.72rem;color:var(--clay);margin-bottom:.25rem">'+fmtN(sr,1)+' sacos restantes de '+i.qtd;
-      if(perfil==='dono') estHtml+=' · '+fmt(i.consumoEfetivo(i)*i.preco)+'/mês';
+      if(perfil==='dono') estHtml+=' · '+fmt(consumoEfetivo(i)*i.preco)+'/mês';
       estHtml+='</div>';
       estHtml+='<div class="progress-bar"><div class="progress-fill'+(cor==='green'?' green':'')+'" style="width:'+pct+'%"></div></div>';
       estHtml+='</div>';
@@ -837,7 +837,7 @@ function renderSuplementacao(){
     if(state.insumos.length===0){ document.getElementById('tabela-insumos').innerHTML='<div class="empty"><div class="icon">📦</div><p>Nenhum insumo</p></div>'; return; }
     var rows='';
     state.insumos.forEach(function(i){
-      var sr=sacosRestantes(i),cor=sr<i.consumoEfetivo(i)*2?'neg':'pos';
+      var sr=sacosRestantes(i),cor=sr<consumoEfetivo(i)*2?'neg':'pos';
       var df=i.data?new Date(i.data+'T00:00:00').toLocaleDateString('pt-BR'):'—';
       rows+='<tr><td><strong>'+i.nome+'</strong></td><td><span class="badge '+(i.tipo==='sal'?'sky':'yellow')+'">'+i.tipo+'</span></td>'+
       '<td class="mono">'+i.qtd+'</td><td class="mono '+cor+'">'+fmtN(sr,1)+'</td>'+
@@ -1053,7 +1053,7 @@ function editarInsumo(id){
   showSectionById('suplementacao');
 }
 function deletarInsumo(id){
-  if(!confirm('Remover?'))return;
+  if(!confirm('Remover este insumo?'))return;
   state.insumos=state.insumos.filter(function(i){return i.id!==id;});
   saveToFirebase();toast('🗑️ Insumo removido.');renderSuplementacao();
 }
