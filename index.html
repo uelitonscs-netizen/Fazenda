@@ -612,6 +612,7 @@ function entrarVaqueiro(){
 }
 function entrar(p){
   perfil=p;
+  try { localStorage.setItem('fazenda_perfil', p); } catch(e){}
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app-screen').style.display='block';
   var badge=document.getElementById('perfil-badge');
@@ -625,6 +626,7 @@ function entrar(p){
 }
 function sair(){
   perfil=null;
+  try { localStorage.removeItem('fazenda_perfil'); } catch(e){}
   document.getElementById('app-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('senha-wrap').style.display='none';
@@ -1340,6 +1342,17 @@ document.addEventListener('click',function(e){
   if(e.target&&e.target.id==='modal-evento') fecharModalEvento();
   if(e.target&&e.target.id==='modal-rapido') fecharModalRapido();
 });
+
+// RESTAURAR SESSÃO após refresh
+(function(){
+  try {
+    var p = localStorage.getItem('fazenda_perfil');
+    if(p === 'dono' || p === 'vaqueiro'){
+      // Aguarda Firebase carregar senha antes de restaurar
+      setTimeout(function(){ entrar(p); }, 300);
+    }
+  } catch(e){}
+})();
 
 // REGISTRAR SERVICE WORKER (PWA)
 if('serviceWorker' in navigator){
