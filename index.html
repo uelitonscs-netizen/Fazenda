@@ -804,13 +804,19 @@ function renderRebanho(){
     var motivoLabel={morte:'💀 Morte',venda:'💰 Venda',descarte:'🚫 Descarte',roubo:'⚠️ Roubo',outro:'📝 Outro'};
     var bh='';
     baixas.slice().reverse().forEach(function(b){
-      var loteNome=state.lotes.find(function(l){return l.id==b.loteId;}); 
-      bh+='<tr><td>'+(b.data?new Date(b.data+'T00:00:00').toLocaleDateString('pt-BR'):'—')+'</td>';
-      bh+='<td>'+(loteNome?loteNome.nome:'—')+'</td>';
-      bh+='<td><span class="badge red">'+(motivoLabel[b.motivo]||b.motivo)+'</span></td>';
-      bh+='<td class="mono">'+b.qtd+'</td>';
-      bh+='<td class="mono neg">'+fmt(b.perda)+'</td>';
-      bh+='<td style="font-size:.78rem;color:var(--clay)">'+(b.obs||'—')+'</td></tr>';
+      var loteNome=state.lotes.find(function(l){return l.id==b.loteId;});
+      var df=b.data?new Date(b.data+'T00:00:00').toLocaleDateString('pt-BR'):'—';
+      bh+='<div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:.9rem;margin-bottom:.75rem">';
+      bh+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">';
+      bh+='<span class="badge red">'+(motivoLabel[b.motivo]||b.motivo)+'</span>';
+      bh+='<span style="font-size:.78rem;color:var(--clay)">'+df+'</span>';
+      bh+='</div>';
+      bh+='<div style="font-size:.85rem;font-weight:600;margin-bottom:.4rem">'+(loteNome?loteNome.nome:'—')+'</div>';
+      bh+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem;font-size:.78rem;color:var(--clay)">';
+      bh+='<div>Qtd: <strong style="color:var(--cream)">'+b.qtd+' cab.</strong></div>';
+      bh+='<div>Perda: <strong style="color:#e74c3c">'+fmt(b.perda)+'</strong></div>';
+      if(b.obs) bh+='<div style="grid-column:1/-1">Obs: <span style="color:var(--cream)">'+b.obs+'</span></div>';
+      bh+='</div></div>';
     });
     var historicoEl=document.getElementById('historico-baixas-card');
     if(!historicoEl){
@@ -819,7 +825,7 @@ function renderRebanho(){
       card.innerHTML='<div class="card-title">📉 Histórico de Baixas</div><div id="historico-baixas-table"></div>';
       document.getElementById('rebanho').appendChild(card);
     }
-    document.getElementById('historico-baixas-table').innerHTML='<table><thead><tr><th>Data</th><th>Lote</th><th>Motivo</th><th>Qtd</th><th>Perda</th><th>Obs.</th></tr></thead><tbody>'+bh+'</tbody></table>';
+    document.getElementById('historico-baixas-table').innerHTML=bh;
   }
 }
 
@@ -888,12 +894,19 @@ function renderCustos(){
   if(state.custos.length===0){ document.getElementById('tabela-custos').innerHTML='<div class="empty"><div class="icon">💸</div><p>Nenhum custo</p></div>'; return; }
   var rows='';
   state.custos.forEach(function(c){
-    rows+='<tr><td><strong>'+c.desc+'</strong></td><td><span class="badge yellow">'+catLabel(c.cat)+'</span></td><td class="mono">'+fmt(c.valor)+'</td>'+
-    '<td><span class="badge sky">'+freqLabel(c.freq)+'</span></td><td class="mono">'+fmt(custoMensal(c))+'</td>'+
-    '<td style="font-size:.78rem;color:var(--clay)">'+(c.obs||'—')+'</td>'+
-    '<td><button class="btn sm outline" onclick="editarCusto('+c.id+')">✏️</button> <button class="btn sm danger" onclick="deletarCusto('+c.id+')">🗑️</button></td></tr>';
+    rows+='<div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:.9rem;margin-bottom:.75rem">';
+    rows+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">';
+    rows+='<div><strong style="font-size:.88rem">'+c.desc+'</strong><br>';
+    rows+='<span class="badge yellow">'+catLabel(c.cat)+'</span> <span class="badge sky">'+freqLabel(c.freq)+'</span></div>';
+    rows+='<div style="display:flex;gap:.4rem"><button class="btn sm outline" onclick="editarCusto('+c.id+')">✏️</button><button class="btn sm danger" onclick="deletarCusto('+c.id+')">🗑️</button></div>';
+    rows+='</div>';
+    rows+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem;font-size:.78rem;color:var(--clay)">';
+    rows+='<div>Valor: <strong style="color:var(--cream)">'+fmt(c.valor)+'</strong></div>';
+    rows+='<div>Custo/mês: <strong style="color:var(--cream)">'+fmt(custoMensal(c))+'</strong></div>';
+    if(c.obs) rows+='<div style="grid-column:1/-1">Obs: <span style="color:var(--cream)">'+c.obs+'</span></div>';
+    rows+='</div></div>';
   });
-  document.getElementById('tabela-custos').innerHTML='<table><thead><tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Frequência</th><th>Custo/Mês</th><th>Obs.</th><th>Ações</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  document.getElementById('tabela-custos').innerHTML=rows;
 }
 
 function calcularProjecao(){
@@ -906,7 +919,7 @@ function calcularProjecao(){
   var ei=state.insumos.reduce(function(a,i){return a+(i.qtd*i.preco);},0);
   var co=custoMensalTotal()*pr,ti=cc+ei+co,rec=tc*pw*pv,luc=rec-ti;
   var roi=ti>0?(luc/ti)*100:0;
-  var rh='<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">';
+  var rh='<div style="display:flex;flex-direction:column;gap:.75rem">';
   rh+='<div><p style="font-size:.7rem;color:var(--clay);margin-bottom:.6rem;font-family:\'DM Mono\',monospace">CUSTOS</p>';
   rh+='<div class="result-row"><span class="label">Compra rebanho</span><span class="value neg">'+fmt(cc)+'</span></div>';
   rh+='<div class="result-row"><span class="label">Estoque supl.</span><span class="value neg">'+fmt(ei)+'</span></div>';
@@ -921,13 +934,22 @@ function calcularProjecao(){
   rh+='<div class="result-row"><span class="label">Lucro/cabeça</span><span class="value '+(luc>=0?'pos':'neg')+'">'+fmt(tc>0?luc/tc:0)+'</span></div></div></div>';
   document.getElementById('resultado-projecao').innerHTML=rh;
   var cens=[{nome:'Pessimista',preco:290,peso:13,prazo:12},{nome:'Moderado',preco:320,peso:14,prazo:10},{nome:'Otimista',preco:360,peso:15,prazo:8}];
-  var ch='<table><thead><tr><th>Cenário</th><th>R$/@</th><th>Peso</th><th>Prazo</th><th>Receita</th><th>Custo</th><th>Lucro</th><th>ROI</th></tr></thead><tbody>';
+  var ch='';
   cens.forEach(function(c){
     var r=tc*c.peso*c.preco,cu=cc+ei+(custoMensalTotal()*c.prazo),l=r-cu,roi2=cu>0?(l/cu)*100:0;
     var cor=l>=0?'pos':'neg',bg=c.nome==='Pessimista'?'red':c.nome==='Moderado'?'yellow':'green';
-    ch+='<tr><td><span class="badge '+bg+'">'+c.nome+'</span></td><td class="mono">'+fmt(c.preco)+'</td><td class="mono">'+fmtN(c.peso)+'@</td><td class="mono">'+c.prazo+'m</td><td class="mono">'+fmt(r)+'</td><td class="mono">'+fmt(cu)+'</td><td class="mono '+cor+'">'+fmt(l)+'</td><td class="mono '+cor+'">'+fmtN(roi2,1)+'%</td></tr>';
+    ch+='<div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:.9rem;margin-bottom:.75rem">';
+    ch+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">';
+    ch+='<span class="badge '+bg+'">'+c.nome+'</span>';
+    ch+='<span style="font-size:.78rem;color:var(--clay)">'+fmtN(c.peso)+'@ · '+fmt(c.preco)+'/@ · '+c.prazo+'m</span>';
+    ch+='</div>';
+    ch+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem;font-size:.78rem;color:var(--clay)">';
+    ch+='<div>Receita: <strong style="color:var(--cream)">'+fmt(r)+'</strong></div>';
+    ch+='<div>Custo total: <strong style="color:var(--cream)">'+fmt(cu)+'</strong></div>';
+    ch+='<div>Lucro: <strong class="'+cor+'">'+fmt(l)+'</strong></div>';
+    ch+='<div>ROI: <strong class="'+cor+'">'+fmtN(roi2,1)+'%</strong></div>';
+    ch+='</div></div>';
   });
-  ch+='</tbody></table>';
   document.getElementById('cenarios').innerHTML=ch;
 }
 
