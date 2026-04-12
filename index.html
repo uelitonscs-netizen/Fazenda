@@ -825,7 +825,9 @@ function renderSuplementacao(){
       if(perfil==='dono') html+='<div>Custo/mês: <strong style="color:var(--cream)">'+fmt(consumoEfetivo(i)*i.preco)+'</strong></div>';
       html+='</div>';
       html+='<div style="font-size:.7rem;color:var(--clay);margin-top:.3rem">Início: '+(i.data?new Date(i.data+'T00:00:00').toLocaleDateString('pt-BR'):'—')+'</div>';
-      html+='<div class="progress-bar" style="margin-top:.4rem"><div class="progress-fill'+(cor==='green'?' green':'')+'" style="width:'+pct+'%"></div></div></div>';
+      html+='<div class="progress-bar" style="margin-top:.4rem"><div class="progress-fill'+(cor==='green'?' green':'')+'" style="width:'+pct+'%"></div></div>';
+      if(perfil==='dono') html+='<div style="display:flex;gap:.5rem;margin-top:.6rem"><button style="flex:1;padding:.4rem;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;color:var(--cream);font-size:.8rem;cursor:pointer" onclick="editarInsumo('+i.id+')">✏️ Editar</button><button style="flex:1;padding:.4rem;background:rgba(192,57,43,.2);border:1px solid #C0392B;border-radius:8px;color:#e74c3c;font-size:.8rem;cursor:pointer" onclick="deletarInsumo('+i.id+')">🗑️ Deletar</button></div>';
+      html+='</div>';
     });
     if(perfil==='dono') html+='<div class="result-row total"><span class="label">Custo Total/mês</span><span class="value pos">'+fmt(totalSupMensal())+'</span></div>';
   }
@@ -840,7 +842,7 @@ function renderSuplementacao(){
       rows+='<tr><td><strong>'+i.nome+'</strong></td><td><span class="badge '+(i.tipo==='sal'?'sky':'yellow')+'">'+i.tipo+'</span></td>'+
       '<td class="mono">'+i.qtd+'</td><td class="mono '+cor+'">'+fmtN(sr,1)+'</td>'+
       '<td class="mono">'+fmt(i.preco)+'</td><td class="mono">'+fmt(i.qtd*i.preco)+'</td>'+
-      '<td class="mono">'+i.fmtN(consumoEfetivo(i),1)+'</td><td class="mono">'+fmt(consumoEfetivo(i)*i.preco)+'</td>'+
+      '<td class="mono">'+fmtN(consumoEfetivo(i),1)+'</td><td class="mono">'+fmt(consumoEfetivo(i)*i.preco)+'</td>'+
       '<td style="font-size:.75rem;color:var(--clay)">'+df+'</td>'+
       '<td><button class="btn sm outline" onclick="editarInsumo('+i.id+')">✏️</button> <button class="btn sm danger" onclick="deletarInsumo('+i.id+')">🗑️</button></td></tr>';
     });
