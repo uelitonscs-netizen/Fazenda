@@ -223,6 +223,8 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
   .modal-footer .btn{flex:1;justify-content:center;min-height:48px;}
   .animal-search-bar input,.animal-search-bar select{min-height:48px;font-size:1rem;}
 }
+.vacina-chip{display:inline-block;padding:.3rem .7rem;background:var(--green-light);color:var(--green);border:1px solid var(--border2);border-radius:20px;font-size:.72rem;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;}
+.vacina-chip:active{background:var(--green);color:#FFF;}
 @media(max-width:480px){.kpi-grid{grid-template-columns:1fr 1fr;}}
 </style>
 </head>
@@ -421,6 +423,105 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         <div id="resultado-projecao" style="margin-top:1.25rem"></div>
       </div>
       <div class="card"><div class="card-title">📊 Comparativo de Cenários</div><div id="cenarios"></div></div>
+    </div>
+
+    <!-- NOTAS -->
+    <div id="notas" class="section">
+      <!-- TO-DO LIST -->
+      <div class="card" id="card-todo">
+        <div class="card-title">✅ To-Do List</div>
+        <div id="todo-list"></div>
+        <div style="margin-top:.75rem;display:flex;gap:.5rem">
+          <input type="text" id="todo-input" placeholder="Nova tarefa..." style="flex:1;padding:.6rem .9rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.85rem;outline:none">
+          <select id="todo-visib" style="padding:.6rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.8rem;outline:none">
+            <option value="todos">👁 Todos</option>
+            <option value="dono">🔒 Só Dono</option>
+          </select>
+          <button class="btn" style="padding:.6rem .9rem" onclick="adicionarTodo()">+</button>
+        </div>
+      </div>
+
+      <!-- NOTAS LIVRES -->
+      <div class="card" id="card-notas-livres">
+        <div class="card-title">📝 Notas</div>
+        <div id="notas-list"></div>
+        <div style="margin-top:.75rem">
+          <input type="text" id="nota-titulo" placeholder="Título (ex: Aluguel de pastagem)" style="width:100%;padding:.6rem .9rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.85rem;outline:none;margin-bottom:.5rem">
+          <textarea id="nota-texto" placeholder="Detalhe da nota..." style="width:100%;padding:.6rem .9rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.85rem;outline:none;resize:vertical;min-height:70px;font-family:'DM Sans',sans-serif"></textarea>
+          <div style="display:flex;gap:.5rem;margin-top:.5rem">
+            <select id="nota-visib" style="flex:1;padding:.6rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.8rem;outline:none">
+              <option value="todos">👁 Todos</option>
+              <option value="dono">🔒 Só Dono</option>
+            </select>
+            <button class="btn" onclick="adicionarNota()">+ Salvar Nota</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CALENDÁRIO DE VACINAS -->
+      <div class="card" id="card-vacinas">
+        <div class="card-title">💉 Calendário de Vacinas</div>
+        <div id="vacinas-list"></div>
+        <div style="margin-top:.75rem;display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+          <div style="grid-column:1/-1">
+            <label style="font-size:.65rem;font-family:'DM Mono',monospace;color:var(--clay);letter-spacing:.08em;text-transform:uppercase;display:block;margin-bottom:.4rem">Selecionar ou digitar</label>
+            <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.5rem" id="vacina-chips"></div>
+            <input type="text" id="vacina-nome" placeholder="Ou digite o nome..." style="width:100%;padding:.6rem .9rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.85rem;outline:none">
+          </div>
+          <div style="grid-column:1/-1">
+            <div style="font-size:.68rem;color:var(--clay);margin-bottom:.4rem;font-family:'DM Mono',monospace;letter-spacing:.06em">SUGESTÕES RÁPIDAS</div>
+            <div style="display:flex;flex-wrap:wrap;gap:.35rem" id="vacina-sugestoes">
+              <span onclick="selecionarVacina('Febre Aftosa')" class="vacina-chip">🦠 Febre Aftosa</span>
+              <span onclick="selecionarVacina('Brucelose')" class="vacina-chip">🦠 Brucelose</span>
+              <span onclick="selecionarVacina('Raiva')" class="vacina-chip">🦠 Raiva</span>
+              <span onclick="selecionarVacina('Clostridiose')" class="vacina-chip">🦠 Clostridiose</span>
+              <span onclick="selecionarVacina('IBR/BVD')" class="vacina-chip">🦠 IBR/BVD</span>
+              <span onclick="selecionarVacina('Leptospirose')" class="vacina-chip">🦠 Leptospirose</span>
+              <span onclick="selecionarVacina('Carbúnculo Sintomático')" class="vacina-chip">🦠 Carbúnculo</span>
+              <span onclick="selecionarVacina('Botulismo')" class="vacina-chip">🦠 Botulismo</span>
+              <span onclick="selecionarVacina('Vermífugo — Ivermectina')" class="vacina-chip">💊 Ivermectina</span>
+              <span onclick="selecionarVacina('Vermífugo — Doramectina')" class="vacina-chip">💊 Doramectina</span>
+              <span onclick="selecionarVacina('Vermífugo — Albendazol')" class="vacina-chip">💊 Albendazol</span>
+              <span onclick="selecionarVacina('Carrapaticida')" class="vacina-chip">🪲 Carrapaticida</span>
+              <span onclick="selecionarVacina('Bicheira — Spray')" class="vacina-chip">🩹 Bicheira</span>
+              <span onclick="selecionarVacina('Complexo B')" class="vacina-chip">💉 Complexo B</span>
+              <span onclick="selecionarVacina('Oxitetraciclina')" class="vacina-chip">💉 Oxitetraciclina</span>
+              <span onclick="selecionarVacina('Flunixin Meglumine')" class="vacina-chip">💉 Flunixin</span>
+              <span onclick="selecionarVacina('Penicilina')" class="vacina-chip">💉 Penicilina</span>
+              <span onclick="selecionarVacina('Suplemento Mineral')" class="vacina-chip">🧪 Suplemento Mineral</span>
+            </div>
+          </div>
+          <div class="field"><label>Data Aplicação</label><input type="date" id="vacina-data"></div>
+          <div class="field"><label>Próxima Dose</label><input type="date" id="vacina-proxima"></div>
+          <input type="text" id="vacina-lote" placeholder="Lote(s) aplicado" style="padding:.6rem .9rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.85rem;outline:none">
+          <select id="vacina-visib" style="padding:.6rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.8rem;outline:none">
+            <option value="todos">👁 Todos</option>
+            <option value="dono">🔒 Só Dono</option>
+          </select>
+        </div>
+        <button class="btn" style="width:100%;margin-top:.75rem;justify-content:center" onclick="adicionarVacina()">+ Registrar Vacina</button>
+      </div>
+
+      <!-- LEMBRETES + CALENDÁRIO -->
+      <div class="card" id="card-lembretes">
+        <div class="card-title">🗓️ Lembretes</div>
+        <div id="calendario-view" style="margin-bottom:1rem"></div>
+        <div id="lembretes-list"></div>
+        <div style="margin-top:.75rem;display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+          <div style="grid-column:1/-1">
+            <label style="font-size:.65rem;font-family:'DM Mono',monospace;color:var(--clay);letter-spacing:.08em;text-transform:uppercase;display:block;margin-bottom:.4rem">Sugestões rápidas</label>
+            <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.5rem" id="lembrete-chips"></div>
+            <input type="text" id="lembrete-titulo" placeholder="Ou digite o lembrete..." style="width:100%;padding:.6rem .9rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.85rem;outline:none">
+          </div>
+          <div class="field"><label>Data</label><input type="date" id="lembrete-data"></div>
+          <div class="field"><label>Hora (opcional)</label><input type="time" id="lembrete-hora"></div>
+          <select id="lembrete-visib" style="padding:.6rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.8rem;outline:none">
+            <option value="todos">👁 Todos</option>
+            <option value="dono">🔒 Só Dono</option>
+          </select>
+          <button class="btn" onclick="adicionarLembrete()" style="justify-content:center">+ Salvar</button>
+        </div>
+      </div>
     </div>
   </main>
 </div>
@@ -707,8 +808,8 @@ function alterarSenhaVaqueiro(){
 }
 
 // NAV
-var NAV_DONO=[{id:'dashboard',label:'Dashboard'},{id:'animais',label:'🐮 Animais'},{id:'suplementacao',label:'Suplementação'},{id:'rebanho',label:'Rebanho'},{id:'custos',label:'Custos'},{id:'projecao',label:'Projeção'}];
-var NAV_VAQUEIRO=[{id:'animais',label:'🐮 Animais'},{id:'suplementacao',label:'📦 Estoque'}];
+var NAV_DONO=[{id:'dashboard',label:'Dashboard'},{id:'animais',label:'🐮 Animais'},{id:'suplementacao',label:'Suplementação'},{id:'rebanho',label:'Rebanho'},{id:'custos',label:'Custos'},{id:'projecao',label:'Projeção'},{id:'notas',label:'📋 Notas'}];
+var NAV_VAQUEIRO=[{id:'animais',label:'🐮 Animais'},{id:'suplementacao',label:'📦 Estoque'},{id:'notas',label:'📋 Notas'}];
 function buildNav(){
   var items=perfil==='dono'?NAV_DONO:NAV_VAQUEIRO;
   var html='';
@@ -724,7 +825,10 @@ function showSection(btn,id){
   else { var nb=document.getElementById('nav-'+id); if(nb) nb.classList.add('active'); }
   renderAll();
 }
-function showSectionById(id){ showSection(null,id); }
+function showSectionById(id){
+  showSection(null,id);
+  if(id==='notas'){ loadNotas(); setTimeout(initChips, 100); }
+}
 
 // PERFIL UI — esconde elementos do vaqueiro
 function applyPerfilUI(){
@@ -1473,6 +1577,400 @@ function toggleTema() {
     });
   } catch(e){}
 })();
+
+
+
+// ===== CHIPS DE VACINAS E REMÉDIOS =====
+var VACINAS_COMUNS = [
+  // Vacinas obrigatórias/comuns
+  {nome:'Febre Aftosa', cat:'vacina', icon:'💉'},
+  {nome:'Brucelose', cat:'vacina', icon:'💉'},
+  {nome:'Raiva Bovina', cat:'vacina', icon:'💉'},
+  {nome:'Clostridioses (Polivalente)', cat:'vacina', icon:'💉'},
+  {nome:'IBR/BVD', cat:'vacina', icon:'💉'},
+  {nome:'Leptospirose', cat:'vacina', icon:'💉'},
+  {nome:'Carbúnculo Sintomático', cat:'vacina', icon:'💉'},
+  // Vermífugos
+  {nome:'Ivermectina', cat:'vermi', icon:'🪱'},
+  {nome:'Doramectina', cat:'vermi', icon:'🪱'},
+  {nome:'Albendazol', cat:'vermi', icon:'🪱'},
+  {nome:'Ricobendazol', cat:'vermi', icon:'🪱'},
+  // Remédios comuns
+  {nome:'Antibiótico (Oxitetraciclina)', cat:'remedio', icon:'💊'},
+  {nome:'Anti-inflamatório (Meloxicam)', cat:'remedio', icon:'💊'},
+  {nome:'Vitamina ADE', cat:'supl', icon:'🧪'},
+  {nome:'Complexo B', cat:'supl', icon:'🧪'},
+  {nome:'Fósforo (Fosfato)', cat:'supl', icon:'🧪'},
+  // Manejo
+  {nome:'Carrapaticida (Banho)', cat:'manejo', icon:'🛁'},
+  {nome:'Brinco / Identificação', cat:'manejo', icon:'🏷️'},
+  {nome:'Casqueamento', cat:'manejo', icon:'🦶'},
+  {nome:'Pesagem do Rebanho', cat:'manejo', icon:'⚖️'},
+];
+
+var LEMBRETES_COMUNS = [
+  {nome:'Vermifugar rebanho', icon:'🪱'},
+  {nome:'Banho carrapaticida', icon:'🛁'},
+  {nome:'Pesagem do rebanho', icon:'⚖️'},
+  {nome:'Renovar estoque de sal', icon:'🧂'},
+  {nome:'Renovar estoque de ração', icon:'🌾'},
+  {nome:'Pagamento aluguel pastagem', icon:'💰'},
+  {nome:'Visita do veterinário', icon:'👨‍⚕️'},
+  {nome:'Vacinação programada', icon:'💉'},
+  {nome:'Separar animais para venda', icon:'🐄'},
+  {nome:'Manutenção de cercas', icon:'🔧'},
+];
+
+var CAT_COLORS = {
+  vacina:'green', vermi:'sky', remedio:'red', supl:'gold', manejo:'yellow'
+};
+
+function initChips(){
+  var vChips = document.getElementById('vacina-chips');
+  var lChips = document.getElementById('lembrete-chips');
+  if(!vChips || !lChips) return;
+
+  // Vacina chips
+  vChips.innerHTML = '';
+  VACINAS_COMUNS.forEach(function(v){
+    var btn = document.createElement('button');
+    btn.style.cssText = 'padding:.25rem .6rem;border-radius:20px;border:1.5px solid var(--border2);background:var(--bg2);color:var(--text2);font-size:.72rem;cursor:pointer;font-family:DM Sans,sans-serif;white-space:nowrap;transition:all .15s';
+    btn.textContent = v.icon+' '+v.nome;
+    btn.addEventListener('click', function(){
+      document.getElementById('vacina-nome').value = v.nome;
+      // Highlight selected
+      vChips.querySelectorAll('button').forEach(function(b){ b.style.background='var(--bg2)'; b.style.color='var(--text2)'; b.style.borderColor='var(--border2)'; });
+      btn.style.background = 'var(--green)';
+      btn.style.color = '#FFF';
+      btn.style.borderColor = 'var(--green)';
+    });
+    vChips.appendChild(btn);
+  });
+
+  // Lembrete chips
+  lChips.innerHTML = '';
+  LEMBRETES_COMUNS.forEach(function(l){
+    var btn = document.createElement('button');
+    btn.style.cssText = 'padding:.25rem .6rem;border-radius:20px;border:1.5px solid var(--border2);background:var(--bg2);color:var(--text2);font-size:.72rem;cursor:pointer;font-family:DM Sans,sans-serif;white-space:nowrap;transition:all .15s';
+    btn.textContent = l.icon+' '+l.nome;
+    btn.addEventListener('click', function(){
+      document.getElementById('lembrete-titulo').value = l.nome;
+      lChips.querySelectorAll('button').forEach(function(b){ b.style.background='var(--bg2)'; b.style.color='var(--text2)'; b.style.borderColor='var(--border2)'; });
+      btn.style.background = 'var(--green)';
+      btn.style.color = '#FFF';
+      btn.style.borderColor = 'var(--green)';
+    });
+    lChips.appendChild(btn);
+  });
+}
+
+// ===== NOTAS =====
+// ===== LEMBRETES + CALENDÁRIO =====
+
+function adicionarLembrete(){
+  var titulo = document.getElementById('lembrete-titulo').value.trim();
+  if(!titulo) return toast('Informe o lembrete','error');
+  var data   = document.getElementById('lembrete-data').value;
+  if(!data)  return toast('Informe a data','error');
+  var hora   = document.getElementById('lembrete-hora').value;
+  var visib  = document.getElementById('lembrete-visib').value;
+  if(!stateNotas.lembretes) stateNotas.lembretes = [];
+  stateNotas.lembretes.push({id:Date.now(), titulo:titulo, data:data, hora:hora, visib:visib, done:false});
+  saveNotas(); renderLembretes(); renderCalendario();
+  document.getElementById('lembrete-titulo').value='';
+  document.getElementById('lembrete-data').value='';
+  document.getElementById('lembrete-hora').value='';
+  toast('🗓️ Lembrete salvo!');
+}
+
+function deletarLembrete(id){
+  stateNotas.lembretes = (stateNotas.lembretes||[]).filter(function(x){ return x.id!==id; });
+  saveNotas(); renderLembretes(); renderCalendario(); toast('🗑️ Lembrete removido.');
+}
+
+function toggleLembrete(id){
+  var l = (stateNotas.lembretes||[]).find(function(x){ return x.id===id; });
+  if(l){ l.done = !l.done; saveNotas(); renderLembretes(); }
+}
+
+function renderLembretes(){
+  var el = document.getElementById('lembretes-list');
+  if(!el) return;
+  var hoje = new Date(); hoje.setHours(0,0,0,0);
+  var items = (stateNotas.lembretes||[]).filter(function(l){
+    return perfil==='dono' || l.visib==='todos';
+  }).sort(function(a,b){ return a.data.localeCompare(b.data); });
+
+  if(items.length===0){ el.innerHTML='<div style="color:var(--clay);font-size:.82rem;padding:.5rem 0">Nenhum lembrete ainda.</div>'; return; }
+
+  var h = '';
+  items.forEach(function(l){
+    var dataEvt = new Date(l.data+'T00:00:00');
+    var diff = Math.ceil((dataEvt-hoje)/(1000*60*60*24));
+    var cor, badge;
+    if(l.done){ cor='var(--border)'; badge=''; }
+    else if(diff < 0){ cor='var(--red-light)'; badge='<span class="badge red">Vencido</span>'; }
+    else if(diff === 0){ cor='#FFF8E1'; badge='<span class="badge yellow">Hoje!</span>'; }
+    else if(diff <= 7){ cor='#FFF8E1'; badge='<span class="badge yellow">'+diff+' dias</span>'; }
+    else { cor='var(--bg)'; badge='<span class="badge green">'+diff+' dias</span>'; }
+
+    var df = dataEvt.toLocaleDateString('pt-BR');
+    var hora = l.hora ? ' às '+l.hora : '';
+    var lockIcon = l.visib==='dono' ? ' 🔒' : '';
+    var doneStyle = l.done ? 'text-decoration:line-through;opacity:.5' : '';
+
+    h += '<div style="background:'+cor+';border:1px solid var(--border);border-radius:10px;padding:.85rem;margin-bottom:.6rem">';
+    h += '<div style="display:flex;align-items:flex-start;gap:.6rem">';
+    h += '<input type="checkbox"'+(l.done?' checked':'')+' onchange="toggleLembrete('+l.id+')" style="width:18px;height:18px;cursor:pointer;accent-color:var(--green);flex-shrink:0;margin-top:.1rem">';
+    h += '<div style="flex:1">';
+    h += '<div style="display:flex;justify-content:space-between;align-items:flex-start">';
+    h += '<strong style="font-size:.88rem;color:var(--text);'+doneStyle+'">'+l.titulo+lockIcon+'</strong>';
+    if(perfil==='dono') h += '<button onclick="deletarLembrete('+l.id+')" style="background:var(--red-light);border:none;border-radius:6px;color:var(--red);padding:.2rem .5rem;cursor:pointer;font-size:.75rem;flex-shrink:0;margin-left:.5rem">🗑️</button>';
+    h += '</div>';
+    h += '<div style="font-size:.75rem;color:var(--clay);margin-top:.25rem">📅 '+df+hora+'</div>';
+    if(badge) h += '<div style="margin-top:.3rem">'+badge+'</div>';
+    h += '</div></div></div>';
+  });
+  el.innerHTML = h;
+}
+
+function renderCalendario(){
+  var el = document.getElementById('calendario-view');
+  if(!el) return;
+
+  var hoje = new Date();
+  var ano = hoje.getFullYear();
+  var mes = hoje.getMonth();
+  var nomeMes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][mes];
+
+  // Collect event dates this month
+  var eventDays = {};
+  var allEvents = (stateNotas.lembretes||[]).concat(
+    (stateNotas.vacinas||[]).map(function(v){ return {data:v.proxima||v.data, titulo:v.nome, visib:v.visib}; })
+  ).filter(function(e){ return e.data; });
+
+  allEvents.forEach(function(e){
+    if(perfil!=='dono' && e.visib==='dono') return;
+    var d = new Date(e.data+'T00:00:00');
+    if(d.getFullYear()===ano && d.getMonth()===mes){
+      var day = d.getDate();
+      if(!eventDays[day]) eventDays[day] = [];
+      eventDays[day].push(e);
+    }
+  });
+
+  var primeiroDia = new Date(ano, mes, 1).getDay();
+  var diasNoMes = new Date(ano, mes+1, 0).getDate();
+  var hojeNum = hoje.getDate();
+
+  var h = '<div style="margin-bottom:.75rem">';
+  h += '<div style="text-align:center;font-weight:700;font-size:.9rem;color:var(--text);margin-bottom:.6rem">'+nomeMes+' '+ano+'</div>';
+  h += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center">';
+  var dias = ['D','S','T','Q','Q','S','S'];
+  dias.forEach(function(d){ h += '<div style="font-size:.65rem;font-weight:700;color:var(--clay);padding:.2rem">'+d+'</div>'; });
+
+  for(var i=0; i<primeiroDia; i++) h += '<div></div>';
+
+  for(var d=1; d<=diasNoMes; d++){
+    var isHoje = d===hojeNum;
+    var hasEvent = eventDays[d] && eventDays[d].length>0;
+    var bg = isHoje ? 'var(--green)' : 'transparent';
+    var color = isHoje ? '#FFF' : 'var(--text)';
+    var border = isHoje ? 'none' : '1px solid transparent';
+    h += '<div style="padding:.3rem;border-radius:6px;background:'+bg+';color:'+color+';font-size:.78rem;font-weight:'+(isHoje?'700':'400')+';position:relative;cursor:'+(hasEvent?'pointer':'default')+'">';
+    h += d;
+    if(hasEvent){
+      var evt = eventDays[d][0];
+      var diff2 = Math.ceil((new Date(evt.data+'T00:00:00')-new Date().setHours(0,0,0,0))/(1000*60*60*24));
+      var dotColor = diff2<0?'var(--red)':diff2<=7?'var(--gold)':'var(--green-mid)';
+      h += '<div style="width:5px;height:5px;border-radius:50%;background:'+dotColor+';margin:1px auto 0"></div>';
+    } else {
+      h += '<div style="height:6px"></div>';
+    }
+    h += '</div>';
+  }
+  h += '</div></div>';
+  el.innerHTML = h;
+}
+
+
+var stateNotas = { todos: [], notas: [], vacinas: [] };
+
+function saveNotas(){
+  db.ref('fazenda_notas').set(stateNotas)
+    .catch(function(e){ toast('Erro ao salvar nota: '+e.message,'error'); });
+}
+
+function loadNotas(){
+  db.ref('fazenda_notas').once('value').then(function(snap){
+    var d = snap.val();
+    if(d){
+      stateNotas.todos     = Array.isArray(d.todos)     ? d.todos     : (d.todos     ? Object.values(d.todos)     : []);
+      stateNotas.notas     = Array.isArray(d.notas)     ? d.notas     : (d.notas     ? Object.values(d.notas)     : []);
+      stateNotas.vacinas   = Array.isArray(d.vacinas)   ? d.vacinas   : (d.vacinas   ? Object.values(d.vacinas)   : []);
+      stateNotas.lembretes = Array.isArray(d.lembretes) ? d.lembretes : (d.lembretes ? Object.values(d.lembretes) : []);
+    }
+    renderNotas();
+  });
+}
+
+function renderNotas(){
+  renderTodos();
+  renderNotasLivres();
+  renderVacinas();
+  renderLembretes();
+  renderCalendario();
+}
+
+function renderTodos(){
+  var el = document.getElementById('todo-list');
+  if(!el) return;
+  var items = stateNotas.todos.filter(function(t){
+    return perfil==='dono' || t.visib==='todos';
+  });
+  if(items.length===0){ el.innerHTML='<div style="color:var(--clay);font-size:.82rem;padding:.5rem 0">Nenhuma tarefa ainda.</div>'; return; }
+  var h = '';
+  items.forEach(function(t){
+    var done = t.done ? 'line-through;opacity:.5' : 'none';
+    var lockIcon = t.visib==='dono' ? ' 🔒' : '';
+    h += '<div style="display:flex;align-items:center;gap:.6rem;padding:.5rem 0;border-bottom:1px solid var(--border)">';
+    h += '<input type="checkbox"'+(t.done?' checked':'')+' onchange="toggleTodo('+t.id+')" style="width:18px;height:18px;cursor:pointer;accent-color:var(--green)">';
+    h += '<span style="flex:1;font-size:.85rem;text-decoration:'+done+';color:var(--text)">'+t.texto+lockIcon+'</span>';
+    if(perfil==='dono') h += '<button onclick="deletarTodo('+t.id+')" style="background:var(--red-light);border:none;border-radius:6px;color:var(--red);padding:.2rem .5rem;cursor:pointer;font-size:.75rem">🗑️</button>';
+    h += '</div>';
+  });
+  el.innerHTML = h;
+}
+
+function adicionarTodo(){
+  var input = document.getElementById('todo-input');
+  var texto = input.value.trim();
+  if(!texto) return toast('Digite uma tarefa','error');
+  var visib = document.getElementById('todo-visib').value;
+  stateNotas.todos.push({id:Date.now(), texto:texto, done:false, visib:visib});
+  saveNotas(); renderTodos(); input.value='';
+  toast('✅ Tarefa adicionada!');
+}
+
+function toggleTodo(id){
+  var t = stateNotas.todos.find(function(x){ return x.id===id; });
+  if(t){ t.done = !t.done; saveNotas(); renderTodos(); }
+}
+
+function deletarTodo(id){
+  stateNotas.todos = stateNotas.todos.filter(function(x){ return x.id!==id; });
+  saveNotas(); renderTodos(); toast('🗑️ Tarefa removida.');
+}
+
+function renderNotasLivres(){
+  var el = document.getElementById('notas-list');
+  if(!el) return;
+  var items = stateNotas.notas.filter(function(n){
+    return perfil==='dono' || n.visib==='todos';
+  });
+  if(items.length===0){ el.innerHTML='<div style="color:var(--clay);font-size:.82rem;padding:.5rem 0">Nenhuma nota ainda.</div>'; return; }
+  var h = '';
+  items.slice().reverse().forEach(function(n){
+    var lockIcon = n.visib==='dono' ? ' 🔒' : '';
+    h += '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.85rem;margin-bottom:.6rem">';
+    h += '<div style="display:flex;justify-content:space-between;align-items:flex-start">';
+    h += '<strong style="font-size:.88rem;color:var(--text)">'+n.titulo+lockIcon+'</strong>';
+    if(perfil==='dono') h += '<button onclick="deletarNota('+n.id+')" style="background:var(--red-light);border:none;border-radius:6px;color:var(--red);padding:.2rem .5rem;cursor:pointer;font-size:.75rem;flex-shrink:0;margin-left:.5rem">🗑️</button>';
+    h += '</div>';
+    h += '<div style="font-size:.82rem;color:var(--text2);margin-top:.35rem;white-space:pre-wrap">'+n.texto+'</div>';
+    var df = n.data ? new Date(n.data).toLocaleDateString('pt-BR') : '';
+    h += '<div style="font-size:.7rem;color:var(--clay);margin-top:.35rem">'+df+'</div>';
+    h += '</div>';
+  });
+  el.innerHTML = h;
+}
+
+function adicionarNota(){
+  var titulo = document.getElementById('nota-titulo').value.trim();
+  var texto  = document.getElementById('nota-texto').value.trim();
+  if(!titulo) return toast('Informe um título','error');
+  var visib  = document.getElementById('nota-visib').value;
+  stateNotas.notas.push({id:Date.now(), titulo:titulo, texto:texto, visib:visib, data:new Date().toISOString()});
+  saveNotas(); renderNotasLivres();
+  document.getElementById('nota-titulo').value='';
+  document.getElementById('nota-texto').value='';
+  toast('📝 Nota salva!');
+}
+
+function deletarNota(id){
+  stateNotas.notas = stateNotas.notas.filter(function(x){ return x.id!==id; });
+  saveNotas(); renderNotasLivres(); toast('🗑️ Nota removida.');
+}
+
+function renderVacinas(){
+  var el = document.getElementById('vacinas-list');
+  if(!el) return;
+  var items = stateNotas.vacinas.filter(function(v){
+    return perfil==='dono' || v.visib==='todos';
+  });
+  if(items.length===0){ el.innerHTML='<div style="color:var(--clay);font-size:.82rem;padding:.5rem 0">Nenhuma vacina registrada.</div>'; return; }
+  var hoje = new Date(); hoje.setHours(0,0,0,0);
+  var sorted = items.slice().sort(function(a,b){ return (a.proxima||'').localeCompare(b.proxima||''); });
+  var h = '';
+  sorted.forEach(function(v){
+    var proxDate = v.proxima ? new Date(v.proxima+'T00:00:00') : null;
+    var diasRestantes = proxDate ? Math.ceil((proxDate-hoje)/(1000*60*60*24)) : null;
+    var cor = diasRestantes===null ? 'sky' : diasRestantes < 0 ? 'red' : diasRestantes <= 30 ? 'yellow' : 'green';
+    var statusTxt = diasRestantes===null ? '' : diasRestantes < 0 ? 'Vencida' : diasRestantes===0 ? 'Hoje!' : diasRestantes+' dias';
+    var lockIcon = v.visib==='dono' ? ' 🔒' : '';
+    h += '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.85rem;margin-bottom:.6rem">';
+    h += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.4rem">';
+    h += '<strong style="font-size:.88rem;color:var(--text)">💉 '+v.nome+lockIcon+'</strong>';
+    h += '<div style="display:flex;gap:.35rem;align-items:center">';
+    if(statusTxt) h += '<span class="badge '+cor+'">'+statusTxt+'</span>';
+    if(perfil==='dono') h += '<button onclick="deletarVacina('+v.id+')" style="background:var(--red-light);border:none;border-radius:6px;color:var(--red);padding:.2rem .5rem;cursor:pointer;font-size:.75rem">🗑️</button>';
+    h += '</div></div>';
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.25rem;font-size:.75rem;color:var(--clay)">';
+    if(v.lote) h += '<div style="grid-column:1/-1">Lote: <strong style="color:var(--text)">'+v.lote+'</strong></div>';
+    if(v.data) h += '<div>Aplicada: <strong style="color:var(--text)">'+new Date(v.data+'T00:00:00').toLocaleDateString('pt-BR')+'</strong></div>';
+    if(v.proxima) h += '<div>Próxima: <strong style="color:var(--text)">'+new Date(v.proxima+'T00:00:00').toLocaleDateString('pt-BR')+'</strong></div>';
+    h += '</div></div>';
+  });
+  el.innerHTML = h;
+}
+
+function selecionarVacina(nome){
+  document.getElementById('vacina-nome').value = nome;
+  document.getElementById('vacina-nome').focus();
+  // Highlight selected chip
+  var chips = document.querySelectorAll('.vacina-chip');
+  for(var i=0; i<chips.length; i++){
+    chips[i].style.background = chips[i].textContent.indexOf(nome.split(' ')[0]) > -1 ? 'var(--green)' : 'var(--green-light)';
+    chips[i].style.color = chips[i].textContent.indexOf(nome.split(' ')[0]) > -1 ? '#FFF' : 'var(--green)';
+  }
+}
+function adicionarVacina(){
+  var nome = document.getElementById('vacina-nome').value.trim();
+  if(!nome) return toast('Informe o nome da vacina','error');
+  var visib   = document.getElementById('vacina-visib').value;
+  var data    = document.getElementById('vacina-data').value;
+  var proxima = document.getElementById('vacina-proxima').value;
+  var lote    = document.getElementById('vacina-lote').value.trim();
+  stateNotas.vacinas.push({id:Date.now(), nome:nome, data:data, proxima:proxima, lote:lote, visib:visib});
+  saveNotas(); renderVacinas();
+  document.getElementById('vacina-nome').value='';
+  document.getElementById('vacina-data').value='';
+  document.getElementById('vacina-proxima').value='';
+  document.getElementById('vacina-lote').value='';
+  toast('💉 Vacina registrada!');
+  document.getElementById('vacina-nome').value='';
+  // Reset chips
+  var chips = document.querySelectorAll('.vacina-chip');
+  for(var i=0; i<chips.length; i++){
+    chips[i].style.background='';
+    chips[i].style.color='';
+  }
+}
+
+function deletarVacina(id){
+  stateNotas.vacinas = stateNotas.vacinas.filter(function(x){ return x.id!==id; });
+  saveNotas(); renderVacinas(); toast('🗑️ Vacina removida.');
+}
 
 // RESTAURAR SESSÃO após refresh
 (function(){
