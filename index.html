@@ -427,17 +427,24 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
 
     <!-- NOTAS -->
     <div id="notas" class="section">
+      <!-- CALENDÁRIO VISUAL -->
+      <div class="card" id="card-calendario-visual">
+        <div class="card-title">📅 Calendário</div>
+        <div id="calendario-view" style="margin-bottom:.5rem"></div>
+      </div>
       <!-- TO-DO LIST -->
       <div class="card" id="card-todo">
         <div class="card-title">✅ To-Do List</div>
         <div id="todo-list"></div>
-        <div style="margin-top:.75rem;display:flex;gap:.5rem">
-          <input type="text" id="todo-input" placeholder="Nova tarefa..." style="flex:1;padding:.6rem .9rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.85rem;outline:none">
-          <select id="todo-visib" style="padding:.6rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.8rem;outline:none">
-            <option value="todos">👁 Todos</option>
-            <option value="dono">🔒 Só Dono</option>
-          </select>
-          <button class="btn" style="padding:.6rem .9rem" onclick="adicionarTodo()">+</button>
+        <div style="margin-top:.75rem">
+          <input type="text" id="todo-input" placeholder="Nova tarefa..." style="width:100%;padding:.6rem .9rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.85rem;outline:none;margin-bottom:.5rem;box-sizing:border-box">
+          <div style="display:flex;gap:.5rem">
+            <select id="todo-visib" style="flex:1;padding:.6rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.8rem;outline:none">
+              <option value="todos">👁 Todos</option>
+              <option value="dono">🔒 Só Dono</option>
+            </select>
+            <button class="btn" style="flex:1;justify-content:center" onclick="adicionarTodo()">+ Adicionar</button>
+          </div>
         </div>
       </div>
 
@@ -505,7 +512,6 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
       <!-- LEMBRETES + CALENDÁRIO -->
       <div class="card" id="card-lembretes">
         <div class="card-title">🗓️ Lembretes</div>
-        <div id="calendario-view" style="margin-bottom:1rem"></div>
         <div id="lembretes-list"></div>
         <div style="margin-top:.75rem;display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
           <div style="grid-column:1/-1">
