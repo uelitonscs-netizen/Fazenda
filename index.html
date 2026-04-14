@@ -835,7 +835,8 @@ function showSectionById(id){
   showSection(null,id);
   if(id==='notas'){
     loadNotas();
-    setTimeout(function(){ initChips(); renderCalendario(); }, 150);
+    setTimeout(function(){ initChips(); }, 100);
+    setTimeout(function(){ renderCalendario(); }, 400);
   }
 }
 
@@ -1637,7 +1638,6 @@ var CAT_COLORS = {
 function initChips(){
   var vChips = document.getElementById('vacina-chips');
   var lChips = document.getElementById('lembrete-chips');
-  if(!vChips || !lChips) return;
 
   // Vacina chips
   vChips.innerHTML = '';
@@ -1745,7 +1745,7 @@ function renderLembretes(){
 
 function renderCalendario(){
   var el = document.getElementById('calendario-view');
-  if(!el) return;
+  if(!el){ setTimeout(renderCalendario, 300); return; }
 
   var hoje = new Date();
   var ano = hoje.getFullYear();
@@ -1828,7 +1828,7 @@ function renderNotas(){
   renderNotasLivres();
   renderVacinas();
   renderLembretes();
-  renderCalendario();
+  setTimeout(renderCalendario, 200);
 }
 
 function renderTodos(){
