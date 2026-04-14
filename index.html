@@ -833,7 +833,10 @@ function showSection(btn,id){
 }
 function showSectionById(id){
   showSection(null,id);
-  if(id==='notas'){ loadNotas(); setTimeout(initChips, 100); }
+  if(id==='notas'){
+    loadNotas();
+    setTimeout(function(){ initChips(); renderCalendario(); }, 150);
+  }
 }
 
 // PERFIL UI — esconde elementos do vaqueiro
