@@ -726,10 +726,14 @@ var db = firebase.database();
 
 var SENHA_DONO = 'fazenda2025';
 var SENHA_VAQUEIRO = 'vaqueiro2025';
+var senhaVaqueiroCarregada = false;
 
 // Carrega senha do vaqueiro salva no Firebase
 db.ref('config/senhaVaqueiro').once('value').then(function(snap){
   if(snap.val()) SENHA_VAQUEIRO = snap.val();
+  senhaVaqueiroCarregada = true;
+}).catch(function(){
+  senhaVaqueiroCarregada = true; // fallback to default if Firebase fails
 });
 
 // Estado
@@ -831,9 +835,20 @@ function confirmarSenha(){
   var si=document.getElementById('senha-input');
   var s=si.value;
   var modo=si.dataset.modo||'dono';
-  if(modo==='dono' && s===SENHA_DONO){ entrar('dono'); }
-  else if(modo==='vaqueiro' && s===SENHA_VAQUEIRO){ entrar('vaqueiro'); }
-  else { toast('Senha incorreta','error'); si.value=''; }
+  if(modo==='dono' && s===SENHA_DONO){ entrar('dono'); return; }
+  if(modo==='vaqueiro'){
+    // If Firebase hasn't loaded yet, wait and retry
+    if(!senhaVaqueiroCarregada){
+      toast('🔄 Verificando senha...');
+      setTimeout(function(){
+        if(s===SENHA_VAQUEIRO){ entrar('vaqueiro'); }
+        else { toast('Senha incorreta','error'); si.value=''; }
+      }, 1500);
+      return;
+    }
+    if(s===SENHA_VAQUEIRO){ entrar('vaqueiro'); return; }
+  }
+  toast('Senha incorreta','error'); si.value='';
 }
 function entrarVaqueiro(){
   var sw = document.getElementById('senha-wrap');
@@ -846,15 +861,26 @@ function entrarVaqueiro(){
 function entrar(p){
   perfil=p;
   try { localStorage.setItem('fazenda_perfil', p); } catch(e){}
-  // Offer biometria registration to dono if not yet registered
+  // When dono logs in normally, restore biometria cred from Firebase to localStorage
   if(p==='dono' && window.PublicKeyCredential){
     try {
-      if(!localStorage.getItem(WEBAUTHN_CRED_KEY)){
-        setTimeout(function(){
-          PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(function(ok){
-            if(ok) toast('💡 Dica: Registre sua digital em Configurações para login rápido');
-          });
-        }, 2000);
+      var local = localStorage.getItem(WEBAUTHN_CRED_KEY);
+      if(!local){
+        // Try to restore from Firebase silently
+        loadCredFromFirebase(function(cred){
+          if(cred){
+            var btn = document.getElementById('btn-biometria');
+            if(btn) btn.style.display = 'none'; // already logged in
+            toast('🔏 Digital restaurada da nuvem para próximos logins!');
+          } else {
+            // No cred anywhere - offer to register
+            setTimeout(function(){
+              PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(function(ok){
+                if(ok) toast('💡 Registre sua digital (botão 🔏) para login rápido');
+              });
+            }, 2000);
+          }
+        });
       }
     } catch(e){}
   }
@@ -2122,23 +2148,60 @@ function openCollapse(id){
 
 // ===== BIOMETRIA / WEBAUTHN =====
 var WEBAUTHN_CRED_KEY = 'fazenda_webauthn_cred';
+var FIREBASE_BIO_PATH = 'config/biometria_dono';
 
-// Check if WebAuthn is available and if credential is saved
+// Save credential to Firebase backup
+function salvarCredFirebase(credData){
+  db.ref(FIREBASE_BIO_PATH).set(credData).catch(function(){});
+}
+
+// Load credential from Firebase if localStorage is empty
+function loadCredFromFirebase(callback){
+  db.ref(FIREBASE_BIO_PATH).once('value').then(function(snap){
+    var data = snap.val();
+    if(data && data.id && data.rawId){
+      try { localStorage.setItem(WEBAUTHN_CRED_KEY, JSON.stringify(data)); } catch(e){}
+      callback(data);
+    } else {
+      callback(null);
+    }
+  }).catch(function(){ callback(null); });
+}
+
+// Check if WebAuthn is available and if credential is saved (localStorage OR Firebase)
 function checkBiometria(){
   if(!window.PublicKeyCredential) return;
+  // First check localStorage
   try {
-    var cred = localStorage.getItem(WEBAUTHN_CRED_KEY);
-    if(cred){
-      document.getElementById('btn-biometria').style.display = 'flex';
+    var local = localStorage.getItem(WEBAUTHN_CRED_KEY);
+    if(local){
+      var btn = document.getElementById('btn-biometria');
+      if(btn) btn.style.display = 'flex';
+      return;
     }
   } catch(e){}
+  // If not in localStorage, try Firebase
+  loadCredFromFirebase(function(cred){
+    if(cred){
+      var btn = document.getElementById('btn-biometria');
+      if(btn) btn.style.display = 'flex';
+    }
+  });
 }
 
 // Register biometria after successful dono login
 function registrarBiometria(){
-  if(!window.PublicKeyCredential) return;
+  if(!window.PublicKeyCredential){
+    toast('WebAuthn não suportado neste navegador','error');
+    return;
+  }
+  toast('🔍 Verificando suporte a biometria...');
   PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(function(available){
-    if(!available) return;
+    if(!available){
+      toast('Biometria não disponível neste dispositivo','error');
+      return;
+    }
+    toast('📲 Aguardando confirmação biométrica...');
     var challenge = new Uint8Array(32);
     window.crypto.getRandomValues(challenge);
     var userId = new Uint8Array(16);
@@ -2157,11 +2220,18 @@ function registrarBiometria(){
         id: cred.id,
         rawId: btoa(String.fromCharCode.apply(null, new Uint8Array(cred.rawId)))
       };
-      localStorage.setItem(WEBAUTHN_CRED_KEY, JSON.stringify(credData));
-      document.getElementById('btn-biometria').style.display = 'flex';
-      toast('✅ Digital registrada! Use no próximo login.');
+      // Save to localStorage AND Firebase
+      try { localStorage.setItem(WEBAUTHN_CRED_KEY, JSON.stringify(credData)); } catch(e){}
+      salvarCredFirebase(credData);
+      var btnBio = document.getElementById('btn-biometria');
+      if(btnBio) btnBio.style.display = 'flex';
+      toast('✅ Digital registrada e salva na nuvem!');
     }).catch(function(e){
-      // User cancelled or not supported
+      if(e.name === 'NotAllowedError'){
+        toast('Autenticação cancelada pelo usuário','error');
+      } else {
+        toast('Erro: '+e.name+' — '+e.message,'error');
+      }
     });
   });
 }
@@ -2169,9 +2239,22 @@ function registrarBiometria(){
 // Login with biometria
 function loginBiometria(){
   if(!window.PublicKeyCredential) return toast('Biometria não suportada neste dispositivo','error');
+  // Try localStorage first, fallback to Firebase
+  var localCred = null;
+  try { localCred = JSON.parse(localStorage.getItem(WEBAUTHN_CRED_KEY)||'null'); } catch(e){}
+  if(localCred){
+    _executarLoginBiometria(localCred);
+  } else {
+    toast('🔄 Restaurando credencial da nuvem...');
+    loadCredFromFirebase(function(cred){
+      if(!cred) return toast('Nenhuma digital registrada. Use o botão 🔏 para registrar.','error');
+      _executarLoginBiometria(cred);
+    });
+  }
+}
+
+function _executarLoginBiometria(credData){
   try {
-    var credData = JSON.parse(localStorage.getItem(WEBAUTHN_CRED_KEY)||'null');
-    if(!credData) return toast('Nenhuma digital registrada','error');
     var challenge = new Uint8Array(32);
     window.crypto.getRandomValues(challenge);
     var rawId = Uint8Array.from(atob(credData.rawId), function(c){ return c.charCodeAt(0); });
@@ -2186,7 +2269,11 @@ function loginBiometria(){
       entrar('dono');
       toast('✅ Autenticado com biometria!');
     }).catch(function(e){
-      toast('Autenticação cancelada','error');
+      if(e.name === 'NotAllowedError'){
+        toast('Autenticação cancelada','error');
+      } else {
+        toast('Erro: '+e.name,'error');
+      }
     });
   } catch(e){
     toast('Erro na biometria: '+e.message,'error');
