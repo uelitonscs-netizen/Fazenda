@@ -312,40 +312,45 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
     <!-- ANIMAIS (vaqueiro vê primeiro) -->
     <div id="animais" class="section">
       <div class="kpi-grid" id="animais-kpis"></div>
-      <div class="card" id="card-cadastro-animal">
-        <div class="card-title">🐮 Cadastrar Animal</div>
-        <div class="form-grid three">
-          <div class="field"><label>Nº do Brinco *</label><input type="text" id="an-brinco" placeholder="Ex: 0042"></div>
-          <div class="field"><label>Lote</label><select id="an-lote"></select></div>
-          <div class="field"><label>Tipo</label><select id="an-tipo"><option value="novilha">Novilha</option><option value="vaca">Vaca</option><option value="bezerro">Bezerro</option><option value="touro">Touro</option></select></div>
-          <div class="field"><label>Raça</label><input type="text" id="an-raca" placeholder="Ex: Nelore cruzado"></div>
-          <div class="field"><label>Peso Atual (@)</label><input type="number" id="an-peso" placeholder="9.0" step="0.1"></div>
-          <div class="field"><label>Sexo</label><select id="an-sexo"><option value="femea">Fêmea</option><option value="macho">Macho</option></select></div>
-          <div class="field"><label>Data Nascimento</label><input type="date" id="an-nasc"></div>
-          <div class="field"><label>Data Entrada</label><input type="date" id="an-entrada"></div>
-          <div class="field"><label>Status</label><select id="an-status"><option value="ativo">Ativo</option><option value="gestante">Gestante</option><option value="lactacao">Em Lactação</option><option value="seca">Seca</option><option value="vendido">Vendido</option><option value="morto">Morto/Descartado</option></select></div>
+      <div id="card-cadastro-animal">
+        <div class="collapse-header" onclick="toggleCollapse('form-animal')">
+          <span>🐮 Cadastrar Animal</span>
+          <span class="arrow" id="arrow-form-animal">▼</span>
         </div>
-        <div class="field" style="margin-top:.75rem"><label>Último / Próximo Parto</label>
-          <div class="form-grid"><input type="date" id="an-parto-ultimo"><input type="date" id="an-parto-proximo"></div>
-        </div>
-        <div class="field" style="margin-top:.75rem"><label>Observações</label><textarea id="an-obs" rows="2" placeholder="Características, histórico..."></textarea></div>
-
-        <!-- FOTO DO ANIMAL -->
-        <div class="field" style="margin-top:.75rem">
-          <label>📷 Foto do Animal</label>
-          <div id="foto-preview-wrap" style="display:none;margin-bottom:.75rem">
-            <img id="foto-preview" style="width:100%;max-height:200px;object-fit:cover;border-radius:10px;border:1px solid var(--border)">
-            <button class="btn danger sm" onclick="removerFoto()" style="margin-top:.5rem;width:100%;justify-content:center">🗑️ Remover foto</button>
+        <div class="collapse-body" id="form-animal">
+          <div class="form-grid three">
+            <div class="field"><label>Nº do Brinco *</label><input type="text" id="an-brinco" placeholder="Ex: 0042"></div>
+            <div class="field"><label>Lote</label><select id="an-lote"></select></div>
+            <div class="field"><label>Tipo</label><select id="an-tipo"><option value="novilha">Novilha</option><option value="vaca">Vaca</option><option value="bezerro">Bezerro</option><option value="touro">Touro</option></select></div>
+            <div class="field"><label>Raça</label><input type="text" id="an-raca" placeholder="Ex: Nelore cruzado"></div>
+            <div class="field"><label>Peso Atual (@)</label><input type="number" id="an-peso" placeholder="9.0" step="0.1"></div>
+            <div class="field"><label>Sexo</label><select id="an-sexo"><option value="femea">Fêmea</option><option value="macho">Macho</option></select></div>
+            <div class="field"><label>Data Nascimento</label><input type="date" id="an-nasc"></div>
+            <div class="field"><label>Data Entrada</label><input type="date" id="an-entrada"></div>
+            <div class="field"><label>Status</label><select id="an-status"><option value="ativo">Ativo</option><option value="gestante">Gestante</option><option value="lactacao">Em Lactação</option><option value="seca">Seca</option><option value="vendido">Vendido</option><option value="morto">Morto/Descartado</option></select></div>
           </div>
-          <label style="display:flex;align-items:center;justify-content:center;gap:.5rem;background:rgba(255,255,255,.04);border:1px dashed var(--border);border-radius:8px;padding:1rem;cursor:pointer;font-size:.85rem;color:var(--clay);min-height:48px;" id="foto-label">
-            📷 Tirar foto ou escolher da galeria
-            <input type="file" id="an-foto" accept="image/*" capture="environment" style="display:none" onchange="processarFoto(this)">
-          </label>
-        </div>
+          <div class="field" style="margin-top:.75rem"><label>Último / Próximo Parto</label>
+            <div class="form-grid"><input type="date" id="an-parto-ultimo"><input type="date" id="an-parto-proximo"></div>
+          </div>
+          <div class="field" style="margin-top:.75rem"><label>Observações</label><textarea id="an-obs" rows="2" placeholder="Características, histórico..."></textarea></div>
 
-        <div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap;">
-          <button class="btn" onclick="salvarAnimal()">+ Salvar Animal</button>
-          <button class="btn outline" onclick="limparFormAnimal()">Limpar</button>
+          <!-- FOTO DO ANIMAL -->
+          <div class="field" style="margin-top:.75rem">
+            <label>📷 Foto do Animal</label>
+            <div id="foto-preview-wrap" style="display:none;margin-bottom:.75rem">
+              <img id="foto-preview" style="width:100%;max-height:200px;object-fit:cover;border-radius:10px;border:1px solid var(--border)">
+              <button class="btn danger sm" onclick="removerFoto()" style="margin-top:.5rem;width:100%;justify-content:center">🗑️ Remover foto</button>
+            </div>
+            <label style="display:flex;align-items:center;justify-content:center;gap:.5rem;background:var(--bg);border:1px dashed var(--border);border-radius:8px;padding:1rem;cursor:pointer;font-size:.85rem;color:var(--clay);min-height:48px;" id="foto-label">
+              📷 Tirar foto ou escolher da galeria
+              <input type="file" id="an-foto" accept="image/*" capture="environment" style="display:none" onchange="processarFoto(this)">
+            </label>
+          </div>
+
+          <div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap;">
+            <button class="btn" style="flex:1;justify-content:center" onclick="salvarAnimal()">+ Salvar Animal</button>
+            <button class="btn outline" onclick="limparFormAnimal()">Limpar</button>
+          </div>
         </div>
       </div>
       <div class="card">
@@ -362,7 +367,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
 
     <!-- SUPLEMENTAÇÃO -->
     <div id="suplementacao" class="section">
-      <div class="two-col" style="margin-bottom:1.25rem">
+      <div style="margin-bottom:.75rem">
         <div id="card-cadastro-insumo">
           <div class="collapse-header" onclick="toggleCollapse('form-insumo')">
             <span>📦 Registrar Compra de Insumo</span>
@@ -395,7 +400,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
 
     <!-- REBANHO (dono only) -->
     <div id="rebanho" class="section">
-      <div class="two-col" style="margin-bottom:1.25rem">
+      <div style="margin-bottom:.75rem">
         <div>
           <div class="collapse-header" onclick="toggleCollapse('form-lote')">
             <span>🐄 Adicionar / Editar Lote</span>
@@ -426,7 +431,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
 
     <!-- CUSTOS (dono only) -->
     <div id="custos" class="section">
-      <div class="two-col" style="margin-bottom:1.25rem">
+      <div style="margin-bottom:.75rem">
         <div>
           <div class="collapse-header" onclick="toggleCollapse('form-custo')">
             <span>💸 Registrar Custo</span>
@@ -896,7 +901,14 @@ function showSectionById(id){
   if(sec) sec.classList.add('active');
   var nb = document.getElementById('nav-'+id);
   if(nb) nb.classList.add('active');
-  if(id==='notas'){
+  // Render section data
+  if(id==='dashboard') renderDashboard();
+  else if(id==='rebanho') renderRebanho();
+  else if(id==='suplementacao') renderSuplementacao();
+  else if(id==='custos') renderCustos();
+  else if(id==='animais') renderAnimais();
+  else if(id==='projecao') calcularProjecao();
+  else if(id==='notas'){
     loadNotas();
     setTimeout(function(){ initChips(); renderCalendario(); }, 50);
   }
@@ -1381,6 +1393,7 @@ function salvarAnimal(){
 }
 function limparFormAnimal(){['an-brinco','an-raca','an-peso','an-nasc','an-entrada','an-obs','an-parto-ultimo','an-parto-proximo'].forEach(function(id){var el=document.getElementById(id);if(el){el.value='';delete el.dataset.editId;}});removerFoto();}
 function editarAnimal(id){
+  openCollapse('form-animal');
   fecharModal();
   var a=state.animais.find(function(x){return x.id===id;});if(!a)return;
   document.getElementById('an-brinco').value=a.brinco;document.getElementById('an-brinco').dataset.editId=id;
