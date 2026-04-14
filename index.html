@@ -933,6 +933,14 @@ function showSectionById(id){
 function applyPerfilUI(){
   var btnSenha = document.getElementById('btn-alterar-senha-vaqueiro');
   if(btnSenha) btnSenha.style.display = perfil==='dono' ? 'inline-flex' : 'none';
+  var btnBio = document.getElementById('btn-reg-bio');
+  if(btnBio){
+    try {
+      var hasCred = !!localStorage.getItem('fazenda_webauthn_cred');
+      btnBio.style.display = perfil==='dono' ? 'inline-flex' : 'none';
+      btnBio.title = hasCred ? 'Digital já registrada — clique para re-registrar' : 'Registrar digital para login rápido';
+    } catch(e){}
+  }
   if(perfil==='vaqueiro'){
     // Dashboard: esconde financeiro
     var cardFin=document.getElementById('card-resumo-fin'); if(cardFin) cardFin.style.display='none';
