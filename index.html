@@ -88,12 +88,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 
 /* ===== APP ===== */
 #app-screen{display:none;}
-header{padding:1rem 1.5rem;border-bottom:1px solid var(--border2);display:flex;align-items:center;justify-content:space-between;background:var(--header-bg);position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.35);}
+header{padding:.75rem 1rem;border-bottom:1px solid var(--border2);display:flex;align-items:center;justify-content:space-between;background:var(--header-bg);position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.35);gap:.5rem;}
 .logo{display:flex;align-items:center;gap:.75rem;}
 .logo-icon{width:38px;height:38px;background:var(--gold-mid);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;box-shadow:0 2px 6px rgba(0,0,0,.3);}
 .logo-title{font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;color:var(--wheat);}
 .logo-sub{font-size:.65rem;color:rgba(255,255,255,.8);font-family:'DM Mono',monospace;letter-spacing:.08em;}
-.header-right{display:flex;align-items:center;gap:.75rem;}
+.header-right{display:flex;align-items:center;gap:.35rem;flex-shrink:0;}
 .perfil-badge{font-size:.72rem;font-family:'DM Mono',monospace;padding:.3rem .75rem;border-radius:20px;font-weight:700;background:var(--gold-light);color:var(--gold);border:1.5px solid var(--gold-mid);}
 .perfil-badge.dono{background:rgba(212,168,83,.2);color:var(--wheat);border:1px solid rgba(212,168,83,.3);}
 .perfil-badge.vaqueiro{background:rgba(74,124,89,.2);color:var(--pasture);border:1px solid rgba(74,124,89,.3);}
@@ -101,7 +101,7 @@ header{padding:1rem 1.5rem;border-bottom:1px solid var(--border2);display:flex;a
 .sync-dot.off{background:var(--red);}
 .sync-dot.sync{background:var(--wheat);animation:pulse .8s infinite;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
-.sair-btn{background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.6);color:#FFFFFF;border-radius:8px;padding:.3rem .75rem;font-size:.78rem;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;}
+.sair-btn{background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.6);color:#FFFFFF;border-radius:8px;padding:.25rem .6rem;font-size:.75rem;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;white-space:nowrap;}
 .sair-btn:hover{border-color:var(--clay);color:var(--text)111;}
 
 nav{display:flex;gap:.2rem;background:var(--card);padding:.25rem;border-radius:10px;border:1px solid var(--border);flex-wrap:wrap;margin:.75rem 1.5rem 0;}
@@ -281,10 +281,10 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
     </div>
     <div class="header-right">
       <span class="sync-dot" id="sync-dot" title="Status sincronização"></span>
-      <button id="btn-tema" onclick="toggleTema()" title="Alternar tema" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:var(--header-text);border-radius:8px;padding:.3rem .6rem;font-size:.85rem;cursor:pointer;margin-right:.25rem">🌙</button>
+      <button id="btn-tema" onclick="toggleTema()" title="Alternar tema" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:var(--header-text);border-radius:8px;padding:.25rem .5rem;font-size:.8rem;cursor:pointer">🌙</button>
       <span class="perfil-badge" id="perfil-badge">—</span>
-      <button id="btn-reg-bio" onclick="registrarBiometria()" title="Registrar digital" style="display:none;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:#FFF;border-radius:8px;padding:.3rem .6rem;font-size:.85rem;cursor:pointer;margin-right:.25rem">🔏</button>
-      <button class="sair-btn" id="btn-alterar-senha-vaqueiro" onclick="alterarSenhaVaqueiro()" style="display:none;background:rgba(74,124,89,.25);border:1px solid var(--grass);color:var(--pasture);font-size:.75rem;padding:.35rem .7rem;margin-right:.4rem" title="Alterar senha do vaqueiro">🔑</button>
+      <button id="btn-reg-bio" onclick="registrarBiometria()" title="Registrar digital" style="display:none;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:#FFF;border-radius:8px;padding:.25rem .5rem;font-size:.8rem;cursor:pointer">🔏</button>
+      <button class="sair-btn" id="btn-alterar-senha-vaqueiro" onclick="alterarSenhaVaqueiro()" style="display:none;background:rgba(74,124,89,.25);border:1px solid var(--grass);color:var(--pasture);font-size:.75rem;padding:.25rem .5rem" title="Alterar senha do vaqueiro">🔑</button>
       <button class="sair-btn" id="btn-sair">Sair</button>
     </div>
   </header>
@@ -468,6 +468,21 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         <div id="resultado-projecao" style="margin-top:1.25rem"></div>
       </div>
       <div class="card"><div class="card-title">📊 Comparativo de Cenários</div><div id="cenarios"></div></div>
+    </div>
+
+    <!-- DASHBOARD VAQUEIRO -->
+    <div id="dashboard-vaqueiro" class="section">
+      <div class="kpi-grid">
+        <div class="kpi green" style="grid-column:1/-1">
+          <div class="kpi-label">Total de Cabeças</div>
+          <div class="kpi-value" id="vaq-total-cabecas">—</div>
+          <div class="kpi-sub" id="vaq-sub-cabecas"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📦 Estoque de Suplementação</div>
+        <div id="vaq-estoque"></div>
+      </div>
     </div>
 
     <!-- NOTAS -->
@@ -892,7 +907,7 @@ function entrar(p){
   buildNav();
   applyPerfilUI();
   startListening();
-  if(p==='vaqueiro'){ showSectionById('animais'); document.getElementById('fab-btn').style.display='flex'; }
+  if(p==='vaqueiro'){ showSectionById('dashboard-vaqueiro'); document.getElementById('fab-btn').style.display='flex'; }
   else { showSectionById('dashboard'); document.getElementById('fab-btn').style.display='flex'; }
 }
 function sair(){
@@ -919,7 +934,7 @@ function alterarSenhaVaqueiro(){
 
 // NAV
 var NAV_DONO=[{id:'dashboard',label:'Dashboard'},{id:'animais',label:'🐮 Animais'},{id:'suplementacao',label:'Suplementação'},{id:'rebanho',label:'Rebanho'},{id:'custos',label:'Custos'},{id:'projecao',label:'Projeção'},{id:'notas',label:'📋 Notas'}];
-var NAV_VAQUEIRO=[{id:'animais',label:'🐮 Animais'},{id:'suplementacao',label:'📦 Estoque'},{id:'notas',label:'📋 Notas'}];
+var NAV_VAQUEIRO=[{id:'dashboard-vaqueiro',label:'🏠 Início'},{id:'animais',label:'🐮 Animais'},{id:'suplementacao',label:'📦 Estoque'},{id:'notas',label:'📋 Notas'}];
 function buildNav(){
   var items=perfil==='dono'?NAV_DONO:NAV_VAQUEIRO;
   var html='';
@@ -947,6 +962,7 @@ function showSectionById(id){
   else if(id==='rebanho') renderRebanho();
   else if(id==='suplementacao') renderSuplementacao();
   else if(id==='custos') renderCustos();
+  else if(id==='dashboard-vaqueiro') renderDashboardVaqueiro();
   else if(id==='animais') renderAnimais();
   else if(id==='projecao') calcularProjecao();
   else if(id==='notas'){
@@ -2278,6 +2294,55 @@ function _executarLoginBiometria(credData){
   } catch(e){
     toast('Erro na biometria: '+e.message,'error');
   }
+}
+
+
+// ===== DASHBOARD VAQUEIRO =====
+function renderDashboardVaqueiro(){
+  var totalCabecas = state.lotes.reduce(function(a,l){ return a+l.qtd; }, 0);
+  var porTipo = {};
+  state.lotes.forEach(function(l){
+    porTipo[l.tipo] = (porTipo[l.tipo]||0) + l.qtd;
+  });
+  var subParts = [];
+  if(porTipo['novilha']) subParts.push(porTipo['novilha']+' novilhas');
+  if(porTipo['vaca'])    subParts.push(porTipo['vaca']+' vacas');
+  if(porTipo['bezerro']) subParts.push(porTipo['bezerro']+' bezerros');
+  if(porTipo['touro'])   subParts.push(porTipo['touro']+' touros');
+
+  var el = document.getElementById('vaq-total-cabecas');
+  var sub = document.getElementById('vaq-sub-cabecas');
+  if(el) el.textContent = totalCabecas;
+  if(sub) sub.textContent = subParts.join(' · ');
+
+  // Estoque sem valores em dinheiro
+  var estEl = document.getElementById('vaq-estoque');
+  if(!estEl) return;
+  if(state.insumos.length===0){
+    estEl.innerHTML = '<div style="color:var(--clay);font-size:.85rem">Nenhum insumo cadastrado.</div>';
+    return;
+  }
+  var html = '';
+  state.insumos.forEach(function(i){
+    var sr = sacosRestantes(i);
+    var mr = mesesRestantesInsumo(i);
+    var pct = Math.min(100,(sr/i.qtd)*100);
+    var cor = mr<2?'red':mr<4?'yellow':'green';
+    var consumo = fmtN(consumoEfetivo(i),1);
+    html += '<div style="margin-bottom:1rem">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem">';
+    html += '<strong style="font-size:.88rem;color:var(--text)">'+i.nome+'</strong>';
+    html += '<span class="badge '+cor+'">'+fmtN(mr,1)+' meses</span>';
+    html += '</div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.25rem;font-size:.78rem;color:var(--clay);margin-bottom:.35rem">';
+    html += '<div>Comprado: <strong style="color:var(--text)">'+i.qtd+' sacos</strong></div>';
+    html += '<div>Restante: <strong style="color:var(--text)">'+fmtN(sr,1)+' sacos</strong></div>';
+    html += '<div style="grid-column:1/-1">Consumo: <strong style="color:var(--text)">'+consumo+' sacos/mês</strong></div>';
+    html += '</div>';
+    html += '<div class="progress-bar"><div class="progress-fill'+(cor==='green'?' green':'')+'" style="width:'+pct+'%"></div></div>';
+    html += '</div>';
+  });
+  estEl.innerHTML = html;
 }
 
 // RESTAURAR SESSÃO após refresh
