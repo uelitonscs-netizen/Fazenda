@@ -226,6 +226,29 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
 .vacina-chip{display:inline-block;padding:.3rem .7rem;background:var(--green-light);color:var(--green);border:1px solid var(--border2);border-radius:20px;font-size:.72rem;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;}
 .vacina-chip:active{background:var(--green);color:#FFF;}
 @media(max-width:480px){.kpi-grid{grid-template-columns:1fr 1fr;}}
+
+/* COLLAPSIBLE FORMS */
+.collapse-header{
+  display:flex;justify-content:space-between;align-items:center;
+  cursor:pointer;padding:.75rem 1.1rem;
+  background:var(--card);border:1.5px solid var(--border2);
+  border-radius:12px;margin-bottom:.75rem;
+  font-weight:600;font-size:.88rem;color:var(--text);
+  transition:all .2s;
+  box-shadow:var(--shadow);
+}
+.collapse-header:hover{border-color:var(--green-mid);}
+.collapse-header .arrow{transition:transform .25s;font-size:.75rem;color:var(--clay);}
+.collapse-header.open{border-color:var(--green-mid);border-bottom-left-radius:0;border-bottom-right-radius:0;margin-bottom:0;}
+.collapse-body{
+  display:none;
+  border:1.5px solid var(--green-mid);border-top:none;
+  border-radius:0 0 12px 12px;
+  padding:1.1rem;background:var(--card);
+  margin-bottom:.75rem;
+  box-shadow:var(--shadow);
+}
+.collapse-body.open{display:block;}
 </style>
 </head>
 <body>
@@ -340,19 +363,24 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
     <!-- SUPLEMENTAÇÃO -->
     <div id="suplementacao" class="section">
       <div class="two-col" style="margin-bottom:1.25rem">
-        <div class="card" style="margin:0" id="card-cadastro-insumo">
-          <div class="card-title">📦 Registrar Compra de Insumo</div>
-          <div class="form-grid">
-            <div class="field"><label>Produto</label><input type="text" id="s-nome" placeholder="Ex: Sal Mineral 80"></div>
-            <div class="field"><label>Tipo</label><select id="s-tipo"><option value="sal">Sal Mineral</option><option value="racao">Ração / Concentrado</option><option value="volumoso">Volumoso</option><option value="outro">Outro</option></select></div>
-            <div class="field"><label>Qtd de Sacos</label><input type="number" id="s-qtd" placeholder="30"></div>
-            <div class="field"><label>Kg por Saco</label><input type="number" id="s-kg-saco" placeholder="30"></div>
-            <div class="field"><label>Preço por Saco (R$)</label><input type="number" id="s-preco" placeholder="126" step="0.01"></div>
-            <div class="field"><label>Consumo por Cabeça/mês (kg)</label><input type="number" id="s-kg-cabeca" placeholder="ex: 2.14" step="0.01"><small style="color:var(--clay);font-size:.7rem">Deixe 0 para usar consumo fixo</small></div>
-            <div class="field"><label>Consumo Mensal (sacos) — fixo</label><input type="number" id="s-consumo" placeholder="3" step="0.1"></div>
-            <div class="field"><label>Data da Compra</label><input type="date" id="s-data"></div>
+        <div id="card-cadastro-insumo">
+          <div class="collapse-header" onclick="toggleCollapse('form-insumo')">
+            <span>📦 Registrar Compra de Insumo</span>
+            <span class="arrow" id="arrow-form-insumo">▼</span>
           </div>
-          <button class="btn" style="margin-top:1rem" onclick="salvarInsumo()">+ Registrar Insumo</button>
+          <div class="collapse-body" id="form-insumo">
+            <div class="form-grid">
+              <div class="field"><label>Produto</label><input type="text" id="s-nome" placeholder="Ex: Sal Mineral 80"></div>
+              <div class="field"><label>Tipo</label><select id="s-tipo"><option value="sal">Sal Mineral</option><option value="racao">Ração / Concentrado</option><option value="volumoso">Volumoso</option><option value="outro">Outro</option></select></div>
+              <div class="field"><label>Qtd de Sacos</label><input type="number" id="s-qtd" placeholder="30"></div>
+              <div class="field"><label>Kg por Saco</label><input type="number" id="s-kg-saco" placeholder="30"></div>
+              <div class="field"><label>Preço por Saco (R$)</label><input type="number" id="s-preco" placeholder="126" step="0.01"></div>
+              <div class="field"><label>Consumo por Cabeça/mês (kg)</label><input type="number" id="s-kg-cabeca" placeholder="ex: 2.14" step="0.01"><small style="color:var(--clay);font-size:.7rem">Deixe 0 para usar consumo fixo</small></div>
+              <div class="field"><label>Consumo Mensal (sacos) — fixo</label><input type="number" id="s-consumo" placeholder="3" step="0.1"></div>
+              <div class="field"><label>Data da Compra</label><input type="date" id="s-data"></div>
+            </div>
+            <button class="btn" style="margin-top:1rem;width:100%;justify-content:center" onclick="salvarInsumo()">+ Registrar Insumo</button>
+          </div>
         </div>
         <div class="card" style="margin:0">
           <div class="card-title">📊 Resumo do Estoque</div>
@@ -368,22 +396,27 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
     <!-- REBANHO (dono only) -->
     <div id="rebanho" class="section">
       <div class="two-col" style="margin-bottom:1.25rem">
-        <div class="card" style="margin:0">
-          <div class="card-title">🐄 Adicionar / Editar Lote</div>
-          <div class="form-grid">
-            <div class="field"><label>Nome do Lote</label><input type="text" id="r-nome" placeholder="Ex: Novilhas Nelore L1"></div>
-            <div class="field"><label>Tipo</label><select id="r-tipo"><option value="novilha">Novilha (Engorda)</option><option value="vaca">Vaca (Leite)</option><option value="bezerro">Bezerro</option><option value="touro">Touro</option></select></div>
-            <div class="field"><label>Qtd de Cabeças</label><input type="number" id="r-qtd" placeholder="43"></div>
-            <div class="field"><label>Peso Entrada (@)</label><input type="number" id="r-peso-entrada" placeholder="6.5" step="0.1"></div>
-            <div class="field"><label>Peso Atual (@)</label><input type="number" id="r-peso-atual" placeholder="9.0" step="0.1"></div>
-            <div class="field"><label>Peso Meta (@)</label><input type="number" id="r-peso-meta" placeholder="14.0" step="0.1"></div>
-            <div class="field"><label>Preço Compra (R$/@)</label><input type="number" id="r-preco-compra" placeholder="290"></div>
-            <div class="field"><label>Data de Entrada</label><input type="date" id="r-data"></div>
+        <div>
+          <div class="collapse-header" onclick="toggleCollapse('form-lote')">
+            <span>🐄 Adicionar / Editar Lote</span>
+            <span class="arrow" id="arrow-form-lote">▼</span>
           </div>
-          <div class="field" style="margin-top:.75rem"><label>Observações</label><textarea id="r-obs" rows="2" placeholder="Raça, origem..."></textarea></div>
-          <div style="margin-top:1rem;display:flex;gap:.5rem">
-            <button class="btn" onclick="salvarLote()">+ Salvar Lote</button>
-            <button class="btn outline" onclick="limparFormRebanho()">Limpar</button>
+          <div class="collapse-body" id="form-lote">
+            <div class="form-grid">
+              <div class="field"><label>Nome do Lote</label><input type="text" id="r-nome" placeholder="Ex: Novilhas Nelore L1"></div>
+              <div class="field"><label>Tipo</label><select id="r-tipo"><option value="novilha">Novilha (Engorda)</option><option value="vaca">Vaca (Leite)</option><option value="bezerro">Bezerro</option><option value="touro">Touro</option></select></div>
+              <div class="field"><label>Qtd de Cabeças</label><input type="number" id="r-qtd" placeholder="43"></div>
+              <div class="field"><label>Peso Entrada (@)</label><input type="number" id="r-peso-entrada" placeholder="6.5" step="0.1"></div>
+              <div class="field"><label>Peso Atual (@)</label><input type="number" id="r-peso-atual" placeholder="9.0" step="0.1"></div>
+              <div class="field"><label>Peso Meta (@)</label><input type="number" id="r-peso-meta" placeholder="14.0" step="0.1"></div>
+              <div class="field"><label>Preço Compra (R$/@)</label><input type="number" id="r-preco-compra" placeholder="290"></div>
+              <div class="field"><label>Data de Entrada</label><input type="date" id="r-data"></div>
+            </div>
+            <div class="field" style="margin-top:.75rem"><label>Observações</label><textarea id="r-obs" rows="2" placeholder="Raça, origem..."></textarea></div>
+            <div style="margin-top:1rem;display:flex;gap:.5rem">
+              <button class="btn" onclick="salvarLote()">+ Salvar Lote</button>
+              <button class="btn outline" onclick="limparFormRebanho()">Limpar</button>
+            </div>
           </div>
         </div>
         <div class="card" style="margin:0"><div class="card-title">📈 Visão Geral</div><div id="rebanho-stats"></div></div>
@@ -394,17 +427,22 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
     <!-- CUSTOS (dono only) -->
     <div id="custos" class="section">
       <div class="two-col" style="margin-bottom:1.25rem">
-        <div class="card" style="margin:0">
-          <div class="card-title">💸 Registrar Custo</div>
-          <div class="form-grid">
-            <div class="field"><label>Descrição</label><input type="text" id="c-desc" placeholder="Ex: Salário Vaqueiro"></div>
-            <div class="field"><label>Categoria</label><select id="c-cat"><option value="mao_de_obra">Mão de Obra</option><option value="sanidade">Sanidade</option><option value="manutencao_terra">Manut. Terra</option><option value="manutencao_equipamento">Manut. Equipamentos</option><option value="infraestrutura">Infraestrutura</option><option value="combustivel">Combustível</option><option value="transporte">Transporte</option><option value="outro">Outro</option></select></div>
-            <div class="field"><label>Valor (R$)</label><input type="number" id="c-valor" placeholder="1300" step="0.01"></div>
-            <div class="field"><label>Frequência</label><select id="c-freq"><option value="mensal">Mensal</option><option value="bimestral">A cada 2 meses</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual</option><option value="unico">Único</option></select></div>
-            <div class="field"><label>Data</label><input type="date" id="c-data"></div>
+        <div>
+          <div class="collapse-header" onclick="toggleCollapse('form-custo')">
+            <span>💸 Registrar Custo</span>
+            <span class="arrow" id="arrow-form-custo">▼</span>
           </div>
-          <div class="field" style="margin-top:.75rem"><label>Observação</label><input type="text" id="c-obs" placeholder="Detalhes..."></div>
-          <button class="btn" style="margin-top:1rem" onclick="salvarCusto()">+ Registrar Custo</button>
+          <div class="collapse-body" id="form-custo">
+            <div class="form-grid">
+              <div class="field"><label>Descrição</label><input type="text" id="c-desc" placeholder="Ex: Salário Vaqueiro"></div>
+              <div class="field"><label>Categoria</label><select id="c-cat"><option value="mao_de_obra">Mão de Obra</option><option value="sanidade">Sanidade</option><option value="manutencao_terra">Manut. Terra</option><option value="manutencao_equipamento">Manut. Equipamentos</option><option value="infraestrutura">Infraestrutura</option><option value="combustivel">Combustível</option><option value="transporte">Transporte</option><option value="outro">Outro</option></select></div>
+              <div class="field"><label>Valor (R$)</label><input type="number" id="c-valor" placeholder="1300" step="0.01"></div>
+              <div class="field"><label>Frequência</label><select id="c-freq"><option value="mensal">Mensal</option><option value="bimestral">A cada 2 meses</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual</option><option value="unico">Único</option></select></div>
+              <div class="field"><label>Data</label><input type="date" id="c-data"></div>
+            </div>
+            <div class="field" style="margin-top:.75rem"><label>Observação</label><input type="text" id="c-obs" placeholder="Detalhes..."></div>
+            <button class="btn" style="margin-top:1rem;width:100%;justify-content:center" onclick="salvarCusto()">+ Registrar Custo</button>
+          </div>
         </div>
         <div class="card" style="margin:0"><div class="card-title">📊 Custos Mensais</div><div id="custos-mensais"></div></div>
       </div>
@@ -433,8 +471,12 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         <div id="calendario-view" style="margin-bottom:.5rem"></div>
       </div>
       <!-- TO-DO LIST -->
-      <div class="card" id="card-todo">
-        <div class="card-title">✅ To-Do List</div>
+      <div id="card-todo">
+        <div class="collapse-header" onclick="toggleCollapse('body-todo')">
+          <span>✅ To-Do List</span>
+          <span class="arrow" id="arrow-body-todo">▼</span>
+        </div>
+        <div class="collapse-body open" id="body-todo">
         <div id="todo-list"></div>
         <div style="margin-top:.75rem">
           <input type="text" id="todo-input" placeholder="Nova tarefa..." style="width:100%;padding:.6rem .9rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.85rem;outline:none;margin-bottom:.5rem;box-sizing:border-box">
@@ -446,11 +488,16 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
             <button class="btn" style="flex:1;justify-content:center" onclick="adicionarTodo()">+ Adicionar</button>
           </div>
         </div>
+        </div>
       </div>
 
       <!-- NOTAS LIVRES -->
-      <div class="card" id="card-notas-livres">
-        <div class="card-title">📝 Notas</div>
+      <div id="card-notas-livres">
+        <div class="collapse-header" onclick="toggleCollapse('body-notas')">
+          <span>📝 Notas Livres</span>
+          <span class="arrow" id="arrow-body-notas">▼</span>
+        </div>
+        <div class="collapse-body" id="body-notas">
         <div id="notas-list"></div>
         <div style="margin-top:.75rem">
           <input type="text" id="nota-titulo" placeholder="Título (ex: Aluguel de pastagem)" style="width:100%;padding:.6rem .9rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.85rem;outline:none;margin-bottom:.5rem">
@@ -463,11 +510,16 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
             <button class="btn" onclick="adicionarNota()">+ Salvar Nota</button>
           </div>
         </div>
+        </div>
       </div>
 
       <!-- CALENDÁRIO DE VACINAS -->
-      <div class="card" id="card-vacinas">
-        <div class="card-title">💉 Calendário de Vacinas</div>
+      <div id="card-vacinas">
+        <div class="collapse-header" onclick="toggleCollapse('body-vacinas')">
+          <span>💉 Calendário de Vacinas</span>
+          <span class="arrow" id="arrow-body-vacinas">▼</span>
+        </div>
+        <div class="collapse-body" id="body-vacinas">
         <div id="vacinas-list"></div>
         <div style="margin-top:.75rem;display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
           <div style="grid-column:1/-1">
@@ -507,11 +559,16 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
           </select>
         </div>
         <button class="btn" style="width:100%;margin-top:.75rem;justify-content:center" onclick="adicionarVacina()">+ Registrar Vacina</button>
+        </div>
       </div>
 
       <!-- LEMBRETES + CALENDÁRIO -->
-      <div class="card" id="card-lembretes">
-        <div class="card-title">🗓️ Lembretes</div>
+      <div id="card-lembretes">
+        <div class="collapse-header" onclick="toggleCollapse('body-lembretes')">
+          <span>🗓️ Lembretes</span>
+          <span class="arrow" id="arrow-body-lembretes">▼</span>
+        </div>
+        <div class="collapse-body" id="body-lembretes">
         <div id="lembretes-list"></div>
         <div style="margin-top:.75rem;display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
           <div style="grid-column:1/-1">
@@ -526,6 +583,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
             <option value="dono">🔒 Só Dono</option>
           </select>
           <button class="btn" onclick="adicionarLembrete()" style="justify-content:center">+ Salvar</button>
+        </div>
         </div>
       </div>
     </div>
@@ -1225,6 +1283,7 @@ function salvarLote(){
   saveToFirebase();toast('✅ Lote salvo!');limparFormRebanho();renderRebanho();
 }
 function editarLote(id){
+  openCollapse('form-lote');
   var l=state.lotes.find(function(x){return x.id===id;});if(!l)return;
   document.getElementById('r-nome').value=l.nome;document.getElementById('r-nome').dataset.editId=id;
   document.getElementById('r-tipo').value=l.tipo;document.getElementById('r-qtd').value=l.qtd;
@@ -1287,6 +1346,7 @@ function salvarCusto(){
   saveToFirebase();toast('✅ Custo salvo!');['c-desc','c-valor','c-data','c-obs'].forEach(function(id){document.getElementById(id).value='';});renderCustos();
 }
 function editarCusto(id){
+  openCollapse('form-custo');
   var c=state.custos.find(function(x){return x.id===id;});if(!c)return;
   document.getElementById('c-desc').value=c.desc;document.getElementById('c-desc').dataset.editId=id;
   document.getElementById('c-cat').value=c.cat;document.getElementById('c-valor').value=c.valor;
@@ -1983,6 +2043,30 @@ function adicionarVacina(){
 function deletarVacina(id){
   stateNotas.vacinas = stateNotas.vacinas.filter(function(x){ return x.id!==id; });
   saveNotas(); renderVacinas(); toast('🗑️ Vacina removida.');
+}
+
+
+// COLLAPSIBLE FORMS
+function toggleCollapse(id){
+  var body  = document.getElementById(id);
+  var arrow = document.getElementById('arrow-'+id);
+  if(!body) return;
+  var isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  var header = body.previousElementSibling;
+  if(header) header.classList.toggle('open', !isOpen);
+  if(arrow) arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+
+// Auto-open form when editarInsumo/editarLote/editarCusto called
+function openCollapse(id){
+  var body  = document.getElementById(id);
+  var arrow = document.getElementById('arrow-'+id);
+  if(!body) return;
+  body.classList.add('open');
+  var header = body.previousElementSibling;
+  if(header) header.classList.add('open');
+  if(arrow) arrow.style.transform = 'rotate(180deg)';
 }
 
 // RESTAURAR SESSÃO após refresh
