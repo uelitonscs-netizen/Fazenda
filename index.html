@@ -1090,6 +1090,19 @@ function renderSuplementacao(){
     if(perfil==='dono') html+='<div class="result-row total"><span class="label">Custo Total/mês</span><span class="value pos">'+fmt(totalSupMensal())+'</span></div>';
   }
   document.getElementById('estoque-detalhado').innerHTML=html;
+  (function(){
+    var div = document.getElementById('estoque-detalhado');
+    if(!div) return;
+    div.addEventListener('click', function(e){
+      var b = e.target;
+      while(b && b.tagName !== 'BUTTON'){ b = b.parentElement; }
+      if(!b) return;
+      var id = parseInt(b.getAttribute('data-iid'));
+      if(isNaN(id)) return;
+      if(b.className.indexOf('bei') !== -1){ editarInsumo(id); }
+      if(b.className.indexOf('bdi') !== -1){ deletarInsumo(id); }
+    });
+  })();
 
   if(perfil==='dono'){
     if(state.insumos.length===0){ document.getElementById('tabela-insumos').innerHTML='<div class="empty"><div class="icon">📦</div><p>Nenhum insumo</p></div>'; return; }
@@ -1335,6 +1348,7 @@ function editarInsumo(id){
   document.getElementById('s-kg-saco').value=i.kgSaco;document.getElementById('s-preco').value=i.preco;
   document.getElementById('s-kg-cabeca').value=i.kgPorCabeca||0;document.getElementById('s-consumo').value=i.consumoMensal;document.getElementById('s-data').value=i.data;
   showSectionById('suplementacao');
+  setTimeout(function(){ openCollapse('form-insumo'); window.scrollTo(0,0); }, 100);
 }
 function deletarInsumo(id){
   confirmarModal('Remover este insumo?', '🗑️', 'Remover', function(){
