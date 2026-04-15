@@ -404,9 +404,12 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
     <div id="rebanho" class="section">
       <div style="margin-bottom:.75rem">
         <div>
-          <div class="collapse-header" onclick="toggleCollapse('form-lote')">
-            <span>🐄 Adicionar / Editar Lote</span>
-            <span class="arrow" id="arrow-form-lote">▼</span>
+          <div style="display:flex;gap:.5rem;margin-bottom:.75rem;align-items:center">
+            <div class="collapse-header" style="flex:1;margin-bottom:0" onclick="toggleCollapse('form-lote')">
+              <span>🐄 Adicionar / Editar Lote</span>
+              <span class="arrow" id="arrow-form-lote">▼</span>
+            </div>
+            <button onclick="abrirConfigMangas()" style="padding:.6rem .9rem;background:var(--green-light);border:1.5px solid var(--green-mid);border-radius:10px;color:var(--green);font-size:.8rem;cursor:pointer;white-space:nowrap;font-weight:600">🌿 Mangas</button>
           </div>
           <div class="collapse-body" id="form-lote">
             <div class="form-grid">
@@ -418,6 +421,11 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
               <div class="field"><label>Peso Meta (@)</label><input type="number" id="r-peso-meta" placeholder="14.0" step="0.1"></div>
               <div class="field"><label>Preço Compra (R$/@)</label><input type="number" id="r-preco-compra" placeholder="290"></div>
               <div class="field"><label>Data de Entrada</label><input type="date" id="r-data"></div>
+            <div class="field"><label>🌿 Manga Atual</label>
+              <select id="r-manga"><option value="">— Sem manga —</option></select>
+            </div>
+            <div class="field"><label>📅 Data de Entrada na Manga</label><input type="date" id="r-manga-data"></div>
+            <div class="field"><label>⏱️ Dias Planejados na Manga</label><input type="number" id="r-manga-dias" placeholder="Ex: 30" min="1"></div>
             </div>
             <div class="field" style="margin-top:.75rem"><label>Observações</label><textarea id="r-obs" rows="2" placeholder="Raça, origem..."></textarea></div>
             <div style="margin-top:1rem;display:flex;gap:.5rem">
@@ -743,6 +751,12 @@ var SENHA_DONO = 'fazenda2025';
 var SENHA_VAQUEIRO = 'vaqueiro2025';
 var senhaVaqueiroCarregada = false;
 
+// Carrega nomes das mangas do Firebase
+db.ref('config/mangas').once('value').then(function(snap){
+  if(snap.val() && Array.isArray(snap.val())) MANGAS_NOMES = snap.val();
+  atualizarSelectMangas();
+});
+
 // Carrega senha do vaqueiro salva no Firebase
 db.ref('config/senhaVaqueiro').once('value').then(function(snap){
   if(snap.val()) SENHA_VAQUEIRO = snap.val();
@@ -753,6 +767,7 @@ db.ref('config/senhaVaqueiro').once('value').then(function(snap){
 
 // Estado
 var state = { lotes:[], insumos:[], custos:[], animais:[] };
+var MANGAS_NOMES = ['Manga 1','Manga 2','Manga 3','Manga 4','Manga 5','Manga 6','Manga 7'];
 var perfil = null; // 'dono' ou 'vaqueiro'
 var animalSelecionadoId = null;
 var salvandoFirebase = false;
@@ -1095,6 +1110,20 @@ function renderRebanho(){
     rows+='<div>Peso atual: <strong style="color:var(--text)">'+fmtN(l.pesoAtual)+'@</strong></div>';
     rows+='<div>Peso meta: <strong style="color:var(--text)">'+fmtN(l.pesoMeta)+'@</strong></div>';
     rows+='<div>R$/@: <strong style="color:var(--text)">'+fmt(l.precoCompra)+'</strong></div>';
+    if(l.manga){
+      var mangaBadge = '';
+      if(l.mangaData && l.mangaDias){
+        var hoje = new Date(); hoje.setHours(0,0,0,0);
+        var entrada = new Date(l.mangaData+'T00:00:00');
+        var diasPassados = Math.floor((hoje-entrada)/(1000*60*60*24));
+        var diasRestantes = l.mangaDias - diasPassados;
+        var cor = diasRestantes < 0 ? 'red' : diasRestantes <= 3 ? 'yellow' : 'green';
+        var txt = diasRestantes < 0 ? 'Mover há '+Math.abs(diasRestantes)+' dias' : diasRestantes === 0 ? 'Mover hoje!' : diasRestantes+' dias restantes';
+        mangaBadge = ' <span class="badge '+cor+'">'+txt+'</span>';
+      }
+      rows+='<div style="grid-column:1/-1">🌿 Manga: <strong style="color:var(--green)">'+l.manga+'</strong>'+mangaBadge+'</div>';
+      if(l.mangaData) rows+='<div style="grid-column:1/-1">Entrada: <strong style="color:var(--text)">'+new Date(l.mangaData+'T00:00:00').toLocaleDateString('pt-BR')+'</strong>'+(l.mangaDias?' · '+l.mangaDias+' dias planejados':'')+'</div>';
+    }
     rows+='</div></div>';
   });
   document.getElementById('tabela-rebanho').innerHTML=rows;
@@ -1366,7 +1395,10 @@ function salvarLote(){
     pesoMeta:parseFloat(document.getElementById('r-peso-meta').value)||pe,
     precoCompra:parseFloat(document.getElementById('r-preco-compra').value)||0,
     data:document.getElementById('r-data').value||new Date().toISOString().split('T')[0],
-    obs:document.getElementById('r-obs').value};
+    obs:document.getElementById('r-obs').value,
+    manga:document.getElementById('r-manga').value||'',
+    mangaData:document.getElementById('r-manga-data').value||'',
+    mangaDias:parseInt(document.getElementById('r-manga-dias').value)||0};
   var eid=document.getElementById('r-nome').dataset.editId;
   if(eid){var idx=state.lotes.findIndex(function(l){return l.id==eid;});if(idx!==-1){lote.id=parseInt(eid);state.lotes[idx]=lote;}delete document.getElementById('r-nome').dataset.editId;}
   else state.lotes.push(lote);
@@ -1380,6 +1412,9 @@ function editarLote(id){
   document.getElementById('r-peso-entrada').value=l.pesoEntrada;document.getElementById('r-peso-atual').value=l.pesoAtual;
   document.getElementById('r-peso-meta').value=l.pesoMeta;document.getElementById('r-preco-compra').value=l.precoCompra;
   document.getElementById('r-data').value=l.data;document.getElementById('r-obs').value=l.obs||'';
+  document.getElementById('r-manga').value=l.manga||'';
+  document.getElementById('r-manga-data').value=l.mangaData||'';
+  document.getElementById('r-manga-dias').value=l.mangaDias||'';
   showSectionById('rebanho');window.scrollTo(0,0);
 }
 function deletarLote(id){
@@ -1388,7 +1423,7 @@ function deletarLote(id){
     saveToFirebase();toast('🗑️ Lote removido.');renderRebanho();
   });
 }
-function limparFormRebanho(){['r-nome','r-qtd','r-peso-entrada','r-peso-atual','r-peso-meta','r-preco-compra','r-data','r-obs'].forEach(function(id){var el=document.getElementById(id);if(el){el.value='';delete el.dataset.editId;}});}
+function limparFormRebanho(){['r-nome','r-qtd','r-peso-entrada','r-peso-atual','r-peso-meta','r-preco-compra','r-data','r-obs','r-manga-data','r-manga-dias'].forEach(function(id){var el=document.getElementById(id);if(el){el.value='';delete el.dataset.editId;}});}
 
 // ===== CRUD INSUMOS =====
 function salvarInsumo(){
@@ -2343,6 +2378,69 @@ function renderDashboardVaqueiro(){
     html += '</div>';
   });
   estEl.innerHTML = html;
+}
+
+
+// ===== MANGAS =====
+function atualizarSelectMangas(){
+  var sel = document.getElementById('r-manga');
+  if(!sel) return;
+  var current = sel.value;
+  sel.innerHTML = '<option value="">— Sem manga —</option>';
+  MANGAS_NOMES.forEach(function(nome){
+    var opt = document.createElement('option');
+    opt.value = nome;
+    opt.textContent = nome;
+    sel.appendChild(opt);
+  });
+  if(current) sel.value = current;
+}
+
+function salvarNomesMangas(){
+  db.ref('config/mangas').set(MANGAS_NOMES)
+    .then(function(){ toast('✅ Nomes das mangas salvos!'); })
+    .catch(function(e){ toast('Erro: '+e.message,'error'); });
+}
+
+function abrirConfigMangas(){
+  var existing = document.getElementById('modal-mangas-dyn');
+  if(existing) existing.parentNode.removeChild(existing);
+  window.scrollTo(0,0);
+  var overlay = document.createElement('div');
+  overlay.id = 'modal-mangas-dyn';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:1rem;box-sizing:border-box';
+  var box = document.createElement('div');
+  box.style.cssText = 'background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1.5rem;width:100%;max-width:340px;box-sizing:border-box;max-height:80vh;overflow-y:auto';
+  var h = '<div style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:1rem">🌿 Editar Nomes das Mangas</div>';
+  MANGAS_NOMES.forEach(function(nome, i){
+    h += '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem">';
+    h += '<span style="font-size:.75rem;color:var(--clay);width:16px;text-align:right;flex-shrink:0">'+(i+1)+'</span>';
+    h += '<input type="text" data-idx="'+i+'" value="'+nome+'" style="flex:1;padding:.5rem .75rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.85rem;outline:none">';
+    h += '</div>';
+  });
+  h += '<div style="display:flex;gap:.5rem;margin-top:1rem">';
+  h += '<button id="manga-cancel" style="flex:1;padding:.75rem;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:.9rem;cursor:pointer">Cancelar</button>';
+  h += '<button id="manga-save" style="flex:1;padding:.75rem;background:var(--green);border:none;border-radius:10px;color:#fff;font-size:.9rem;font-weight:700;cursor:pointer">💾 Salvar</button>';
+  h += '</div>';
+  box.innerHTML = h;
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  document.body.style.overflow = 'hidden';
+  document.getElementById('manga-cancel').addEventListener('click', function(){
+    overlay.parentNode.removeChild(overlay);
+    document.body.style.overflow = '';
+  });
+  document.getElementById('manga-save').addEventListener('click', function(){
+    box.querySelectorAll('input[data-idx]').forEach(function(inp){
+      var i = parseInt(inp.getAttribute('data-idx'));
+      var val = inp.value.trim();
+      if(val) MANGAS_NOMES[i] = val;
+    });
+    salvarNomesMangas();
+    atualizarSelectMangas();
+    overlay.parentNode.removeChild(overlay);
+    document.body.style.overflow = '';
+  });
 }
 
 // RESTAURAR SESSÃO após refresh
