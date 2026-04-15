@@ -488,6 +488,10 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         </div>
       </div>
       <div class="card">
+        <div class="card-title">🌿 Lotes e Mangas</div>
+        <div id="vaq-lotes"></div>
+      </div>
+      <div class="card">
         <div class="card-title">📦 Estoque de Suplementação</div>
         <div id="vaq-estoque"></div>
       </div>
@@ -2351,6 +2355,52 @@ function renderDashboardVaqueiro(){
   if(sub) sub.textContent = subParts.join(' · ');
 
   // Estoque sem valores em dinheiro
+  // Lotes e mangas
+  var lotesEl = document.getElementById('vaq-lotes');
+  if(lotesEl){
+    if(state.lotes.length===0){
+      lotesEl.innerHTML='<div style="color:var(--clay);font-size:.85rem">Nenhum lote cadastrado.</div>';
+    } else {
+      var lhtml='';
+      state.lotes.forEach(function(l){
+        var hoje = new Date(); hoje.setHours(0,0,0,0);
+        var mangaBadge='', diasInfo='';
+        if(l.manga){
+          if(l.mangaData && l.mangaDias){
+            var entrada = new Date(l.mangaData+'T00:00:00');
+            var diasPassados = Math.floor((hoje-entrada)/(1000*60*60*24));
+            var diasRestantes = l.mangaDias - diasPassados;
+            var cor = diasRestantes<0?'red':diasRestantes<=3?'yellow':'green';
+            var txt = diasRestantes<0?'Mover há '+Math.abs(diasRestantes)+' dias':diasRestantes===0?'Mover hoje!':diasRestantes+' dias';
+            mangaBadge='<span class="badge '+cor+'" style="margin-left:.5rem">'+txt+'</span>';
+          }
+        }
+        lhtml+='<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.9rem;margin-bottom:.6rem">';
+        lhtml+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">';
+        lhtml+='<div><strong style="font-size:.88rem;color:var(--text)">'+l.nome+'</strong>';
+        lhtml+='<div style="font-size:.75rem;color:var(--clay);margin-top:.2rem">'+l.qtd+' cabeças · '+l.tipo+'</div></div>';
+        lhtml+='<div style="display:flex;gap:.35rem">';
+        lhtml+='<button class="btn-mover-lote" data-lid="'+l.id+'" style="padding:.35rem .7rem;background:var(--green-light);border:1.5px solid var(--green-mid);border-radius:8px;color:var(--green);font-size:.75rem;cursor:pointer;font-weight:600">🌿 Mover</button>';
+        lhtml+='<button class="btn-dividir-lote" data-lid="'+l.id+'" style="padding:.35rem .7rem;background:var(--sky-light);border:1.5px solid var(--sky);border-radius:8px;color:var(--sky);font-size:.75rem;cursor:pointer;font-weight:600">✂️ Dividir</button>';
+        lhtml+='</div></div>';
+        lhtml+='<div style="font-size:.8rem;color:var(--text2)">';
+        lhtml += l.manga ? '🌿 <strong>'+l.manga+'</strong>'+mangaBadge : '<span style="color:var(--clay)">Sem manga definida</span>';
+        if(l.mangaData) lhtml+='<span style="color:var(--clay);font-size:.72rem;margin-left:.5rem">desde '+new Date(l.mangaData+'T00:00:00').toLocaleDateString('pt-BR')+'</span>';
+        lhtml+='</div></div>';
+      });
+      lotesEl.innerHTML=lhtml;
+      // Event delegation
+      lotesEl.addEventListener('click', function(e){
+        var b = e.target; while(b && b.tagName!=='BUTTON') b=b.parentElement;
+        if(!b) return;
+        var id = parseInt(b.getAttribute('data-lid'));
+        if(isNaN(id)) return;
+        if(b.classList.contains('btn-mover-lote')) abrirModalMover(id);
+        if(b.classList.contains('btn-dividir-lote')) abrirModalDividir(id);
+      });
+    }
+  }
+
   var estEl = document.getElementById('vaq-estoque');
   if(!estEl) return;
   if(state.insumos.length===0){
@@ -2440,6 +2490,119 @@ function abrirConfigMangas(){
     atualizarSelectMangas();
     overlay.parentNode.removeChild(overlay);
     document.body.style.overflow = '';
+  });
+}
+
+
+// ===== MOVER E DIVIDIR LOTE (VAQUEIRO) =====
+
+function abrirModalMover(loteId){
+  var l = state.lotes.find(function(x){ return x.id===loteId; });
+  if(!l) return;
+  var existing = document.getElementById('modal-mover-dyn');
+  if(existing) existing.parentNode.removeChild(existing);
+  window.scrollTo(0,0);
+  var overlay = document.createElement('div');
+  overlay.id = 'modal-mover-dyn';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:1rem;box-sizing:border-box';
+  var box = document.createElement('div');
+  box.style.cssText = 'background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1.5rem;width:100%;max-width:340px;box-sizing:border-box';
+  var optsHtml = '<option value="">— Selecionar manga —</option>';
+  MANGAS_NOMES.forEach(function(n){ optsHtml += '<option value="'+n+'"'+(l.manga===n?' selected':'')+'>'+n+'</option>'; });
+  var hoje = new Date().toISOString().split('T')[0];
+  box.innerHTML = '<div style="font-weight:700;font-size:1rem;color:var(--text);margin-bottom:1rem">🌿 Mover Lote</div>'+
+    '<div style="font-size:.85rem;color:var(--clay);margin-bottom:1rem">'+l.nome+' · '+l.qtd+' cabeças</div>'+
+    '<div style="margin-bottom:.75rem"><label style="font-size:.7rem;color:var(--clay);display:block;margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.06em">Nova Manga</label>'+
+    '<select id="mover-manga" style="width:100%;padding:.65rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.9rem;outline:none">'+optsHtml+'</select></div>'+
+    '<div style="margin-bottom:1rem"><label style="font-size:.7rem;color:var(--clay);display:block;margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.06em">Data de Entrada</label>'+
+    '<input type="date" id="mover-data" value="'+hoje+'" style="width:100%;padding:.65rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.9rem;outline:none"></div>'+
+    '<div style="margin-bottom:1rem"><label style="font-size:.7rem;color:var(--clay);display:block;margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.06em">Dias Planejados</label>'+
+    '<input type="number" id="mover-dias" value="'+(l.mangaDias||30)+'" min="1" style="width:100%;padding:.65rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.9rem;outline:none"></div>'+
+    '<div style="display:flex;gap:.5rem">'+
+    '<button id="mover-cancel" style="flex:1;padding:.75rem;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:.9rem;cursor:pointer">Cancelar</button>'+
+    '<button id="mover-ok" style="flex:1;padding:.75rem;background:var(--green);border:none;border-radius:10px;color:#fff;font-size:.9rem;font-weight:700;cursor:pointer">✅ Mover</button>'+
+    '</div>';
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  document.body.style.overflow='hidden';
+  document.getElementById('mover-cancel').addEventListener('click',function(){
+    overlay.parentNode.removeChild(overlay); document.body.style.overflow='';
+  });
+  document.getElementById('mover-ok').addEventListener('click',function(){
+    var manga = document.getElementById('mover-manga').value;
+    if(!manga) return toast('Selecione uma manga','error');
+    var idx = state.lotes.findIndex(function(x){ return x.id===loteId; });
+    if(idx===-1) return;
+    state.lotes[idx].manga = manga;
+    state.lotes[idx].mangaData = document.getElementById('mover-data').value;
+    state.lotes[idx].mangaDias = parseInt(document.getElementById('mover-dias').value)||30;
+    saveToFirebase();
+    toast('✅ Lote movido para '+manga+'!');
+    overlay.parentNode.removeChild(overlay);
+    document.body.style.overflow='';
+    renderDashboardVaqueiro();
+  });
+}
+
+function abrirModalDividir(loteId){
+  var l = state.lotes.find(function(x){ return x.id===loteId; });
+  if(!l) return;
+  var existing = document.getElementById('modal-dividir-dyn');
+  if(existing) existing.parentNode.removeChild(existing);
+  window.scrollTo(0,0);
+  var overlay = document.createElement('div');
+  overlay.id = 'modal-dividir-dyn';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:1rem;box-sizing:border-box';
+  var box = document.createElement('div');
+  box.style.cssText = 'background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1.5rem;width:100%;max-width:340px;box-sizing:border-box';
+  var optsHtml = '<option value="">— Selecionar manga —</option>';
+  MANGAS_NOMES.forEach(function(n){ optsHtml += '<option value="'+n+'">'+n+'</option>'; });
+  var hoje = new Date().toISOString().split('T')[0];
+  box.innerHTML = '<div style="font-weight:700;font-size:1rem;color:var(--text);margin-bottom:.25rem">✂️ Dividir Lote</div>'+
+    '<div style="font-size:.82rem;color:var(--clay);margin-bottom:1rem">'+l.nome+' · <strong style="color:var(--text)">'+l.qtd+' cabeças</strong></div>'+
+    '<div style="background:var(--bg);border-radius:10px;padding:.9rem;margin-bottom:1rem">'+
+    '<div style="font-size:.72rem;font-weight:700;color:var(--clay);text-transform:uppercase;margin-bottom:.6rem">Novo Lote (cabeças a separar)</div>'+
+    '<input type="text" id="div-nome" placeholder="Nome do novo lote" style="width:100%;padding:.6rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.85rem;outline:none;margin-bottom:.5rem">'+
+    '<input type="number" id="div-qtd" placeholder="Qtd de cabeças" min="1" max="'+(l.qtd-1)+'" style="width:100%;padding:.6rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.85rem;outline:none;margin-bottom:.5rem">'+
+    '<select id="div-manga" style="width:100%;padding:.6rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.85rem;outline:none;margin-bottom:.5rem">'+optsHtml+'</select>'+
+    '<input type="date" id="div-data" value="'+hoje+'" style="width:100%;padding:.6rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.85rem;outline:none">'+
+    '</div>'+
+    '<div style="display:flex;gap:.5rem">'+
+    '<button id="div-cancel" style="flex:1;padding:.75rem;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:.9rem;cursor:pointer">Cancelar</button>'+
+    '<button id="div-ok" style="flex:1;padding:.75rem;background:var(--sky);border:none;border-radius:10px;color:#fff;font-size:.9rem;font-weight:700;cursor:pointer">✂️ Dividir</button>'+
+    '</div>';
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  document.body.style.overflow='hidden';
+  document.getElementById('div-cancel').addEventListener('click',function(){
+    overlay.parentNode.removeChild(overlay); document.body.style.overflow='';
+  });
+  document.getElementById('div-ok').addEventListener('click',function(){
+    var nome = document.getElementById('div-nome').value.trim();
+    var qtd  = parseInt(document.getElementById('div-qtd').value);
+    var manga = document.getElementById('div-manga').value;
+    var data  = document.getElementById('div-data').value;
+    if(!nome) return toast('Informe o nome do novo lote','error');
+    if(!qtd || qtd<1 || qtd>=l.qtd) return toast('Quantidade inválida (1 a '+(l.qtd-1)+')','error');
+    // Update original lote
+    var idx = state.lotes.findIndex(function(x){ return x.id===loteId; });
+    state.lotes[idx].qtd = l.qtd - qtd;
+    // Create new lote
+    var novoLote = JSON.parse(JSON.stringify(l));
+    novoLote.id = Date.now();
+    novoLote.nome = nome;
+    novoLote.qtd = qtd;
+    novoLote.manga = manga||'';
+    novoLote.mangaData = data;
+    novoLote.mangaDias = l.mangaDias||30;
+    novoLote.eventos = [];
+    state.lotes.push(novoLote);
+    saveToFirebase();
+    toast('✅ Lote dividido! '+l.nome+': '+(l.qtd-qtd)+' cab. · '+nome+': '+qtd+' cab.');
+    overlay.parentNode.removeChild(overlay);
+    document.body.style.overflow='';
+    renderDashboardVaqueiro();
+    renderRebanho();
   });
 }
 
