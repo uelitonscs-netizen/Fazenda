@@ -414,7 +414,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
           <div class="collapse-body" id="form-lote">
             <div class="form-grid">
               <div class="field"><label>Nome do Lote</label><input type="text" id="r-nome" placeholder="Ex: Novilhas Nelore L1"></div>
-              <div class="field"><label>Tipo</label><select id="r-tipo"><option value="novilha">Novilha (Engorda)</option><option value="vaca">Vaca (Leite)</option><option value="bezerro">Bezerro</option><option value="touro">Touro</option></select></div>
+              <div class="field"><label>Tipo</label><select id="r-tipo" onchange="toggleAluguelField()" ><option value="novilha">Novilha (Engorda)</option><option value="vaca">Vaca (Leite)</option><option value="bezerro">Bezerro</option><option value="touro">Touro</option><option value="terceiro">🤝 Terceiro (Arrendado)</option></select></div>
               <div class="field"><label>Qtd de Cabeças</label><input type="number" id="r-qtd" placeholder="43"></div>
               <div class="field"><label>Peso Entrada (@)</label><input type="number" id="r-peso-entrada" placeholder="6.5" step="0.1"></div>
               <div class="field"><label>Peso Atual (@)</label><input type="number" id="r-peso-atual" placeholder="9.0" step="0.1"></div>
@@ -428,6 +428,11 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
             <div class="field"><label>⏱️ Dias Planejados na Manga</label><input type="number" id="r-manga-dias" placeholder="Ex: 30" min="1"></div>
             </div>
             <div class="field" style="margin-top:.75rem"><label>Observações</label><textarea id="r-obs" rows="2" placeholder="Raça, origem..."></textarea></div>
+            <div class="field" id="field-aluguel" style="margin-top:.75rem;display:none">
+              <label>💰 Aluguel Mensal (R$)</label>
+              <input type="number" id="r-aluguel" placeholder="Ex: 1500.00" step="0.01" min="0">
+              <small style="color:var(--clay);font-size:.7rem">Valor a receber — entra como receita no lucro líquido</small>
+            </div>
             <div style="margin-top:1rem;display:flex;gap:.5rem">
               <button class="btn" onclick="salvarLote()">+ Salvar Lote</button>
               <button class="btn outline" onclick="limparFormRebanho()">Limpar</button>
@@ -1030,6 +1035,11 @@ function renderDashboard(){
     kpiHtml+='<div class="kpi"><div class="kpi-label">Animais Cadastrados</div><div class="kpi-value">'+state.animais.length+'</div><div class="kpi-sub">ativos no sistema</div></div>';
     kpiHtml+='<div class="kpi sky"><div class="kpi-label">Gestantes</div><div class="kpi-value">'+state.animais.filter(function(a){return a.status==='gestante';}).length+'</div><div class="kpi-sub">com parto previsto</div></div>';
   }
+  // Aluguel KPI for terceiro lotes
+  var totalAluguel=state.lotes.reduce(function(a,l){return a+(l.tipo==='terceiro'?(l.aluguel||0):0);},0);
+  if(totalAluguel>0){
+    kpiHtml+='<div class="kpi sky" style="grid-column:1/-1"><div class="kpi-label">💰 Receita Aluguel/mês</div><div class="kpi-value">'+fmt(totalAluguel)+'</div><div class="kpi-sub">Mangas arrendadas</div></div>';
+  }
   document.getElementById('kpi-grid').innerHTML=kpiHtml;
 
   // Estoque resumo
@@ -1076,6 +1086,7 @@ function renderDashboard(){
     rfHtml+='<div class="'+(luc>=0?'result-box':'result-box loss')+'">';
     rfHtml+='<p style="font-size:.72rem;color:var(--clay);margin-bottom:.6rem;font-family:\'DM Mono\',monospace">PROJEÇÃO BASE (14@ · R$330/@)</p>';
     rfHtml+='<div class="result-row"><span class="label">Receita bruta</span><span class="value pos">'+fmt(rec)+'</span></div>';
+    if(recAluguel>0) rfHtml+='<div class="result-row"><span class="label" style="font-size:.78rem;color:var(--clay)">↳ incl. aluguel mangas</span><span class="value pos" style="font-size:.82rem">'+fmt(recAluguel)+'</span></div>';
     rfHtml+='<div class="result-row total"><span class="label">Lucro Líquido Est.</span><span class="value '+(luc>=0?'pos':'neg')+' big">'+fmt(luc)+'</span></div>';
     rfHtml+='<div style="font-size:.72rem;color:var(--clay);margin-top:.4rem">Use a aba Projeção para simular</div></div></div>';
     document.getElementById('resumo-financeiro').innerHTML=rfHtml;
@@ -1084,7 +1095,7 @@ function renderDashboard(){
 
 function renderRebanho(){
   var total=state.lotes.reduce(function(a,l){return a+l.qtd;},0);
-  var inv=state.lotes.reduce(function(a,l){return a+(l.qtd*l.pesoEntrada*l.precoCompra);},0);
+  var inv=state.lotes.filter(function(l){return l.tipo!=='terceiro';}).reduce(function(a,l){return a+(l.qtd*l.pesoEntrada*l.precoCompra);},0);
   var sh='<div class="result-row"><span class="label">Total cabeças</span><span class="value">'+total+'</span></div>';
   sh+='<div class="result-row"><span class="label">Lotes</span><span class="value">'+state.lotes.length+'</span></div>';
   sh+='<div class="result-row"><span class="label">Investimento</span><span class="value">'+fmt(inv)+'</span></div><hr class="divider">';
@@ -1264,7 +1275,8 @@ function calcularProjecao(){
   var tc=nov.reduce(function(a,l){return a+l.qtd;},0);
   var cc=nov.reduce(function(a,l){return a+(l.qtd*l.pesoEntrada*l.precoCompra);},0);
   var ei=state.insumos.reduce(function(a,i){return a+(i.qtd*i.preco);},0);
-  var co=custoMensalTotal()*pr,ti=cc+ei+co,rec=tc*pw*pv,luc=rec-ti;
+  var recAluguel=state.lotes.reduce(function(a,l){return a+(l.tipo==='terceiro'?(l.aluguel||0)*pr:0);},0);
+  var co=custoMensalTotal()*pr,ti=cc+ei+co,rec=tc*pw*pv+recAluguel,luc=rec-ti;
   var roi=ti>0?(luc/ti)*100:0;
   var rh='<div style="display:flex;flex-direction:column;gap:.75rem">';
   rh+='<div><p style="font-size:.7rem;color:var(--clay);margin-bottom:.6rem;font-family:\'DM Mono\',monospace">CUSTOS</p>';
@@ -1400,6 +1412,7 @@ function salvarLote(){
     precoCompra:parseFloat(document.getElementById('r-preco-compra').value)||0,
     data:document.getElementById('r-data').value||new Date().toISOString().split('T')[0],
     obs:document.getElementById('r-obs').value,
+    aluguel:parseFloat(document.getElementById('r-aluguel').value)||0,
     manga:document.getElementById('r-manga').value||'',
     mangaData:document.getElementById('r-manga-data').value||'',
     mangaDias:parseInt(document.getElementById('r-manga-dias').value)||0};
@@ -1419,6 +1432,8 @@ function editarLote(id){
   document.getElementById('r-manga').value=l.manga||'';
   document.getElementById('r-manga-data').value=l.mangaData||'';
   document.getElementById('r-manga-dias').value=l.mangaDias||'';
+  document.getElementById('r-aluguel').value=l.aluguel||'';
+  toggleAluguelField();
   showSectionById('rebanho');window.scrollTo(0,0);
 }
 function deletarLote(id){
@@ -1427,7 +1442,7 @@ function deletarLote(id){
     saveToFirebase();toast('🗑️ Lote removido.');renderRebanho();
   });
 }
-function limparFormRebanho(){['r-nome','r-qtd','r-peso-entrada','r-peso-atual','r-peso-meta','r-preco-compra','r-data','r-obs','r-manga-data','r-manga-dias'].forEach(function(id){var el=document.getElementById(id);if(el){el.value='';delete el.dataset.editId;}});}
+function limparFormRebanho(){['r-nome','r-qtd','r-peso-entrada','r-peso-atual','r-peso-meta','r-preco-compra','r-data','r-obs','r-manga-data','r-manga-dias','r-aluguel'].forEach(function(id){var el=document.getElementById(id);if(el){el.value='';delete el.dataset.editId;}});}
 
 // ===== CRUD INSUMOS =====
 function salvarInsumo(){
@@ -2646,6 +2661,15 @@ function abrirModalDividir(loteId){
     renderDashboardVaqueiro();
     renderRebanho();
   });
+}
+
+
+// ===== LOTES TERCEIRO =====
+function toggleAluguelField(){
+  var tipo = document.getElementById('r-tipo');
+  var field = document.getElementById('field-aluguel');
+  if(!tipo || !field) return;
+  field.style.display = tipo.value === 'terceiro' ? 'block' : 'none';
 }
 
 // RESTAURAR SESSÃO após refresh
