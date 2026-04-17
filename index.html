@@ -442,6 +442,46 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         <div class="card" style="margin:0"><div class="card-title">📈 Visão Geral</div><div id="rebanho-stats"></div></div>
       </div>
       <div class="card"><div class="card-title">🗂️ Lotes Cadastrados</div><div id="tabela-rebanho"></div></div>
+
+      <!-- PESAGENS -->
+      <div>
+        <div class="collapse-header" onclick="toggleCollapse('form-pesagem')">
+          <span>⚖️ Registrar Pesagem</span>
+          <span class="arrow" id="arrow-form-pesagem">▼</span>
+        </div>
+        <div class="collapse-body" id="form-pesagem">
+          <div class="form-grid">
+            <div class="field"><label>Lote</label><select id="ps-lote"></select></div>
+            <div class="field"><label>Novo Peso Médio (@)</label><input type="number" id="ps-peso" placeholder="Ex: 11.5" step="0.1"></div>
+            <div class="field"><label>Data da Pesagem</label><input type="date" id="ps-data"></div>
+          </div>
+          <div class="field" style="margin-top:.5rem"><label>Observação</label><input type="text" id="ps-obs" placeholder="Ex: Pesagem pré-venda"></div>
+          <button class="btn" style="margin-top:1rem;width:100%;justify-content:center" onclick="salvarPesagem()">⚖️ Registrar Pesagem</button>
+        </div>
+      </div>
+      <div class="card"><div class="card-title">⚖️ Histórico de Pesagens</div><div id="historico-pesagens"></div></div>
+
+      <!-- VENDAS -->
+      <div>
+        <div class="collapse-header" onclick="toggleCollapse('form-venda')">
+          <span>💵 Registrar Venda</span>
+          <span class="arrow" id="arrow-form-venda">▼</span>
+        </div>
+        <div class="collapse-body" id="form-venda">
+          <div class="form-grid">
+            <div class="field"><label>Lote</label><select id="vd-lote"></select></div>
+            <div class="field"><label>Qtd Vendida (cab.)</label><input type="number" id="vd-qtd" placeholder="Ex: 20" min="1" oninput="calcularResumoVenda()"></div>
+            <div class="field"><label>Peso de Venda (@)</label><input type="number" id="vd-peso" placeholder="Ex: 14.0" step="0.1" oninput="calcularResumoVenda()"></div>
+            <div class="field"><label>Preço (R$/@)</label><input type="number" id="vd-preco" placeholder="Ex: 330" step="0.01" oninput="calcularResumoVenda()"></div>
+            <div class="field"><label>Data da Venda</label><input type="date" id="vd-data"></div>
+          </div>
+          <div class="field" style="margin-top:.5rem"><label>Observação</label><input type="text" id="vd-obs" placeholder="Ex: Frigorífico X"></div>
+          <div id="vd-resumo" style="margin-top:.75rem"></div>
+          <button class="btn" style="margin-top:1rem;width:100%;justify-content:center" onclick="salvarVenda()">💵 Registrar Venda</button>
+        </div>
+      </div>
+      <div class="card"><div class="card-title">💵 Histórico de Vendas</div><div id="historico-vendas"></div></div>
+
     </div>
 
     <!-- CUSTOS (dono only) -->
@@ -983,7 +1023,13 @@ function showSectionById(id){
   if(nb) nb.classList.add('active');
   // Render section data
   if(id==='dashboard') renderDashboard();
-  else if(id==='rebanho') renderRebanho();
+  else if(id==='rebanho'){
+    renderRebanho();
+    popularSelectLotes('ps-lote', false);
+    popularSelectLotes('vd-lote', true);
+    renderHistoricoPesagens();
+    renderHistoricoVendas();
+  }
   else if(id==='suplementacao') renderSuplementacao();
   else if(id==='custos') renderCustos();
   else if(id==='dashboard-vaqueiro') renderDashboardVaqueiro();
@@ -2685,6 +2731,195 @@ function toggleAluguelField(){
       if(el) el.value = '0';
     });
   }
+}
+
+
+// ===== PESAGENS =====
+function popularSelectLotes(selectId, excluirTerceiro){
+  var sel = document.getElementById(selectId);
+  if(!sel) return;
+  sel.innerHTML = '<option value="">— Selecionar lote —</option>';
+  state.lotes.forEach(function(l){
+    if(excluirTerceiro && l.tipo==='terceiro') return;
+    var opt = document.createElement('option');
+    opt.value = l.id;
+    opt.textContent = l.nome + ' (' + l.qtd + ' cab.)';
+    sel.appendChild(opt);
+  });
+}
+
+function salvarPesagem(){
+  var loteId = parseInt(document.getElementById('ps-lote').value);
+  var peso   = parseFloat(document.getElementById('ps-peso').value);
+  var data   = document.getElementById('ps-data').value;
+  if(!loteId) return toast('Selecione um lote','error');
+  if(!peso)   return toast('Informe o peso','error');
+  if(!data)   return toast('Informe a data','error');
+  var lote = state.lotes.find(function(l){ return l.id===loteId; });
+  if(!lote) return;
+  var pesoAnterior = lote.pesoAtual || lote.pesoEntrada || 0;
+  var ganho = peso - pesoAnterior;
+  // Save pesagem record
+  if(!state.pesagens) state.pesagens = [];
+  state.pesagens.push({
+    id: Date.now(),
+    loteId: loteId,
+    loteNome: lote.nome,
+    peso: peso,
+    pesoAnterior: pesoAnterior,
+    ganho: ganho,
+    data: data,
+    obs: document.getElementById('ps-obs').value
+  });
+  // Update lote current weight
+  var idx = state.lotes.findIndex(function(l){ return l.id===loteId; });
+  state.lotes[idx].pesoAtual = peso;
+  saveToFirebase();
+  toast('⚖️ Pesagem registrada! Ganho: '+fmtN(ganho,2)+'@');
+  document.getElementById('ps-peso').value='';
+  document.getElementById('ps-data').value='';
+  document.getElementById('ps-obs').value='';
+  renderHistoricoPesagens();
+  renderRebanho();
+}
+
+function renderHistoricoPesagens(){
+  var el = document.getElementById('historico-pesagens');
+  if(!el) return;
+  var pesagens = state.pesagens || [];
+  if(pesagens.length===0){
+    el.innerHTML='<div style="color:var(--clay);font-size:.85rem">Nenhuma pesagem registrada.</div>';
+    return;
+  }
+  var sorted = pesagens.slice().sort(function(a,b){ return b.data.localeCompare(a.data); });
+  var html = '';
+  sorted.forEach(function(p){
+    var corGanho = p.ganho >= 0 ? 'var(--green)' : 'var(--red)';
+    var sinalGanho = p.ganho >= 0 ? '+' : '';
+    html += '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.85rem;margin-bottom:.6rem">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.3rem">';
+    html += '<strong style="font-size:.88rem;color:var(--text)">'+p.loteNome+'</strong>';
+    html += '<span style="font-size:.75rem;color:var(--clay)">'+new Date(p.data+'T00:00:00').toLocaleDateString('pt-BR')+'</span>';
+    html += '</div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.25rem;font-size:.78rem;color:var(--clay)">';
+    html += '<div>Anterior: <strong style="color:var(--text)">'+fmtN(p.pesoAnterior,1)+'@</strong></div>';
+    html += '<div>Novo: <strong style="color:var(--text)">'+fmtN(p.peso,1)+'@</strong></div>';
+    html += '<div>Ganho: <strong style="color:'+corGanho+'">'+sinalGanho+fmtN(p.ganho,2)+'@</strong></div>';
+    html += '</div>';
+    if(p.obs) html += '<div style="font-size:.75rem;color:var(--clay);margin-top:.3rem">'+p.obs+'</div>';
+    html += '</div>';
+  });
+  el.innerHTML = html;
+}
+
+// ===== VENDAS =====
+function salvarVenda(){
+  var loteId = parseInt(document.getElementById('vd-lote').value);
+  var qtd    = parseInt(document.getElementById('vd-qtd').value);
+  var peso   = parseFloat(document.getElementById('vd-peso').value);
+  var preco  = parseFloat(document.getElementById('vd-preco').value);
+  var data   = document.getElementById('vd-data').value;
+  if(!loteId) return toast('Selecione um lote','error');
+  if(!qtd)    return toast('Informe a quantidade','error');
+  if(!peso)   return toast('Informe o peso de venda','error');
+  if(!preco)  return toast('Informe o preço','error');
+  if(!data)   return toast('Informe a data','error');
+  var lote = state.lotes.find(function(l){ return l.id===loteId; });
+  if(!lote) return;
+  if(qtd > lote.qtd) return toast('Quantidade maior que o lote ('+lote.qtd+' cab.)','error');
+  var receitaTotal = qtd * peso * preco;
+  var custoUnitario = lote.pesoEntrada * lote.precoCompra;
+  var custoTotal = qtd * custoUnitario;
+  var lucro = receitaTotal - custoTotal;
+  // Save venda record
+  if(!state.vendas) state.vendas = [];
+  state.vendas.push({
+    id: Date.now(),
+    loteId: loteId,
+    loteNome: lote.nome,
+    qtd: qtd,
+    peso: peso,
+    preco: preco,
+    receitaTotal: receitaTotal,
+    custoTotal: custoTotal,
+    lucro: lucro,
+    data: data,
+    obs: document.getElementById('vd-obs').value
+  });
+  // Update lote quantity
+  var idx = state.lotes.findIndex(function(l){ return l.id===loteId; });
+  state.lotes[idx].qtd = lote.qtd - qtd;
+  if(state.lotes[idx].qtd === 0){
+    state.lotes[idx].tipo = 'encerrado';
+    toast('💵 Venda registrada! Lote encerrado. Receita: '+fmt(receitaTotal));
+  } else {
+    toast('💵 Venda registrada! Receita: '+fmt(receitaTotal)+' · Restam: '+state.lotes[idx].qtd+' cab.');
+  }
+  saveToFirebase();
+  document.getElementById('vd-qtd').value='';
+  document.getElementById('vd-peso').value='';
+  document.getElementById('vd-preco').value='';
+  document.getElementById('vd-data').value='';
+  document.getElementById('vd-obs').value='';
+  document.getElementById('vd-resumo').innerHTML='';
+  renderHistoricoVendas();
+  renderRebanho();
+  renderDashboard();
+}
+
+function calcularResumoVenda(){
+  var loteId = parseInt(document.getElementById('vd-lote').value);
+  var qtd    = parseInt(document.getElementById('vd-qtd').value)||0;
+  var peso   = parseFloat(document.getElementById('vd-peso').value)||0;
+  var preco  = parseFloat(document.getElementById('vd-preco').value)||0;
+  var el     = document.getElementById('vd-resumo');
+  if(!el || !loteId || !qtd || !peso || !preco) return;
+  var lote = state.lotes.find(function(l){ return l.id===loteId; });
+  if(!lote) return;
+  var receita = qtd * peso * preco;
+  var custo   = qtd * lote.pesoEntrada * lote.precoCompra;
+  var lucro   = receita - custo;
+  var corLucro = lucro >= 0 ? 'var(--green)' : 'var(--red)';
+  el.innerHTML = '<div style="background:var(--bg);border-radius:8px;padding:.75rem;font-size:.82rem">' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.25rem;color:var(--clay)">' +
+    '<div>Receita<br><strong style="color:var(--text);font-size:.95rem">'+fmt(receita)+'</strong></div>' +
+    '<div>Custo<br><strong style="color:var(--text);font-size:.95rem">'+fmt(custo)+'</strong></div>' +
+    '<div>Lucro<br><strong style="color:'+corLucro+';font-size:.95rem">'+fmt(lucro)+'</strong></div>' +
+    '</div></div>';
+}
+
+function renderHistoricoVendas(){
+  var el = document.getElementById('historico-vendas');
+  if(!el) return;
+  var vendas = state.vendas || [];
+  if(vendas.length===0){
+    el.innerHTML='<div style="color:var(--clay);font-size:.85rem">Nenhuma venda registrada.</div>';
+    return;
+  }
+  var sorted = vendas.slice().sort(function(a,b){ return b.data.localeCompare(a.data); });
+  var totalReceita = vendas.reduce(function(a,v){ return a+v.receitaTotal; }, 0);
+  var totalLucro   = vendas.reduce(function(a,v){ return a+v.lucro; }, 0);
+  var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.75rem">';
+  html += '<div style="background:var(--green-light);border:1px solid var(--green-mid);border-radius:8px;padding:.6rem;text-align:center"><div style="font-size:.7rem;color:var(--clay)">Total Recebido</div><div style="font-weight:700;color:var(--green)">'+fmt(totalReceita)+'</div></div>';
+  html += '<div style="background:'+(totalLucro>=0?'var(--green-light)':'var(--red-light)')+';border:1px solid '+(totalLucro>=0?'var(--green-mid)':'var(--red)')+';border-radius:8px;padding:.6rem;text-align:center"><div style="font-size:.7rem;color:var(--clay)">Lucro Total</div><div style="font-weight:700;color:'+(totalLucro>=0?'var(--green)':'var(--red)')+'">'+fmt(totalLucro)+'</div></div>';
+  html += '</div>';
+  sorted.forEach(function(v){
+    var corLucro = v.lucro >= 0 ? 'var(--green)' : 'var(--red)';
+    html += '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.85rem;margin-bottom:.6rem">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.4rem">';
+    html += '<div><strong style="font-size:.88rem;color:var(--text)">'+v.loteNome+'</strong>';
+    html += '<div style="font-size:.75rem;color:var(--clay)">'+v.qtd+' cab. · '+fmtN(v.peso,1)+'@ · '+fmt(v.preco)+'/@ </div></div>';
+    html += '<span style="font-size:.75rem;color:var(--clay)">'+new Date(v.data+'T00:00:00').toLocaleDateString('pt-BR')+'</span>';
+    html += '</div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.25rem;font-size:.78rem;color:var(--clay)">';
+    html += '<div>Receita<br><strong style="color:var(--text)">'+fmt(v.receitaTotal)+'</strong></div>';
+    html += '<div>Custo<br><strong style="color:var(--text)">'+fmt(v.custoTotal)+'</strong></div>';
+    html += '<div>Lucro<br><strong style="color:'+corLucro+'">'+fmt(v.lucro)+'</strong></div>';
+    html += '</div>';
+    if(v.obs) html += '<div style="font-size:.75rem;color:var(--clay);margin-top:.3rem">'+v.obs+'</div>';
+    html += '</div>';
+  });
+  el.innerHTML = html;
 }
 
 // RESTAURAR SESSÃO após refresh
