@@ -416,10 +416,10 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
               <div class="field"><label>Nome do Lote</label><input type="text" id="r-nome" placeholder="Ex: Novilhas Nelore L1"></div>
               <div class="field"><label>Tipo</label><select id="r-tipo" onchange="toggleAluguelField()" ><option value="novilha">Novilha (Engorda)</option><option value="vaca">Vaca (Leite)</option><option value="bezerro">Bezerro</option><option value="touro">Touro</option><option value="terceiro">🤝 Terceiro (Arrendado)</option></select></div>
               <div class="field"><label>Qtd de Cabeças</label><input type="number" id="r-qtd" placeholder="43"></div>
-              <div class="field"><label>Peso Entrada (@)</label><input type="number" id="r-peso-entrada" placeholder="6.5" step="0.1"></div>
-              <div class="field"><label>Peso Atual (@)</label><input type="number" id="r-peso-atual" placeholder="9.0" step="0.1"></div>
-              <div class="field"><label>Peso Meta (@)</label><input type="number" id="r-peso-meta" placeholder="14.0" step="0.1"></div>
-              <div class="field"><label>Preço Compra (R$/@)</label><input type="number" id="r-preco-compra" placeholder="290"></div>
+              <div class="field" id="field-peso-entrada"><label>Peso Entrada (@)</label><input type="number" id="r-peso-entrada" placeholder="6.5" step="0.1"></div>
+              <div class="field" id="field-peso-atual"><label>Peso Atual (@)</label><input type="number" id="r-peso-atual" placeholder="9.0" step="0.1"></div>
+              <div class="field" id="field-peso-meta"><label>Peso Meta (@)</label><input type="number" id="r-peso-meta" placeholder="14.0" step="0.1"></div>
+              <div class="field" id="field-preco-compra"><label>Preço Compra (R$/@)</label><input type="number" id="r-preco-compra" placeholder="290"></div>
               <div class="field"><label>Data de Entrada</label><input type="date" id="r-data"></div>
             <div class="field"><label>🌿 Manga Atual</label>
               <select id="r-manga"><option value="">— Sem manga —</option></select>
@@ -2667,9 +2667,24 @@ function abrirModalDividir(loteId){
 // ===== LOTES TERCEIRO =====
 function toggleAluguelField(){
   var tipo = document.getElementById('r-tipo');
-  var field = document.getElementById('field-aluguel');
-  if(!tipo || !field) return;
-  field.style.display = tipo.value === 'terceiro' ? 'block' : 'none';
+  if(!tipo) return;
+  var isTerceiro = tipo.value === 'terceiro';
+  // Show/hide aluguel field
+  var fa = document.getElementById('field-aluguel');
+  if(fa) fa.style.display = isTerceiro ? 'block' : 'none';
+  // Hide/show peso and preco fields for terceiro
+  var hideFields = ['field-peso-entrada','field-peso-atual','field-peso-meta','field-preco-compra'];
+  hideFields.forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.style.display = isTerceiro ? 'none' : '';
+  });
+  // If terceiro, zero out those fields automatically
+  if(isTerceiro){
+    ['r-peso-entrada','r-peso-atual','r-peso-meta','r-preco-compra'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.value = '0';
+    });
+  }
 }
 
 // RESTAURAR SESSÃO após refresh
