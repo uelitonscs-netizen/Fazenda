@@ -435,7 +435,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
           <div class="collapse-body" id="form-lote">
             <div class="form-grid">
               <div class="field"><label>Nome do Lote</label><input type="text" id="r-nome" placeholder="Ex: Novilhas Nelore L1"></div>
-              <div class="field"><label>Tipo</label><select id="r-tipo" onchange="toggleAluguelField()" ><option value="novilha">Novilha (Engorda)</option><option value="vaca">Vaca (Leite)</option><option value="bezerro">Bezerro</option><option value="touro">Touro</option><option value="terceiro">🤝 Terceiro (Arrendado)</option></select></div>
+              <div class="field"><label>Tipo</label><select id="r-tipo" onchange="toggleAluguelField()" ><option value="novilha">Novilha (Engorda)</option><option value="vaca">Vaca de Recria</option><option value="bezerro">Bezerro</option><option value="touro">Touro</option><option value="terceiro">🤝 Terceiro (Arrendado)</option></select></div>
               <div class="field"><label>Qtd de Cabeças</label><input type="number" id="r-qtd" placeholder="43"></div>
               <div class="field" id="field-peso-entrada"><label>Peso Entrada (@)</label><input type="number" id="r-peso-entrada" placeholder="6.5" step="0.1"></div>
               <div class="field" id="field-peso-atual"><label>Peso Atual (@)</label><input type="number" id="r-peso-atual" placeholder="9.0" step="0.1"></div>
@@ -1256,7 +1256,7 @@ function renderRebanho(){
     var tb=l.tipo==='novilha'?'green':l.tipo==='vaca'?'sky':'yellow';
     rows+='<div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:.9rem;margin-bottom:.75rem">';
     rows+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.6rem">';
-    rows+='<div><strong style="font-size:.9rem">'+l.nome+'</strong>'+(l.obs?'<br><span style="font-size:.72rem;color:var(--clay)">'+l.obs+'</span>':'')+' <span class="badge '+tb+'">'+l.tipo+'</span></div>';
+    rows+='<div><strong style="font-size:.9rem">'+l.nome+'</strong>'+(l.obs?'<br><span style="font-size:.72rem;color:var(--clay)">'+l.obs+'</span>':'')+' <span class="badge '+tb+'">'+(l.tipo==='novilha'?'Novilha':l.tipo==='vaca'?'Vaca de Recria':l.tipo==='bezerro'?'Bezerro':l.tipo==='touro'?'Touro':l.tipo==='terceiro'?'🤝 Terceiro':l.tipo)+'</span></div>';
     rows+='<div style="display:flex;gap:.4rem">';
     rows+='<button class="btn sm outline" onclick="editarLote('+l.id+')">✏️</button>';
     rows+='<button class="btn sm" style="background:var(--red);color:white" onclick="abrirModalBaixa('+l.id+')">📉</button>';
@@ -1425,7 +1425,7 @@ function calcularProjecao(){
   var pv=parseFloat(document.getElementById('p-preco').value)||330;
   var pw=parseFloat(document.getElementById('p-peso').value)||14;
   var pr=parseInt(document.getElementById('p-prazo').value)||10;
-  var nov=state.lotes.filter(function(l){return l.tipo==='novilha';});
+  var nov=state.lotes.filter(function(l){return l.tipo!=='terceiro'&&l.tipo!=='vaca'&&l.tipo!=='encerrado';});
   var tc=nov.reduce(function(a,l){return a+l.qtd;},0);
   var cc=nov.reduce(function(a,l){return a+(l.qtd*l.pesoEntrada*l.precoCompra);},0);
   var ei=state.insumos.reduce(function(a,i){return a+(i.qtd*i.preco);},0);
@@ -2514,7 +2514,7 @@ function renderDashboardVaqueiro(){
   });
   var subParts = [];
   if(porTipo['novilha']) subParts.push(porTipo['novilha']+' novilhas');
-  if(porTipo['vaca'])    subParts.push(porTipo['vaca']+' vacas');
+  if(porTipo['vaca'])    subParts.push(porTipo['vaca']+' vacas de recria');
   if(porTipo['bezerro']) subParts.push(porTipo['bezerro']+' bezerros');
   if(porTipo['touro'])   subParts.push(porTipo['touro']+' touros');
 
@@ -2823,6 +2823,7 @@ function toggleAluguelField(){
   var tipo = document.getElementById('r-tipo');
   if(!tipo) return;
   var isTerceiro = tipo.value === 'terceiro';
+  var isVacaRecria = tipo.value === 'vaca';
   // Show/hide aluguel field
   var fa = document.getElementById('field-aluguel');
   if(fa) fa.style.display = isTerceiro ? 'block' : 'none';
@@ -2830,7 +2831,14 @@ function toggleAluguelField(){
   var hideFields = ['field-peso-entrada','field-peso-atual','field-peso-meta','field-preco-compra'];
   hideFields.forEach(function(id){
     var el = document.getElementById(id);
-    if(el) el.style.display = isTerceiro ? 'none' : '';
+    if(!el) return;
+    if(isTerceiro){
+      el.style.display = 'none';
+    } else if(isVacaRecria && id === 'field-peso-meta'){
+      el.style.display = 'none'; // sem meta de engorda
+    } else {
+      el.style.display = '';
+    }
   });
   // If terceiro, zero out those fields automatically
   if(isTerceiro){
@@ -2838,6 +2846,11 @@ function toggleAluguelField(){
       var el = document.getElementById(id);
       if(el) el.value = '0';
     });
+  }
+  // If vaca recria, zero meta
+  if(isVacaRecria){
+    var meta = document.getElementById('r-peso-meta');
+    if(meta) meta.value = '0';
   }
 }
 
@@ -3112,7 +3125,8 @@ function gerarRelatorioPDF(){
       var diasMeta = (gmd && l.pesoMeta && l.pesoAtual && gmd > 0) ? Math.ceil((l.pesoMeta - l.pesoAtual)/gmd) : null;
       html += '<tr>';
       html += '<td><strong>'+l.nome+'</strong></td>';
-      html += '<td>'+l.tipo+'</td>';
+      var tipoMap={'novilha':'Novilha','vaca':'Vaca de Recria','bezerro':'Bezerro','touro':'Touro','terceiro':'Terceiro','encerrado':'Encerrado'};
+      html += '<td>'+(tipoMap[l.tipo]||l.tipo)+'</td>';
       html += '<td>'+l.qtd+'</td>';
       html += '<td>'+(l.pesoEntrada?fmtN(l.pesoEntrada,1)+'@':'—')+'</td>';
       html += '<td>'+(l.pesoAtual?fmtN(l.pesoAtual,1)+'@':'—')+'</td>';
