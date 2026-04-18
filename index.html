@@ -698,6 +698,95 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
       </div>
     </div>
 
+    <!-- ALERTAS -->
+    <div id="alertas" class="section">
+
+      <!-- ALERTAS ATIVOS -->
+      <div class="card">
+        <div class="card-title">🔔 Alertas Ativos</div>
+        <div id="alertas-list"></div>
+      </div>
+
+      <!-- CRIAR NOVO ALERTA -->
+      <div>
+        <div class="collapse-header" onclick="toggleCollapse('form-alerta')">
+          <span>➕ Criar Novo Alerta</span>
+          <span class="arrow" id="arrow-form-alerta">▼</span>
+        </div>
+        <div class="collapse-body" id="form-alerta">
+
+          <div class="field">
+            <label>Tipo de Alerta</label>
+            <select id="alerta-tipo" onchange="toggleAlertaForm()">
+              <option value="">— Selecionar tipo —</option>
+              <option value="estoque_sacos">📦 Estoque abaixo de X sacos</option>
+              <option value="dias_fazenda">📅 Lote com X dias na fazenda</option>
+              <option value="custo_mensal">💰 Custo mensal acima de R$ X</option>
+              <option value="gmd_baixo">⚖️ GMD abaixo de X @/dia</option>
+              <option value="dias_sem_pesagem">⚖️ Lote sem pesagem há X dias</option>
+              <option value="data_livre">🗓️ Alerta em data específica</option>
+              <option value="vencimento_doc">📋 Vencimento de documento</option>
+            </select>
+          </div>
+
+          <!-- ESTOQUE SACOS -->
+          <div id="form-alerta-estoque" style="display:none">
+            <div class="field"><label>Insumo</label><select id="alerta-insumo"></select></div>
+            <div class="field"><label>Alertar quando chegar em X sacos</label><input type="number" id="alerta-estoque-min" placeholder="Ex: 5" min="1"></div>
+          </div>
+
+          <!-- DIAS NA FAZENDA -->
+          <div id="form-alerta-dias" style="display:none">
+            <div class="field"><label>Lote</label><select id="alerta-lote-dias"></select></div>
+            <div class="field"><label>Alertar quando completar X dias</label><input type="number" id="alerta-dias-num" placeholder="Ex: 180" min="1"></div>
+          </div>
+
+          <!-- CUSTO MENSAL -->
+          <div id="form-alerta-custo" style="display:none">
+            <div class="field"><label>Alertar quando custo mensal passar de R$</label><input type="number" id="alerta-custo-max" placeholder="Ex: 3000" step="0.01"></div>
+          </div>
+
+          <!-- GMD BAIXO -->
+          <div id="form-alerta-gmd" style="display:none">
+            <div class="field"><label>Lote</label><select id="alerta-lote-gmd"></select></div>
+            <div class="field"><label>Alertar se GMD cair abaixo de (@/dia)</label><input type="number" id="alerta-gmd-min" placeholder="Ex: 0.300" step="0.001"></div>
+          </div>
+
+          <!-- DIAS SEM PESAGEM -->
+          <div id="form-alerta-sempes" style="display:none">
+            <div class="field"><label>Lote</label><select id="alerta-lote-sempes"></select></div>
+            <div class="field"><label>Alertar após X dias sem pesagem</label><input type="number" id="alerta-sempes-dias" placeholder="Ex: 30" min="1"></div>
+          </div>
+
+          <!-- DATA LIVRE -->
+          <div id="form-alerta-data" style="display:none">
+            <div class="field"><label>Descrição do alerta</label><input type="text" id="alerta-data-desc" placeholder="Ex: Renovar GTA"></div>
+            <div class="field"><label>Data do alerta</label><input type="date" id="alerta-data-val"></div>
+            <div class="field"><label>Avisar X dias antes</label><input type="number" id="alerta-data-antec" placeholder="Ex: 7" min="0" value="7"></div>
+          </div>
+
+          <!-- VENCIMENTO DOC -->
+          <div id="form-alerta-doc" style="display:none">
+            <div class="field"><label>Nome do documento</label><input type="text" id="alerta-doc-nome" placeholder="Ex: GTA, Nota Fiscal, Contrato"></div>
+            <div class="field"><label>Data de vencimento</label><input type="date" id="alerta-doc-data"></div>
+            <div class="field"><label>Avisar X dias antes</label><input type="number" id="alerta-doc-antec" placeholder="Ex: 15" min="1" value="15"></div>
+          </div>
+
+          <div class="field" style="margin-top:.5rem">
+            <label>Repetir alerta</label>
+            <select id="alerta-repeticao">
+              <option value="once">Uma vez</option>
+              <option value="daily">Diariamente</option>
+              <option value="weekly">Semanalmente</option>
+            </select>
+          </div>
+
+          <button class="btn" style="width:100%;justify-content:center;margin-top:1rem" onclick="salvarAlerta()">🔔 Criar Alerta</button>
+        </div>
+      </div>
+
+    </div>
+
     <!-- CONFIG -->
     <div id="config" class="section">
 
@@ -756,6 +845,13 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
             <div><div class="config-label">Tema Escuro</div><div class="config-sub">Modo noturno</div></div>
           </div>
           <div class="toggle" id="toggle-tema-cfg"></div>
+        </div>
+        <div class="config-item" id="cfg-notificacoes">
+          <div class="config-item-left">
+            <div class="config-icon sky">🔔</div>
+            <div><div class="config-label">Notificações</div><div class="config-sub" id="notif-sub-label">Alertas de manga, vacinas e lembretes</div></div>
+          </div>
+          <div class="toggle" id="toggle-notif-cfg"></div>
         </div>
       </div>
 
@@ -1103,7 +1199,7 @@ function alterarSenhaVaqueiro(){
 }
 
 // NAV
-var NAV_DONO=[{id:'dashboard',label:'Dashboard'},{id:'animais',label:'🐮 Animais'},{id:'suplementacao',label:'Suplementação'},{id:'rebanho',label:'Rebanho'},{id:'custos',label:'Custos'},{id:'projecao',label:'Projeção'},{id:'notas',label:'📋 Notas'},{id:'config',label:'⚙️ Config'}];
+var NAV_DONO=[{id:'dashboard',label:'Dashboard'},{id:'animais',label:'🐮 Animais'},{id:'suplementacao',label:'Suplementação'},{id:'rebanho',label:'Rebanho'},{id:'custos',label:'Custos'},{id:'projecao',label:'Projeção'},{id:'notas',label:'📋 Notas'},{id:'alertas',label:'🔔 Alertas'},{id:'config',label:'⚙️ Config'}];
 var NAV_VAQUEIRO=[{id:'dashboard-vaqueiro',label:'🏠 Início'},{id:'animais',label:'🐮 Animais'},{id:'suplementacao',label:'📦 Estoque'},{id:'notas',label:'📋 Notas'}];
 function buildNav(){
   var items=perfil==='dono'?NAV_DONO:NAV_VAQUEIRO;
@@ -1140,6 +1236,10 @@ function showSectionById(id){
   else if(id==='custos') renderCustos();
   else if(id==='dashboard-vaqueiro') renderDashboardVaqueiro();
   else if(id==='animais') renderAnimais();
+  else if(id==='alertas'){
+    loadAlertas();
+    setTimeout(function(){ popularSelectsAlertas(); }, 200);
+  }
   else if(id==='config'){ initConfigTab(); }
   else if(id==='projecao') calcularProjecao();
   else if(id==='notas'){
@@ -3263,6 +3363,27 @@ function initConfigTab(){
   }
 
   // Sair
+  // Notifications toggle
+  var toggleNotif = document.getElementById('toggle-notif-cfg');
+  var notifSubLabel = document.getElementById('notif-sub-label');
+  if(toggleNotif){
+    var isGranted = Notification.permission === 'granted';
+    if(isGranted) toggleNotif.classList.add('on');
+    if(notifSubLabel) notifSubLabel.textContent = isGranted ? '✅ Ativas' : 'Toque para ativar';
+    toggleNotif.addEventListener('click', function(){
+      if(Notification.permission === 'granted'){
+        toast('Para desativar, vá nas configurações do Chrome');
+      } else {
+        pedirPermissaoNotificacao();
+        setTimeout(function(){
+          var granted = Notification.permission === 'granted';
+          toggleNotif.classList.toggle('on', granted);
+          if(notifSubLabel) notifSubLabel.textContent = granted ? '✅ Ativas' : 'Alertas de manga, vacinas e lembretes';
+        }, 2000);
+      }
+    });
+  }
+
   var cfgSair = document.getElementById('cfg-sair-btn');
   if(cfgSair) cfgSair.addEventListener('click', function(){
     confirmarModal('Sair da conta?', '↪️', 'Sair', function(){
@@ -3324,6 +3445,378 @@ function getPrecoOriginal(){
   };
 }
 
+
+// ===== PUSH NOTIFICATIONS =====
+var NOTIF_CHECK_KEY = 'fazenda_notif_last_check';
+
+function pedirPermissaoNotificacao(){
+  if(!('Notification' in window)){
+    toast('Notificações não suportadas neste dispositivo','error');
+    return;
+  }
+  if(Notification.permission === 'granted'){
+    toast('✅ Notificações já estão ativas!');
+    agendarVerificacaoNotificacoes();
+    return;
+  }
+  if(Notification.permission === 'denied'){
+    toast('Notificações bloqueadas. Ative nas configurações do Chrome.','error');
+    return;
+  }
+  Notification.requestPermission().then(function(permission){
+    if(permission === 'granted'){
+      toast('✅ Notificações ativadas!');
+      agendarVerificacaoNotificacoes();
+      // Send test notification
+      setTimeout(function(){
+        enviarNotificacao('🐄 Fazenda Gestão', 'Notificações ativadas com sucesso!', '🎉');
+      }, 1000);
+    } else {
+      toast('Permissão negada','error');
+    }
+  });
+}
+
+function enviarNotificacao(titulo, corpo, icon){
+  if(Notification.permission !== 'granted') return;
+  try {
+    if('serviceWorker' in navigator){
+      navigator.serviceWorker.ready.then(function(reg){
+        reg.showNotification(titulo, {
+          body: corpo,
+          icon: icon || '/Fazenda/icon-192.png',
+          badge: '/Fazenda/icon-192.png',
+          vibrate: [200, 100, 200],
+          tag: 'fazenda-' + Date.now()
+        });
+      });
+    } else {
+      new Notification(titulo, { body: corpo });
+    }
+  } catch(e){}
+}
+
+function verificarAlertas(){
+  verificarAlertasPersonalizados();
+  if(Notification.permission !== 'granted') return;
+  var hoje = new Date(); hoje.setHours(0,0,0,0);
+  var alertas = [];
+
+  // 1. Verificar mangas
+  state.lotes.forEach(function(l){
+    if(!l.manga || !l.mangaData || !l.mangaDias) return;
+    var entrada = new Date(l.mangaData+'T00:00:00');
+    var diasPassados = Math.floor((hoje - entrada)/(1000*60*60*24));
+    var diasRestantes = l.mangaDias - diasPassados;
+    if(diasRestantes < 0){
+      alertas.push({
+        titulo: '🔴 Mover Lote: '+l.nome,
+        corpo: 'Passou '+Math.abs(diasRestantes)+' dias do prazo na '+l.manga
+      });
+    } else if(diasRestantes <= 3){
+      alertas.push({
+        titulo: '🟡 Mover em breve: '+l.nome,
+        corpo: 'Faltam '+diasRestantes+' dia(s) na '+l.manga
+      });
+    }
+  });
+
+  // 2. Verificar vacinas
+  var vacinas = (stateNotas && stateNotas.vacinas) ? stateNotas.vacinas : [];
+  vacinas.forEach(function(v){
+    if(!v.proxima) return;
+    var proxDate = new Date(v.proxima+'T00:00:00');
+    var diff = Math.ceil((proxDate - hoje)/(1000*60*60*24));
+    if(diff < 0){
+      alertas.push({
+        titulo: '💉 Vacina vencida: '+v.nome,
+        corpo: 'Estava prevista para '+new Date(v.proxima+'T00:00:00').toLocaleDateString('pt-BR')
+      });
+    } else if(diff <= 7){
+      alertas.push({
+        titulo: '💉 Vacina em '+diff+' dia(s): '+v.nome,
+        corpo: v.lote ? 'Lote: '+v.lote : 'Verificar lotes'
+      });
+    }
+  });
+
+  // 3. Verificar lembretes
+  var lembretes = (stateNotas && stateNotas.lembretes) ? stateNotas.lembretes : [];
+  lembretes.forEach(function(l){
+    if(!l.data || l.done) return;
+    var dataEvt = new Date(l.data+'T00:00:00');
+    var diff = Math.ceil((dataEvt - hoje)/(1000*60*60*24));
+    if(diff === 0){
+      alertas.push({
+        titulo: '🗓️ Lembrete hoje: '+l.titulo,
+        corpo: l.hora ? 'às '+l.hora : 'Hoje'
+      });
+    } else if(diff < 0){
+      alertas.push({
+        titulo: '🗓️ Lembrete vencido: '+l.titulo,
+        corpo: 'Estava previsto para '+new Date(l.data+'T00:00:00').toLocaleDateString('pt-BR')
+      });
+    }
+  });
+
+  // Send notifications (max 3 to avoid spam)
+  alertas.slice(0, 3).forEach(function(a, i){
+    setTimeout(function(){
+      enviarNotificacao(a.titulo, a.corpo);
+    }, i * 2000);
+  });
+
+  // Save last check time
+  try { localStorage.setItem(NOTIF_CHECK_KEY, Date.now().toString()); } catch(e){}
+}
+
+function agendarVerificacaoNotificacoes(){
+  // Check on app open
+  setTimeout(verificarAlertas, 3000);
+  // Check every 4 hours while app is open
+  setInterval(verificarAlertas, 4 * 60 * 60 * 1000);
+}
+
+// Auto-check on load if permission already granted
+function initNotificacoes(){
+  if(Notification.permission === 'granted'){
+    agendarVerificacaoNotificacoes();
+  }
+}
+
+
+// ===== ALERTAS PERSONALIZADOS =====
+var stateAlertas = [];
+
+function loadAlertas(){
+  db.ref('fazenda_alertas').once('value').then(function(snap){
+    var d = snap.val();
+    stateAlertas = d ? (Array.isArray(d) ? d : Object.values(d)) : [];
+    renderAlertas();
+    popularSelectsAlertas();
+  });
+}
+
+function saveAlertas(){
+  db.ref('fazenda_alertas').set(stateAlertas)
+    .catch(function(e){ toast('Erro ao salvar alerta','error'); });
+}
+
+function popularSelectsAlertas(){
+  var selInsumo  = document.getElementById('alerta-insumo');
+  var selDias    = document.getElementById('alerta-lote-dias');
+  var selGmd     = document.getElementById('alerta-lote-gmd');
+  var selSempes  = document.getElementById('alerta-lote-sempes');
+  var lotesOpts  = '<option value="">— Selecionar —</option>';
+  state.lotes.filter(function(l){ return l.tipo!=='encerrado'; }).forEach(function(l){
+    lotesOpts += '<option value="'+l.id+'">'+l.nome+'</option>';
+  });
+  var insOpts = '<option value="">— Selecionar —</option>';
+  state.insumos.forEach(function(i){
+    insOpts += '<option value="'+i.id+'">'+i.nome+'</option>';
+  });
+  if(selInsumo) selInsumo.innerHTML = insOpts;
+  if(selDias)   selDias.innerHTML   = lotesOpts;
+  if(selGmd)    selGmd.innerHTML    = lotesOpts;
+  if(selSempes) selSempes.innerHTML = lotesOpts;
+}
+
+function toggleAlertaForm(){
+  var tipo = document.getElementById('alerta-tipo').value;
+  var forms = ['estoque','dias','custo','gmd','sempes','data','doc'];
+  forms.forEach(function(f){
+    var el = document.getElementById('form-alerta-'+f);
+    if(el) el.style.display = 'none';
+  });
+  var map = {
+    'estoque_sacos':'estoque', 'dias_fazenda':'dias', 'custo_mensal':'custo',
+    'gmd_baixo':'gmd', 'dias_sem_pesagem':'sempes', 'data_livre':'data', 'vencimento_doc':'doc'
+  };
+  if(map[tipo]){
+    var el = document.getElementById('form-alerta-'+map[tipo]);
+    if(el) el.style.display = 'block';
+  }
+}
+
+function salvarAlerta(){
+  var tipo = document.getElementById('alerta-tipo').value;
+  if(!tipo) return toast('Selecione o tipo de alerta','error');
+  var alerta = { id: Date.now(), tipo: tipo, ativo: true, repeticao: document.getElementById('alerta-repeticao').value };
+
+  if(tipo === 'estoque_sacos'){
+    var ins = document.getElementById('alerta-insumo');
+    var min = parseInt(document.getElementById('alerta-estoque-min').value);
+    if(!ins.value) return toast('Selecione o insumo','error');
+    if(!min) return toast('Informe a quantidade mínima','error');
+    var insumo = state.insumos.find(function(i){ return i.id===parseInt(ins.value); });
+    alerta.insumoId = parseInt(ins.value);
+    alerta.insumoNome = insumo ? insumo.nome : ins.options[ins.selectedIndex].text;
+    alerta.minSacos = min;
+    alerta.descricao = '📦 '+alerta.insumoNome+' abaixo de '+min+' sacos';
+  } else if(tipo === 'dias_fazenda'){
+    var sel = document.getElementById('alerta-lote-dias');
+    var dias = parseInt(document.getElementById('alerta-dias-num').value);
+    if(!sel.value) return toast('Selecione o lote','error');
+    if(!dias) return toast('Informe os dias','error');
+    var lote = state.lotes.find(function(l){ return l.id===parseInt(sel.value); });
+    alerta.loteId = parseInt(sel.value);
+    alerta.loteNome = lote ? lote.nome : sel.options[sel.selectedIndex].text;
+    alerta.diasFazenda = dias;
+    alerta.descricao = '📅 '+alerta.loteNome+' completar '+dias+' dias';
+  } else if(tipo === 'custo_mensal'){
+    var max = parseFloat(document.getElementById('alerta-custo-max').value);
+    if(!max) return toast('Informe o valor máximo','error');
+    alerta.custoMax = max;
+    alerta.descricao = '💰 Custo mensal acima de '+fmt(max);
+  } else if(tipo === 'gmd_baixo'){
+    var sel2 = document.getElementById('alerta-lote-gmd');
+    var gmdMin = parseFloat(document.getElementById('alerta-gmd-min').value);
+    if(!sel2.value) return toast('Selecione o lote','error');
+    if(!gmdMin) return toast('Informe o GMD mínimo','error');
+    var lote2 = state.lotes.find(function(l){ return l.id===parseInt(sel2.value); });
+    alerta.loteId = parseInt(sel2.value);
+    alerta.loteNome = lote2 ? lote2.nome : sel2.options[sel2.selectedIndex].text;
+    alerta.gmdMin = gmdMin;
+    alerta.descricao = '⚖️ GMD de '+alerta.loteNome+' abaixo de '+fmtN(gmdMin,3)+'@/dia';
+  } else if(tipo === 'dias_sem_pesagem'){
+    var sel3 = document.getElementById('alerta-lote-sempes');
+    var sempesDias = parseInt(document.getElementById('alerta-sempes-dias').value);
+    if(!sel3.value) return toast('Selecione o lote','error');
+    if(!sempesDias) return toast('Informe os dias','error');
+    var lote3 = state.lotes.find(function(l){ return l.id===parseInt(sel3.value); });
+    alerta.loteId = parseInt(sel3.value);
+    alerta.loteNome = lote3 ? lote3.nome : sel3.options[sel3.selectedIndex].text;
+    alerta.sempesDias = sempesDias;
+    alerta.descricao = '⚖️ '+alerta.loteNome+' sem pesagem há '+sempesDias+' dias';
+  } else if(tipo === 'data_livre'){
+    var desc = document.getElementById('alerta-data-desc').value.trim();
+    var dataVal = document.getElementById('alerta-data-val').value;
+    var antec = parseInt(document.getElementById('alerta-data-antec').value)||7;
+    if(!desc) return toast('Informe a descrição','error');
+    if(!dataVal) return toast('Informe a data','error');
+    alerta.descricao = '🗓️ '+desc;
+    alerta.dataAlerta = dataVal;
+    alerta.antecedencia = antec;
+  } else if(tipo === 'vencimento_doc'){
+    var docNome = document.getElementById('alerta-doc-nome').value.trim();
+    var docData = document.getElementById('alerta-doc-data').value;
+    var docAntec = parseInt(document.getElementById('alerta-doc-antec').value)||15;
+    if(!docNome) return toast('Informe o nome do documento','error');
+    if(!docData) return toast('Informe a data de vencimento','error');
+    alerta.descricao = '📋 '+docNome;
+    alerta.dataAlerta = docData;
+    alerta.antecedencia = docAntec;
+  }
+
+  stateAlertas.push(alerta);
+  saveAlertas();
+  renderAlertas();
+  toast('🔔 Alerta criado!');
+  // Reset form
+  document.getElementById('alerta-tipo').value = '';
+  toggleAlertaForm();
+}
+
+function deletarAlerta(id){
+  stateAlertas = stateAlertas.filter(function(a){ return a.id !== id; });
+  saveAlertas();
+  renderAlertas();
+  toast('🗑️ Alerta removido.');
+}
+
+function toggleAlertaAtivo(id){
+  var a = stateAlertas.find(function(x){ return x.id===id; });
+  if(a){ a.ativo = !a.ativo; saveAlertas(); renderAlertas(); }
+}
+
+function renderAlertas(){
+  var el = document.getElementById('alertas-list');
+  if(!el) return;
+  if(stateAlertas.length === 0){
+    el.innerHTML = '<div style="color:var(--clay);font-size:.85rem;padding:.5rem 0">Nenhum alerta criado. Use o formulário abaixo.</div>';
+    return;
+  }
+  var hoje = new Date(); hoje.setHours(0,0,0,0);
+  var html = '';
+  stateAlertas.forEach(function(a){
+    var status = verificarStatusAlerta(a);
+    var corBg = !a.ativo ? 'var(--bg)' : status.disparado ? 'var(--red-light)' : status.atencao ? '#FFF8E1' : 'var(--bg)';
+    var corBorda = !a.ativo ? 'var(--border)' : status.disparado ? 'var(--red)' : status.atencao ? '#F0B429' : 'var(--border)';
+    html += '<div style="background:'+corBg+';border:1.5px solid '+corBorda+';border-radius:10px;padding:.85rem;margin-bottom:.6rem">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start">';
+    html += '<div style="flex:1">';
+    html += '<div style="font-size:.88rem;font-weight:600;color:var(--text)'+(a.ativo?'':';opacity:.5')+'"">'+a.descricao+'</div>';
+    if(status.mensagem) html += '<div style="font-size:.75rem;color:'+(status.disparado?'var(--red)':'var(--gold)')+';margin-top:.25rem;font-weight:600">'+status.mensagem+'</div>';
+    html += '<div style="font-size:.72rem;color:var(--clay);margin-top:.2rem">'+
+      (a.repeticao==='daily'?'Diário':a.repeticao==='weekly'?'Semanal':'Uma vez')+
+      (a.ativo?' · Ativo':' · Pausado')+'</div>';
+    html += '</div>';
+    html += '<div style="display:flex;gap:.35rem;margin-left:.5rem">';
+    html += '<button class="toggle'+(a.ativo?' on':'')+'" style="width:36px;height:20px" data-aid="'+a.id+'" onclick="toggleAlertaAtivo('+a.id+')"></button>';
+    html += '<button onclick="deletarAlerta('+a.id+')" style="background:var(--red-light);border:1px solid var(--red);border-radius:6px;color:var(--red);padding:.2rem .5rem;font-size:.75rem;cursor:pointer">🗑️</button>';
+    html += '</div></div></div>';
+  });
+  el.innerHTML = html;
+}
+
+function verificarStatusAlerta(alerta){
+  if(!alerta.ativo) return {disparado:false, atencao:false, mensagem:''};
+  var hoje = new Date(); hoje.setHours(0,0,0,0);
+
+  if(alerta.tipo === 'estoque_sacos'){
+    var ins = state.insumos.find(function(i){ return i.id===alerta.insumoId; });
+    if(!ins) return {disparado:false, atencao:false, mensagem:''};
+    var sr = sacosRestantes(ins);
+    if(sr <= alerta.minSacos) return {disparado:true, atencao:false, mensagem:'⚠️ Restam apenas '+fmtN(sr,1)+' sacos!'};
+    if(sr <= alerta.minSacos * 1.5) return {disparado:false, atencao:true, mensagem:'Restam '+fmtN(sr,1)+' sacos'};
+  } else if(alerta.tipo === 'dias_fazenda'){
+    var lote = state.lotes.find(function(l){ return l.id===alerta.loteId; });
+    if(!lote || !lote.data) return {disparado:false, atencao:false, mensagem:''};
+    var entrada = new Date(lote.data+'T00:00:00');
+    var dias = Math.floor((hoje-entrada)/(1000*60*60*24));
+    if(dias >= alerta.diasFazenda) return {disparado:true, atencao:false, mensagem:'⚠️ '+dias+' dias na fazenda!'};
+    if(dias >= alerta.diasFazenda * 0.9) return {disparado:false, atencao:true, mensagem:dias+' dias ('+Math.ceil(alerta.diasFazenda-dias)+' para o alerta)'};
+  } else if(alerta.tipo === 'custo_mensal'){
+    var custo = custoMensalTotal();
+    if(custo >= alerta.custoMax) return {disparado:true, atencao:false, mensagem:'⚠️ Custo atual: '+fmt(custo)};
+    if(custo >= alerta.custoMax * 0.9) return {disparado:false, atencao:true, mensagem:'Custo atual: '+fmt(custo)};
+  } else if(alerta.tipo === 'gmd_baixo'){
+    var lote2 = state.lotes.find(function(l){ return l.id===alerta.loteId; });
+    if(!lote2) return {disparado:false, atencao:false, mensagem:''};
+    var gmd = calcularGMD(lote2);
+    if(gmd !== null && gmd < alerta.gmdMin) return {disparado:true, atencao:false, mensagem:'⚠️ GMD atual: '+fmtN(gmd,3)+'@/dia'};
+  } else if(alerta.tipo === 'dias_sem_pesagem'){
+    var lote3 = state.lotes.find(function(l){ return l.id===alerta.loteId; });
+    if(!lote3) return {disparado:false, atencao:false, mensagem:''};
+    var pesagens = (state.pesagens||[]).filter(function(p){ return p.loteId===alerta.loteId; });
+    var ultimaData = pesagens.length > 0 ? pesagens.sort(function(a,b){ return b.data.localeCompare(a.data); })[0].data : lote3.data;
+    if(!ultimaData) return {disparado:false, atencao:false, mensagem:''};
+    var diasSem = Math.floor((hoje-new Date(ultimaData+'T00:00:00'))/(1000*60*60*24));
+    if(diasSem >= alerta.sempesDias) return {disparado:true, atencao:false, mensagem:'⚠️ '+diasSem+' dias sem pesagem!'};
+    if(diasSem >= alerta.sempesDias * 0.8) return {disparado:false, atencao:true, mensagem:diasSem+' dias sem pesagem'};
+  } else if(alerta.tipo === 'data_livre' || alerta.tipo === 'vencimento_doc'){
+    var dataAlerta = new Date(alerta.dataAlerta+'T00:00:00');
+    var dataAviso = new Date(dataAlerta);
+    dataAviso.setDate(dataAviso.getDate() - (alerta.antecedencia||0));
+    var diff = Math.ceil((dataAlerta-hoje)/(1000*60*60*24));
+    if(diff < 0) return {disparado:true, atencao:false, mensagem:'⚠️ Vencido há '+Math.abs(diff)+' dia(s)!'};
+    if(hoje >= dataAviso) return {disparado:false, atencao:true, mensagem:'Faltam '+diff+' dia(s) — '+new Date(alerta.dataAlerta+'T00:00:00').toLocaleDateString('pt-BR')};
+  }
+  return {disparado:false, atencao:false, mensagem:''};
+}
+
+// Check alertas and fire notifications
+function verificarAlertasPersonalizados(){
+  if(Notification.permission !== 'granted') return;
+  stateAlertas.forEach(function(a){
+    if(!a.ativo) return;
+    var status = verificarStatusAlerta(a);
+    if(status.disparado){
+      enviarNotificacao('🔔 '+a.descricao, status.mensagem || 'Alerta disparado!');
+    }
+  });
+}
+
 // RESTAURAR SESSÃO após refresh
 (function(){
   try {
@@ -3334,6 +3827,8 @@ function getPrecoOriginal(){
     }
   } catch(e){}
 })();
+// Init notifications if already permitted
+setTimeout(initNotificacoes, 2000);
 
 // MODAL DE CONFIRMAÇÃO DINÂMICO
 var _confirmCallback = null;
