@@ -440,7 +440,16 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
               <div class="field" id="field-peso-entrada"><label>Peso Entrada (@)</label><input type="number" id="r-peso-entrada" placeholder="6.5" step="0.1"></div>
               <div class="field" id="field-peso-atual"><label>Peso Atual (@)</label><input type="number" id="r-peso-atual" placeholder="9.0" step="0.1"></div>
               <div class="field" id="field-peso-meta"><label>Peso Meta (@)</label><input type="number" id="r-peso-meta" placeholder="14.0" step="0.1"></div>
-              <div class="field" id="field-preco-compra"><label>Preço Compra (R$/@)</label><input type="number" id="r-preco-compra" placeholder="290"></div>
+              <div class="field" id="field-preco-compra">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem">
+                  <label style="margin:0" id="label-preco-compra">Preço Compra (R$/@)</label>
+                  <div id="toggle-preco-tipo" style="display:none;font-size:.7rem;background:var(--bg);border:1px solid var(--border);border-radius:20px;overflow:hidden;display:none">
+                    <button id="btn-preco-arroba" onclick="setPrecoTipo('arroba')" style="padding:.2rem .6rem;border:none;background:var(--green);color:#FFF;font-size:.7rem;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600">R$/@</button>
+                    <button id="btn-preco-cabeca" onclick="setPrecoTipo('cabeca')" style="padding:.2rem .6rem;border:none;background:transparent;color:var(--clay);font-size:.7rem;cursor:pointer;font-family:'DM Sans',sans-serif">R$/cab</button>
+                  </div>
+                </div>
+                <input type="number" id="r-preco-compra" placeholder="290" step="0.01">
+              </div>
               <div class="field"><label>Data de Entrada</label><input type="date" id="r-data"></div>
             <div class="field"><label>🌿 Manga Atual</label>
               <select id="r-manga"><option value="">— Sem manga —</option></select>
@@ -1563,10 +1572,12 @@ function salvarLote(){
   var lote={id:Date.now(),nome:nome,tipo:document.getElementById('r-tipo').value,qtd:qtd,pesoEntrada:pe,
     pesoAtual:parseFloat(document.getElementById('r-peso-atual').value)||pe,
     pesoMeta:parseFloat(document.getElementById('r-peso-meta').value)||pe,
-    precoCompra:parseFloat(document.getElementById('r-preco-compra').value)||0,
+    precoCompra:calcularPrecoArroba(),
     data:document.getElementById('r-data').value||new Date().toISOString().split('T')[0],
     obs:document.getElementById('r-obs').value,
     aluguel:parseFloat(document.getElementById('r-aluguel').value)||0,
+    precoTipo:precoTipoAtual,
+    precoOriginal:parseFloat(document.getElementById('r-preco-compra').value)||0,
     manga:document.getElementById('r-manga').value||'',
     mangaData:document.getElementById('r-manga-data').value||'',
     mangaDias:parseInt(document.getElementById('r-manga-dias').value)||0};
@@ -1587,6 +1598,14 @@ function editarLote(id){
   document.getElementById('r-manga-data').value=l.mangaData||'';
   document.getElementById('r-manga-dias').value=l.mangaDias||'';
   document.getElementById('r-aluguel').value=l.aluguel||'';
+  // Restore price type
+  precoTipoAtual = l.precoTipo || 'arroba';
+  if(l.precoTipo === 'cabeca' && l.precoOriginal){
+    setPrecoTipo('cabeca');
+    document.getElementById('r-preco-compra').value = l.precoOriginal;
+  } else {
+    setPrecoTipo('arroba');
+  }
   toggleAluguelField();
   showSectionById('rebanho');window.scrollTo(0,0);
 }
@@ -2847,10 +2866,17 @@ function toggleAluguelField(){
       if(el) el.value = '0';
     });
   }
-  // If vaca recria, zero meta
+  // If vaca recria, zero meta and show price toggle
   if(isVacaRecria){
     var meta = document.getElementById('r-peso-meta');
     if(meta) meta.value = '0';
+  }
+  // Show price type toggle for vaca recria
+  var togglePreco = document.getElementById('toggle-preco-tipo');
+  if(togglePreco) togglePreco.style.display = isVacaRecria ? 'flex' : 'none';
+  if(!isVacaRecria){
+    // Reset to arroba mode
+    setPrecoTipo('arroba');
   }
 }
 
@@ -3256,6 +3282,46 @@ function toggleTema_func(){
   // Sync toggle in header too
   var toggleCfg = document.getElementById('toggle-tema-cfg');
   if(toggleCfg) toggleCfg.classList.toggle('on', newTheme === 'dark');
+}
+
+
+// ===== PREÇO COMPRA TIPO =====
+var precoTipoAtual = 'arroba'; // 'arroba' ou 'cabeca'
+
+function setPrecoTipo(tipo){
+  precoTipoAtual = tipo;
+  var label = document.getElementById('label-preco-compra');
+  var btnArroba = document.getElementById('btn-preco-arroba');
+  var btnCabeca = document.getElementById('btn-preco-cabeca');
+  var input = document.getElementById('r-preco-compra');
+  if(label) label.textContent = tipo === 'arroba' ? 'Preço Compra (R$/@)' : 'Preço Compra (R$/cabeça)';
+  if(input) input.placeholder = tipo === 'arroba' ? '290' : '2800';
+  if(btnArroba){
+    btnArroba.style.background = tipo === 'arroba' ? 'var(--green)' : 'transparent';
+    btnArroba.style.color = tipo === 'arroba' ? '#FFF' : 'var(--clay)';
+  }
+  if(btnCabeca){
+    btnCabeca.style.background = tipo === 'cabeca' ? 'var(--green)' : 'transparent';
+    btnCabeca.style.color = tipo === 'cabeca' ? '#FFF' : 'var(--clay)';
+  }
+}
+
+function calcularPrecoArroba(){
+  var val = parseFloat(document.getElementById('r-preco-compra').value)||0;
+  if(precoTipoAtual === 'cabeca'){
+    // Convert: preco por cabeça / peso entrada = preco por @
+    var pesoEntrada = parseFloat(document.getElementById('r-peso-entrada').value)||1;
+    return pesoEntrada > 0 ? val / pesoEntrada : val;
+  }
+  return val;
+}
+
+// Store original value in lote for display
+function getPrecoOriginal(){
+  return {
+    valor: parseFloat(document.getElementById('r-preco-compra').value)||0,
+    tipo: precoTipoAtual
+  };
 }
 
 // RESTAURAR SESSÃO após refresh
