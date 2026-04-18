@@ -227,6 +227,27 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
 .vacina-chip:active{background:var(--green);color:#FFF;}
 @media(max-width:480px){.kpi-grid{grid-template-columns:1fr 1fr;}}
 
+/* CONFIG TAB */
+.config-group{background:var(--card);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:1rem}
+.config-group-title{font-size:.65rem;font-family:'DM Mono',monospace;letter-spacing:.1em;color:var(--clay);text-transform:uppercase;padding:.75rem 1.1rem .4rem;border-bottom:1px solid var(--border)}
+.config-item{display:flex;align-items:center;justify-content:space-between;padding:.85rem 1.1rem;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;-webkit-tap-highlight-color:transparent}
+.config-item:last-child{border-bottom:none}
+.config-item:active{background:var(--bg)}
+.config-item-left{display:flex;align-items:center;gap:.75rem}
+.config-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.config-icon.green{background:var(--green-light)}
+.config-icon.gold{background:var(--gold-light)}
+.config-icon.sky{background:var(--sky-light)}
+.config-icon.red{background:var(--red-light)}
+.config-icon.gray{background:var(--bg)}
+.config-label{font-size:.88rem;font-weight:600;color:var(--text);line-height:1.2}
+.config-sub{font-size:.72rem;color:var(--clay);margin-top:.1rem}
+.config-arrow{color:var(--border2);font-size:1rem;font-weight:700}
+.toggle{width:44px;height:24px;background:var(--border2);border-radius:12px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;border:none}
+.toggle.on{background:var(--green-mid)}
+.toggle::after{content:'';position:absolute;width:20px;height:20px;background:#FFF;border-radius:50%;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle.on::after{left:22px}
+
 /* COLLAPSIBLE FORMS */
 .collapse-header{
   display:flex;justify-content:space-between;align-items:center;
@@ -283,7 +304,6 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
       <span class="sync-dot" id="sync-dot" title="Status sincronização"></span>
       <button id="btn-tema" onclick="toggleTema()" title="Alternar tema" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:var(--header-text);border-radius:8px;padding:.25rem .5rem;font-size:.8rem;cursor:pointer">🌙</button>
       <span class="perfil-badge" id="perfil-badge">—</span>
-      <button id="btn-reg-bio" onclick="registrarBiometria()" title="Registrar digital" style="display:none;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:#FFF;border-radius:8px;padding:.25rem .5rem;font-size:.8rem;cursor:pointer">🔏</button>
       <button class="sair-btn" id="btn-alterar-senha-vaqueiro" onclick="alterarSenhaVaqueiro()" style="display:none;background:rgba(74,124,89,.25);border:1px solid var(--grass);color:var(--pasture);font-size:.75rem;padding:.25rem .5rem" title="Alterar senha do vaqueiro">🔑</button>
       <button class="sair-btn" id="btn-sair">Sair</button>
     </div>
@@ -294,6 +314,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
   <main>
     <!-- DASHBOARD -->
     <div id="dashboard" class="section active">
+
       <div class="kpi-grid" id="kpi-grid"></div>
       <div class="two-col">
         <div class="card">
@@ -521,6 +542,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         <div id="resultado-projecao" style="margin-top:1.25rem"></div>
       </div>
       <div class="card"><div class="card-title">📊 Comparativo de Cenários</div><div id="cenarios"></div></div>
+      <button id="btn-pdf" style="width:100%;padding:.85rem;background:var(--gold-light);border:1.5px solid var(--gold-mid);border-radius:12px;color:var(--gold);font-size:.9rem;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:.25rem">📄 Gerar Relatório Completo</button>
     </div>
 
     <!-- DASHBOARD VAQUEIRO -->
@@ -666,6 +688,79 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         </div>
       </div>
     </div>
+
+    <!-- CONFIG -->
+    <div id="config" class="section">
+
+      <div class="config-group">
+        <div class="config-group-title">🔐 Segurança &amp; Acesso</div>
+        <div class="config-item" id="cfg-biometria">
+          <div class="config-item-left">
+            <div class="config-icon green">🔏</div>
+            <div><div class="config-label">Registrar Digital / Face</div><div class="config-sub">Login biométrico para o Dono</div></div>
+          </div>
+          <span class="config-arrow">›</span>
+        </div>
+        <div class="config-item" id="cfg-senha-vaqueiro">
+          <div class="config-item-left">
+            <div class="config-icon gold">🔑</div>
+            <div><div class="config-label">Senha do Vaqueiro</div><div class="config-sub">Alterar senha de acesso</div></div>
+          </div>
+          <span class="config-arrow">›</span>
+        </div>
+      </div>
+
+      <div class="config-group">
+        <div class="config-group-title">🌿 Fazenda</div>
+        <div class="config-item" id="cfg-mangas">
+          <div class="config-item-left">
+            <div class="config-icon green">🌿</div>
+            <div><div class="config-label">Gerenciar Mangas</div><div class="config-sub">Renomear e adicionar divisórias</div></div>
+          </div>
+          <span class="config-arrow">›</span>
+        </div>
+      </div>
+
+      <div class="config-group">
+        <div class="config-group-title">📊 Relatórios &amp; Dados</div>
+        <div class="config-item" id="cfg-relatorio">
+          <div class="config-item-left">
+            <div class="config-icon gold">📄</div>
+            <div><div class="config-label">Gerar Relatório PDF</div><div class="config-sub">Exportar dados completos da fazenda</div></div>
+          </div>
+          <span class="config-arrow">›</span>
+        </div>
+        <div class="config-item">
+          <div class="config-item-left">
+            <div class="config-icon sky">💾</div>
+            <div><div class="config-label">Backup dos Dados</div><div class="config-sub">Firebase sincronizado em tempo real</div></div>
+          </div>
+          <div style="font-size:.7rem;color:var(--green-mid);font-weight:700;background:var(--green-light);padding:.2rem .6rem;border-radius:20px">● Ativo</div>
+        </div>
+      </div>
+
+      <div class="config-group">
+        <div class="config-group-title">🎨 Aparência</div>
+        <div class="config-item" id="cfg-tema">
+          <div class="config-item-left">
+            <div class="config-icon gray">🌙</div>
+            <div><div class="config-label">Tema Escuro</div><div class="config-sub">Modo noturno</div></div>
+          </div>
+          <div class="toggle" id="toggle-tema-cfg"></div>
+        </div>
+      </div>
+
+      <div style="background:var(--card);border-radius:14px;padding:1.25rem;text-align:center;box-shadow:var(--shadow);margin-bottom:1rem">
+        <div style="font-size:2rem;margin-bottom:.5rem">🐄</div>
+        <div style="font-family:'Playfair Display',Georgia,serif;font-size:1rem;color:var(--text);margin-bottom:.2rem">Fazenda Gestão</div>
+        <div style="font-size:.72rem;color:var(--clay);font-family:'DM Mono',monospace">Firebase Realtime Database</div>
+        <div style="font-size:.7rem;color:var(--clay);margin-top:.3rem">uelitonscs-netizen.github.io/Fazenda</div>
+      </div>
+
+      <button id="cfg-sair-btn" style="width:100%;padding:.85rem;background:var(--red-light);border:1.5px solid var(--red);border-radius:12px;color:var(--red);font-size:.9rem;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:2rem">↪️ Sair da Conta</button>
+
+    </div>
+
   </main>
 </div>
 
@@ -766,6 +861,8 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
 // We set up listeners here once DOM is ready.
 document.addEventListener('DOMContentLoaded', function() {
   checkBiometria();
+  var btnPdf = document.getElementById('btn-pdf');
+  if(btnPdf) btnPdf.addEventListener('click', gerarRelatorioPDF);
   function on(id, ev, fn) { var el = document.getElementById(id); if (el) el.addEventListener(ev, fn); }
   on('btn-dono',    'click', function() { if (window.tentarDono) window.tentarDono(); });
   on('btn-vaqueiro','click', function() { if (window.entrarVaqueiro) window.entrarVaqueiro(); });
@@ -997,7 +1094,7 @@ function alterarSenhaVaqueiro(){
 }
 
 // NAV
-var NAV_DONO=[{id:'dashboard',label:'Dashboard'},{id:'animais',label:'🐮 Animais'},{id:'suplementacao',label:'Suplementação'},{id:'rebanho',label:'Rebanho'},{id:'custos',label:'Custos'},{id:'projecao',label:'Projeção'},{id:'notas',label:'📋 Notas'}];
+var NAV_DONO=[{id:'dashboard',label:'Dashboard'},{id:'animais',label:'🐮 Animais'},{id:'suplementacao',label:'Suplementação'},{id:'rebanho',label:'Rebanho'},{id:'custos',label:'Custos'},{id:'projecao',label:'Projeção'},{id:'notas',label:'📋 Notas'},{id:'config',label:'⚙️ Config'}];
 var NAV_VAQUEIRO=[{id:'dashboard-vaqueiro',label:'🏠 Início'},{id:'animais',label:'🐮 Animais'},{id:'suplementacao',label:'📦 Estoque'},{id:'notas',label:'📋 Notas'}];
 function buildNav(){
   var items=perfil==='dono'?NAV_DONO:NAV_VAQUEIRO;
@@ -1034,6 +1131,7 @@ function showSectionById(id){
   else if(id==='custos') renderCustos();
   else if(id==='dashboard-vaqueiro') renderDashboardVaqueiro();
   else if(id==='animais') renderAnimais();
+  else if(id==='config'){ initConfigTab(); }
   else if(id==='projecao') calcularProjecao();
   else if(id==='notas'){
     loadNotas();
@@ -1170,6 +1268,16 @@ function renderRebanho(){
     rows+='<div>Peso entrada: <strong style="color:var(--text)">'+fmtN(l.pesoEntrada)+'@</strong></div>';
     rows+='<div>Peso atual: <strong style="color:var(--text)">'+fmtN(l.pesoAtual)+'@</strong></div>';
     rows+='<div>Peso meta: <strong style="color:var(--text)">'+fmtN(l.pesoMeta)+'@</strong></div>';
+    // GMD calculation
+    var gmd = calcularGMD(l);
+    if(gmd !== null){
+      var diasRestMeta = (l.pesoMeta && l.pesoAtual && gmd > 0) ? Math.ceil((l.pesoMeta - l.pesoAtual) / gmd) : null;
+      rows+='<div style="grid-column:1/-1;background:var(--green-light);border:1px solid var(--green-mid);border-radius:8px;padding:.4rem .6rem;margin-top:.25rem">';
+      rows+='<span style="font-size:.72rem;color:var(--clay)">GMD: </span>';
+      rows+='<strong style="color:var(--green);font-size:.85rem">'+fmtN(gmd,3)+'@/dia</strong>';
+      if(diasRestMeta) rows+=' <span style="font-size:.72rem;color:var(--clay)"> · meta em ~'+diasRestMeta+' dias</span>';
+      rows+='</div>';
+    }
     rows+='<div>R$/@: <strong style="color:var(--text)">'+fmt(l.precoCompra)+'</strong></div>';
     if(l.manga){
       var mangaBadge = '';
@@ -2922,6 +3030,220 @@ function renderHistoricoVendas(){
   el.innerHTML = html;
 }
 
+
+// ===== GMD (GANHO MÉDIO DIÁRIO) =====
+function calcularGMD(lote){
+  var pesagens = (state.pesagens||[]).filter(function(p){ return p.loteId === lote.id; });
+  if(pesagens.length < 1) return null;
+  // Sort by date
+  pesagens.sort(function(a,b){ return a.data.localeCompare(b.data); });
+  var primeira = pesagens[0];
+  var ultima   = pesagens[pesagens.length-1];
+  // Use lote entry date and entry weight as baseline if only one pesagem
+  var pesoInicio, dataInicio;
+  if(pesagens.length === 1){
+    pesoInicio = lote.pesoEntrada || 0;
+    dataInicio = lote.data || primeira.data;
+  } else {
+    pesoInicio = primeira.peso;
+    dataInicio = primeira.data;
+  }
+  var pesoFim  = ultima.peso;
+  var dataFim  = ultima.data;
+  var dias = Math.ceil((new Date(dataFim+'T00:00:00') - new Date(dataInicio+'T00:00:00')) / (1000*60*60*24));
+  if(dias <= 0 || pesoFim <= pesoInicio) return null;
+  return (pesoFim - pesoInicio) / dias;
+}
+
+// ===== RELATÓRIO PDF =====
+function gerarRelatorioPDF(){
+  var hoje = new Date().toLocaleDateString('pt-BR');
+  var totalCabecas = state.lotes.filter(function(l){ return l.tipo!=='terceiro'&&l.tipo!=='encerrado'; }).reduce(function(a,l){return a+l.qtd;},0);
+  var totalTerceiros = state.lotes.filter(function(l){ return l.tipo==='terceiro'; }).reduce(function(a,l){return a+l.qtd;},0);
+  var investimento = state.lotes.filter(function(l){ return l.tipo!=='terceiro'&&l.tipo!=='encerrado'; }).reduce(function(a,l){return a+(l.qtd*l.pesoEntrada*(l.precoCompra||0));},0);
+  var custoMes = custoMensalTotal();
+  var aluguelMes = state.lotes.reduce(function(a,l){return a+(l.tipo==='terceiro'?(l.aluguel||0):0);},0);
+  var totalVendas = (state.vendas||[]).reduce(function(a,v){return a+v.receitaTotal;},0);
+  var totalLucroVendas = (state.vendas||[]).reduce(function(a,v){return a+v.lucro;},0);
+
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">';
+  html += '<title>Fazenda Gestão — Relatório</title>';
+  html += '<style>';
+  html += 'body{font-family:Arial,sans-serif;color:#1a1a1a;margin:2cm;font-size:12px}';
+  html += 'h1{color:#1B4D2E;font-size:20px;margin-bottom:4px}';
+  html += 'h2{color:#1B4D2E;font-size:14px;border-bottom:2px solid #1B4D2E;padding-bottom:4px;margin-top:20px}';
+  html += 'h3{color:#4A7C59;font-size:12px;margin:10px 0 4px}';
+  html += '.sub{color:#666;font-size:11px;margin-bottom:16px}';
+  html += '.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:10px 0}';
+  html += '.kpi{background:#F5F5F5;border-radius:6px;padding:10px;text-align:center}';
+  html += '.kpi-label{font-size:10px;color:#666;text-transform:uppercase}';
+  html += '.kpi-value{font-size:16px;font-weight:700;color:#1B4D2E;margin-top:2px}';
+  html += 'table{width:100%;border-collapse:collapse;margin:8px 0;font-size:11px}';
+  html += 'th{background:#1B4D2E;color:#FFF;padding:6px 8px;text-align:left}';
+  html += 'td{padding:5px 8px;border-bottom:1px solid #EEE}';
+  html += 'tr:nth-child(even) td{background:#F9F9F9}';
+  html += '.pos{color:#2E7D4F;font-weight:700}.neg{color:#C0392B;font-weight:700}';
+  html += '.badge{background:#E8F5E9;color:#2E7D4F;border-radius:4px;padding:2px 6px;font-size:10px}';
+  html += '@media print{body{margin:1cm}}';
+  html += '</style></head><body>';
+
+  // Header
+  html += '<h1>🐄 Fazenda Gestão — Relatório</h1>';
+  html += '<div class="sub">Gerado em: '+hoje+'</div>';
+
+  // KPIs resumo
+  html += '<h2>📊 Resumo Geral</h2>';
+  html += '<div class="grid">';
+  html += '<div class="kpi"><div class="kpi-label">Total de Cabeças</div><div class="kpi-value">'+totalCabecas+'</div></div>';
+  html += '<div class="kpi"><div class="kpi-label">Investimento</div><div class="kpi-value">'+fmt(investimento)+'</div></div>';
+  html += '<div class="kpi"><div class="kpi-label">Custo Mensal</div><div class="kpi-value">'+fmt(custoMes)+'</div></div>';
+  if(aluguelMes>0) html += '<div class="kpi"><div class="kpi-label">Aluguel/mês</div><div class="kpi-value">'+fmt(aluguelMes)+'</div></div>';
+  if(totalVendas>0){ html += '<div class="kpi"><div class="kpi-label">Total Vendas</div><div class="kpi-value">'+fmt(totalVendas)+'</div></div>'; }
+  if(totalLucroVendas!==0){ html += '<div class="kpi"><div class="kpi-label">Lucro Vendas</div><div class="kpi-value '+(totalLucroVendas>=0?'pos':'neg')+'">'+fmt(totalLucroVendas)+'</div></div>'; }
+  html += '</div>';
+
+  // Lotes
+  html += '<h2>🐄 Lotes do Rebanho</h2>';
+  var lotesAtivos = state.lotes.filter(function(l){ return l.tipo!=='encerrado'; });
+  if(lotesAtivos.length > 0){
+    html += '<table><tr><th>Lote</th><th>Tipo</th><th>Cabeças</th><th>Peso Ent.</th><th>Peso Atual</th><th>Peso Meta</th><th>GMD</th><th>Manga</th></tr>';
+    lotesAtivos.forEach(function(l){
+      var gmd = calcularGMD(l);
+      var diasMeta = (gmd && l.pesoMeta && l.pesoAtual && gmd > 0) ? Math.ceil((l.pesoMeta - l.pesoAtual)/gmd) : null;
+      html += '<tr>';
+      html += '<td><strong>'+l.nome+'</strong></td>';
+      html += '<td>'+l.tipo+'</td>';
+      html += '<td>'+l.qtd+'</td>';
+      html += '<td>'+(l.pesoEntrada?fmtN(l.pesoEntrada,1)+'@':'—')+'</td>';
+      html += '<td>'+(l.pesoAtual?fmtN(l.pesoAtual,1)+'@':'—')+'</td>';
+      html += '<td>'+(l.pesoMeta?fmtN(l.pesoMeta,1)+'@':'—')+'</td>';
+      html += '<td>'+(gmd?'<span class="pos">'+fmtN(gmd,3)+'@/dia'+(diasMeta?' (~'+diasMeta+'d)':'')+'</span>':'—')+'</td>';
+      html += '<td>'+(l.manga||'—')+'</td>';
+      html += '</tr>';
+    });
+    html += '</table>';
+  }
+
+  // Suplementação
+  if(state.insumos && state.insumos.length > 0){
+    html += '<h2>📦 Estoque de Suplementação</h2>';
+    html += '<table><tr><th>Produto</th><th>Estoque</th><th>Restante</th><th>Consumo/mês</th><th>Duração</th></tr>';
+    state.insumos.forEach(function(i){
+      var sr = sacosRestantes(i);
+      var mr = mesesRestantesInsumo(i);
+      html += '<tr><td><strong>'+i.nome+'</strong></td><td>'+i.qtd+' sacos</td><td>'+fmtN(sr,1)+' sacos</td><td>'+fmtN(consumoEfetivo(i),1)+' sacos</td>';
+      html += '<td class="'+(mr<2?'neg':mr<4?'':'')+'">'+(mr?fmtN(mr,1)+' meses':'—')+'</td></tr>';
+    });
+    html += '</table>';
+  }
+
+  // Custos
+  if(state.custos && state.custos.length > 0){
+    html += '<h2>💸 Custos Cadastrados</h2>';
+    html += '<table><tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Frequência</th></tr>';
+    state.custos.forEach(function(c){
+      html += '<tr><td>'+c.desc+'</td><td>'+c.cat+'</td><td>'+fmt(c.valor)+'</td><td>'+c.freq+'</td></tr>';
+    });
+    html += '</table>';
+  }
+
+  // Pesagens
+  if(state.pesagens && state.pesagens.length > 0){
+    html += '<h2>⚖️ Histórico de Pesagens</h2>';
+    html += '<table><tr><th>Lote</th><th>Data</th><th>Peso Anterior</th><th>Novo Peso</th><th>Ganho</th><th>Obs.</th></tr>';
+    var psort = state.pesagens.slice().sort(function(a,b){ return b.data.localeCompare(a.data); });
+    psort.forEach(function(p){
+      var corGanho = p.ganho >= 0 ? 'pos' : 'neg';
+      html += '<tr><td>'+p.loteNome+'</td><td>'+new Date(p.data+'T00:00:00').toLocaleDateString('pt-BR')+'</td>';
+      html += '<td>'+fmtN(p.pesoAnterior,1)+'@</td><td>'+fmtN(p.peso,1)+'@</td>';
+      html += '<td class="'+corGanho+'">'+(p.ganho>=0?'+':'')+fmtN(p.ganho,2)+'@</td>';
+      html += '<td>'+(p.obs||'')+'</td></tr>';
+    });
+    html += '</table>';
+  }
+
+  // Vendas
+  if(state.vendas && state.vendas.length > 0){
+    html += '<h2>💵 Histórico de Vendas</h2>';
+    html += '<table><tr><th>Lote</th><th>Data</th><th>Cab.</th><th>Peso</th><th>Preço</th><th>Receita</th><th>Custo</th><th>Lucro</th></tr>';
+    var vsort = state.vendas.slice().sort(function(a,b){ return b.data.localeCompare(a.data); });
+    vsort.forEach(function(v){
+      html += '<tr><td>'+v.loteNome+'</td><td>'+new Date(v.data+'T00:00:00').toLocaleDateString('pt-BR')+'</td>';
+      html += '<td>'+v.qtd+'</td><td>'+fmtN(v.peso,1)+'@</td><td>'+fmt(v.preco)+'/@</td>';
+      html += '<td class="pos">'+fmt(v.receitaTotal)+'</td><td>'+fmt(v.custoTotal)+'</td>';
+      html += '<td class="'+(v.lucro>=0?'pos':'neg')+'">'+fmt(v.lucro)+'</td></tr>';
+    });
+    // Totals row
+    html += '<tr style="background:#E8F5E9"><td colspan="5"><strong>TOTAL</strong></td>';
+    html += '<td class="pos"><strong>'+fmt(totalVendas)+'</strong></td><td></td>';
+    html += '<td class="'+(totalLucroVendas>=0?'pos':'neg')+'"><strong>'+fmt(totalLucroVendas)+'</strong></td></tr>';
+    html += '</table>';
+  }
+
+  html += '<div style="margin-top:30px;color:#999;font-size:10px;text-align:center">Fazenda Gestão — Relatório gerado em '+hoje+'</div>';
+  html += '</body></html>';
+
+  // Open in new window for print
+  var win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(function(){ win.print(); }, 500);
+}
+
+
+// ===== CONFIG TAB =====
+function initConfigTab(){
+  // Biometria
+  var cfgBio = document.getElementById('cfg-biometria');
+  if(cfgBio) cfgBio.addEventListener('click', registrarBiometria);
+
+  // Senha vaqueiro
+  var cfgSenha = document.getElementById('cfg-senha-vaqueiro');
+  if(cfgSenha) cfgSenha.addEventListener('click', alterarSenhaVaqueiro);
+
+  // Mangas
+  var cfgMangas = document.getElementById('cfg-mangas');
+  if(cfgMangas) cfgMangas.addEventListener('click', abrirConfigMangas);
+
+  // Relatorio
+  var cfgRel = document.getElementById('cfg-relatorio');
+  if(cfgRel) cfgRel.addEventListener('click', gerarRelatorioPDF);
+
+  // Tema toggle
+  var toggleTema = document.getElementById('toggle-tema-cfg');
+  if(toggleTema){
+    // Sync with current theme
+    var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    if(isDark) toggleTema.classList.add('on');
+    toggleTema.addEventListener('click', function(){
+      toggleTema.classList.toggle('on');
+      toggleTema_func();
+    });
+  }
+
+  // Sair
+  var cfgSair = document.getElementById('cfg-sair-btn');
+  if(cfgSair) cfgSair.addEventListener('click', function(){
+    confirmarModal('Sair da conta?', '↪️', 'Sair', function(){
+      try { localStorage.removeItem('fazenda_perfil'); } catch(e){}
+      location.reload();
+    });
+  });
+}
+
+function toggleTema_func(){
+  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  var newTheme = isDark ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', newTheme);
+  try { localStorage.setItem('fazenda_tema', newTheme); } catch(e){}
+  var btnTema = document.getElementById('btn-tema');
+  if(btnTema) btnTema.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+  // Sync toggle in header too
+  var toggleCfg = document.getElementById('toggle-tema-cfg');
+  if(toggleCfg) toggleCfg.classList.toggle('on', newTheme === 'dark');
+}
+
 // RESTAURAR SESSÃO após refresh
 (function(){
   try {
@@ -2990,3 +3312,10 @@ if('serviceWorker' in navigator){
 </script>
 </body>
 </html>
+  // Sync config toggle
+  var toggleCfg = document.getElementById('toggle-tema-cfg');
+  if(toggleCfg){
+    var isDarkNow = document.documentElement.getAttribute('data-theme') === 'dark';
+    toggleCfg.classList.toggle('on', isDarkNow);
+  }
+}
