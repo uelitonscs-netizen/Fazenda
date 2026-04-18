@@ -2058,6 +2058,9 @@ function toggleTema() {
   document.documentElement.setAttribute('data-theme', next);
   try { localStorage.setItem('fazenda_tema', next); } catch(e){}
   document.getElementById('btn-tema').textContent = next === 'dark' ? '☀️' : '🌙';
+  // Sync config toggle
+  var toggleCfg = document.getElementById('toggle-tema-cfg');
+  if(toggleCfg) toggleCfg.classList.toggle('on', next === 'dark');
 }
 // Aplica tema salvo
 (function(){
@@ -3887,10 +3890,3 @@ if('serviceWorker' in navigator){
 </script>
 </body>
 </html>
-  // Sync config toggle
-  var toggleCfg = document.getElementById('toggle-tema-cfg');
-  if(toggleCfg){
-    var isDarkNow = document.documentElement.getAttribute('data-theme') === 'dark';
-    toggleCfg.classList.toggle('on', isDarkNow);
-  }
-}
