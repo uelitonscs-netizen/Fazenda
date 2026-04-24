@@ -1405,7 +1405,8 @@ function renderRebanho(){
         var txC = cs.cor==='red'?'var(--red)':cs.cor==='yellow'?'#C47F00':'var(--green-mid)';
         rows+='<div style="margin-top:.4rem;background:'+bgC+';border:1px solid '+bdC+';border-radius:8px;padding:.4rem .7rem;font-size:.75rem">';
         rows+='<span style="color:'+txC+';font-weight:600">📋 '+cs.txt+'</span>';
-        if(cs.total>0) rows+=' <span style="color:var(--clay)"> · Total: R$ '+cs.total.toFixed(2).replace('.',',')+'</span>';
+        if(cs.total>0) rows+='<span style="color:var(--clay)"> · Total: R$ '+cs.total.toFixed(2).replace('.',',')+'</span>';
+        if(cs.subTxt) rows+='<div style="font-size:.7rem;color:var(--clay);margin-top:.15rem">'+cs.subTxt+'</div>';
         rows+='</div>';
       }
     }
@@ -3863,12 +3864,18 @@ function atualizarPreviewContrato(){
   var dataInicio = inicio.value;
   var qtdMeses   = parseInt(meses.value)||0;
   if(!dataInicio || !qtdMeses){ prev.textContent=''; return; }
-  var dtInicio = new Date(dataInicio+'T00:00:00');
-  var dtFim    = new Date(dtInicio);
+  var dtInicio    = new Date(dataInicio+'T00:00:00');
+  // First payment = 30 days after entry
+  var dtPrimeiro  = new Date(dtInicio);
+  dtPrimeiro.setDate(dtPrimeiro.getDate() + 30);
+  // Contract ends qtdMeses after first payment
+  var dtFim = new Date(dtPrimeiro);
   dtFim.setMonth(dtFim.getMonth() + qtdMeses);
-  var aluguel  = parseFloat(document.getElementById('r-aluguel').value)||0;
-  var total    = aluguel * qtdMeses;
-  prev.textContent = '📅 Vence em ' + dtFim.toLocaleDateString('pt-BR') +
+  var aluguel = parseFloat(document.getElementById('r-aluguel').value)||0;
+  var total   = aluguel * qtdMeses;
+  prev.innerHTML =
+    '💰 1º pagamento: <strong>' + dtPrimeiro.toLocaleDateString('pt-BR') + '</strong>' +
+    ' · Vence: ' + dtFim.toLocaleDateString('pt-BR') +
     (total > 0 ? ' · Total: R$ ' + total.toFixed(2).replace('.',',') : '');
 }
 
@@ -3876,17 +3883,23 @@ function getContratoStatus(lote){
   if(!lote.contratoInicio || !lote.contratoMeses) return null;
   var hoje     = new Date(); hoje.setHours(0,0,0,0);
   var dtInicio = new Date(lote.contratoInicio+'T00:00:00');
-  var dtFim    = new Date(dtInicio);
+  // First payment = 30 days after entry
+  var dtPrimeiro = new Date(dtInicio);
+  dtPrimeiro.setDate(dtPrimeiro.getDate() + 30);
+  // Contract ends qtdMeses after first payment
+  var dtFim = new Date(dtPrimeiro);
   dtFim.setMonth(dtFim.getMonth() + lote.contratoMeses);
   var diasRestantes = Math.ceil((dtFim - hoje)/(1000*60*60*24));
-  var mesAtual = Math.floor((hoje - dtInicio)/(1000*60*60*24) / 30) + 1;
+  var mesAtual = Math.floor((hoje - dtPrimeiro)/(1000*60*60*24) / 30) + 1;
+  mesAtual = Math.max(1, Math.min(mesAtual, lote.contratoMeses));
   var cor = diasRestantes < 0 ? 'red' : diasRestantes <= 15 ? 'yellow' : 'green';
   var txt = diasRestantes < 0
     ? 'Contrato vencido há '+Math.abs(diasRestantes)+' dias'
     : diasRestantes === 0
     ? 'Vence hoje!'
-    : 'Mês '+Math.min(mesAtual, lote.contratoMeses)+' de '+lote.contratoMeses+' · vence em '+diasRestantes+' dias';
-  return { cor: cor, txt: txt, dtFim: dtFim, diasRestantes: diasRestantes, total: (lote.aluguel||0)*lote.contratoMeses };
+    : 'Mês '+mesAtual+' de '+lote.contratoMeses+' · vence em '+diasRestantes+' dias';
+  var subTxt = '1º pagamento: '+dtPrimeiro.toLocaleDateString('pt-BR')+' · Vence: '+dtFim.toLocaleDateString('pt-BR');
+  return { cor: cor, txt: txt, subTxt: subTxt, dtFim: dtFim, diasRestantes: diasRestantes, total: (lote.aluguel||0)*lote.contratoMeses };
 }
 
 // RESTAURAR SESSÃO após refresh
