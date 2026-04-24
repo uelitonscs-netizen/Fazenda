@@ -457,10 +457,17 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
             <div class="field"><label>⏱️ Dias Planejados na Manga</label><input type="number" id="r-manga-dias" placeholder="Ex: 30" min="1"></div>
             </div>
             <div class="field" style="margin-top:.75rem"><label>Observações</label><textarea id="r-obs" rows="2" placeholder="Raça, origem..."></textarea></div>
-            <div class="field" id="field-aluguel" style="margin-top:.75rem;display:none">
-              <label>💰 Aluguel Mensal (R$)</label>
-              <input type="number" id="r-aluguel" placeholder="Ex: 1500.00" step="0.01" min="0">
-              <small style="color:var(--clay);font-size:.7rem">Valor a receber — entra como receita no lucro líquido</small>
+            <div id="field-aluguel" style="margin-top:.75rem;display:none">
+              <div class="field">
+                <label>💰 Aluguel Mensal (R$)</label>
+                <input type="number" id="r-aluguel" placeholder="Ex: 1500.00" step="0.01" min="0">
+                <small style="color:var(--clay);font-size:.7rem">Valor a receber — entra como receita no lucro líquido</small>
+              </div>
+              <div class="form-grid">
+                <div class="field"><label>📅 Data de Início</label><input type="date" id="r-contrato-inicio" oninput="atualizarPreviewContrato()"></div>
+                <div class="field"><label>⏱️ Meses Contratados</label><input type="number" id="r-contrato-meses" placeholder="Ex: 2" min="1" step="1" oninput="atualizarPreviewContrato()"></div>
+              </div>
+              <div id="r-contrato-preview" style="font-size:.75rem;color:var(--green-mid);margin-top:.35rem;font-weight:600"></div>
             </div>
             <div style="margin-top:1rem;display:flex;gap:.5rem">
               <button class="btn" onclick="salvarLote()">+ Salvar Lote</button>
@@ -1387,6 +1394,19 @@ function renderRebanho(){
       rows+='</div>';
     }
     rows+='<div>R$/@: <strong style="color:var(--text)">'+fmt(l.precoCompra)+'</strong></div>';
+    // Contrato aluguel badge
+    if(l.tipo==='terceiro' && l.contratoInicio && l.contratoMeses){
+      var cs = getContratoStatus(l);
+      if(cs){
+        var bgC = cs.cor==='red'?'var(--red-light)':cs.cor==='yellow'?'#FFF8E1':'var(--green-light)';
+        var bdC = cs.cor==='red'?'var(--red)':cs.cor==='yellow'?'#C47F00':'var(--green-mid)';
+        var txC = cs.cor==='red'?'var(--red)':cs.cor==='yellow'?'#C47F00':'var(--green-mid)';
+        rows+='<div style="margin-top:.4rem;background:'+bgC+';border:1px solid '+bdC+';border-radius:8px;padding:.4rem .7rem;font-size:.75rem">';
+        rows+='<span style="color:'+txC+';font-weight:600">📋 '+cs.txt+'</span>';
+        if(cs.total>0) rows+=' <span style="color:var(--clay)"> · Total: R$ '+cs.total.toFixed(2).replace('.',',')+'</span>';
+        rows+='</div>';
+      }
+    }
     if(l.manga){
       var mangaBadge = '';
       if(l.mangaData && l.mangaDias){
@@ -1537,7 +1557,11 @@ function calcularProjecao(){
   var tc=nov.reduce(function(a,l){return a+l.qtd;},0);
   var cc=nov.reduce(function(a,l){return a+(l.qtd*l.pesoEntrada*l.precoCompra);},0);
   var ei=state.insumos.reduce(function(a,i){return a+(i.qtd*i.preco);},0);
-  var recAluguel=state.lotes.reduce(function(a,l){return a+(l.tipo==='terceiro'?(l.aluguel||0)*pr:0);},0);
+  var recAluguel=state.lotes.reduce(function(a,l){
+    if(l.tipo!=='terceiro') return a;
+    var mesesEfetivos = l.contratoMeses ? Math.min(l.contratoMeses, pr) : pr;
+    return a + (l.aluguel||0)*mesesEfetivos;
+  },0);
   var co=custoMensalTotal()*pr,ti=cc+ei+co,rec=tc*pw*pv+recAluguel,luc=rec-ti;
   var roi=ti>0?(luc/ti)*100:0;
   var rh='<div style="display:flex;flex-direction:column;gap:.75rem">';
@@ -1677,6 +1701,8 @@ function salvarLote(){
     data:document.getElementById('r-data').value||new Date().toISOString().split('T')[0],
     obs:document.getElementById('r-obs').value,
     aluguel:parseFloat(document.getElementById('r-aluguel').value)||0,
+    contratoInicio:document.getElementById('r-contrato-inicio').value||'',
+    contratoMeses:parseInt(document.getElementById('r-contrato-meses').value)||0,
     precoTipo:precoTipoAtual,
     precoOriginal:parseFloat(document.getElementById('r-preco-compra').value)||0,
     manga:document.getElementById('r-manga').value||'',
@@ -1699,6 +1725,10 @@ function editarLote(id){
   document.getElementById('r-manga-data').value=l.mangaData||'';
   document.getElementById('r-manga-dias').value=l.mangaDias||'';
   document.getElementById('r-aluguel').value=l.aluguel||'';
+  document.getElementById('r-contrato-inicio').value=l.contratoInicio||'';
+  document.getElementById('r-contrato-meses').value=l.contratoMeses||'';
+  document.getElementById('r-contrato-inicio').value=l.contratoInicio||'';
+  document.getElementById('r-contrato-meses').value=l.contratoMeses||'';
   // Restore price type
   precoTipoAtual = l.precoTipo || 'arroba';
   if(l.precoTipo === 'cabeca' && l.precoOriginal){
@@ -1716,7 +1746,7 @@ function deletarLote(id){
     saveToFirebase();toast('🗑️ Lote removido.');renderRebanho();
   });
 }
-function limparFormRebanho(){['r-nome','r-qtd','r-peso-entrada','r-peso-atual','r-peso-meta','r-preco-compra','r-data','r-obs','r-manga-data','r-manga-dias','r-aluguel'].forEach(function(id){var el=document.getElementById(id);if(el){el.value='';delete el.dataset.editId;}});}
+function limparFormRebanho(){['r-nome','r-qtd','r-peso-entrada','r-peso-atual','r-peso-meta','r-preco-compra','r-data','r-obs','r-manga-data','r-manga-dias','r-aluguel','r-contrato-inicio','r-contrato-meses'].forEach(function(id){var el=document.getElementById(id);if(el){el.value='';delete el.dataset.editId;}});}
 
 // ===== CRUD INSUMOS =====
 function salvarInsumo(){
@@ -3819,6 +3849,42 @@ function verificarAlertasPersonalizados(){
       enviarNotificacao('🔔 '+a.descricao, status.mensagem || 'Alerta disparado!');
     }
   });
+}
+
+
+// ===== CONTRATO ALUGUEL =====
+function atualizarPreviewContrato(){
+  var inicio = document.getElementById('r-contrato-inicio');
+  var meses  = document.getElementById('r-contrato-meses');
+  var prev   = document.getElementById('r-contrato-preview');
+  if(!inicio || !meses || !prev) return;
+  var dataInicio = inicio.value;
+  var qtdMeses   = parseInt(meses.value)||0;
+  if(!dataInicio || !qtdMeses){ prev.textContent=''; return; }
+  var dtInicio = new Date(dataInicio+'T00:00:00');
+  var dtFim    = new Date(dtInicio);
+  dtFim.setMonth(dtFim.getMonth() + qtdMeses);
+  var aluguel  = parseFloat(document.getElementById('r-aluguel').value)||0;
+  var total    = aluguel * qtdMeses;
+  prev.textContent = '📅 Vence em ' + dtFim.toLocaleDateString('pt-BR') +
+    (total > 0 ? ' · Total: R$ ' + total.toFixed(2).replace('.',',') : '');
+}
+
+function getContratoStatus(lote){
+  if(!lote.contratoInicio || !lote.contratoMeses) return null;
+  var hoje     = new Date(); hoje.setHours(0,0,0,0);
+  var dtInicio = new Date(lote.contratoInicio+'T00:00:00');
+  var dtFim    = new Date(dtInicio);
+  dtFim.setMonth(dtFim.getMonth() + lote.contratoMeses);
+  var diasRestantes = Math.ceil((dtFim - hoje)/(1000*60*60*24));
+  var mesAtual = Math.floor((hoje - dtInicio)/(1000*60*60*24) / 30) + 1;
+  var cor = diasRestantes < 0 ? 'red' : diasRestantes <= 15 ? 'yellow' : 'green';
+  var txt = diasRestantes < 0
+    ? 'Contrato vencido há '+Math.abs(diasRestantes)+' dias'
+    : diasRestantes === 0
+    ? 'Vence hoje!'
+    : 'Mês '+Math.min(mesAtual, lote.contratoMeses)+' de '+lote.contratoMeses+' · vence em '+diasRestantes+' dias';
+  return { cor: cor, txt: txt, dtFim: dtFim, diasRestantes: diasRestantes, total: (lote.aluguel||0)*lote.contratoMeses };
 }
 
 // RESTAURAR SESSÃO após refresh
