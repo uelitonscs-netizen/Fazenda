@@ -1381,10 +1381,14 @@ function renderRebanho(){
     rows+='</div></div>';
     rows+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem .6rem;font-size:.78rem;color:var(--clay)">';
     rows+='<div>Cabeças: <strong style="color:var(--text)">'+l.qtd+'</strong></div>';
-    rows+='<div>Investido: <strong style="color:var(--text)">'+fmt(l.qtd*l.pesoEntrada*l.precoCompra)+'</strong></div>';
-    rows+='<div>Peso entrada: <strong style="color:var(--text)">'+fmtN(l.pesoEntrada)+'@</strong></div>';
-    rows+='<div>Peso atual: <strong style="color:var(--text)">'+fmtN(l.pesoAtual)+'@</strong></div>';
-    rows+='<div>Peso meta: <strong style="color:var(--text)">'+fmtN(l.pesoMeta)+'@</strong></div>';
+    if(l.tipo!=='terceiro'){
+      rows+='<div>Investido: <strong style="color:var(--text)">'+fmt(l.qtd*l.pesoEntrada*l.precoCompra)+'</strong></div>';
+      rows+='<div>Peso entrada: <strong style="color:var(--text)">'+fmtN(l.pesoEntrada)+'@</strong></div>';
+      rows+='<div>Peso atual: <strong style="color:var(--text)">'+fmtN(l.pesoAtual)+'@</strong></div>';
+      rows+='<div>Peso meta: <strong style="color:var(--text)">'+fmtN(l.pesoMeta)+'@</strong></div>';
+    } else {
+      rows+='<div>Aluguel: <strong style="color:var(--green-mid)">'+fmt(l.aluguel||0)+'/mês</strong></div>';
+    }
     // GMD calculation
     var gmd = calcularGMD(l);
     if(gmd !== null){
@@ -1395,7 +1399,7 @@ function renderRebanho(){
       if(diasRestMeta) rows+=' <span style="font-size:.72rem;color:var(--clay)"> · meta em ~'+diasRestMeta+' dias</span>';
       rows+='</div>';
     }
-    rows+='<div>R$/@: <strong style="color:var(--text)">'+fmt(l.precoCompra)+'</strong></div>';
+    if(l.tipo!=='terceiro') rows+='<div>R$/@: <strong style="color:var(--text)">'+fmt(l.precoCompra)+'</strong></div>';
     // Contrato aluguel badge
     if(l.tipo==='terceiro' && l.contratoInicio && l.contratoMeses){
       var cs = getContratoStatus(l);
@@ -3866,11 +3870,9 @@ function atualizarPreviewContrato(){
   if(!dataInicio || !qtdMeses){ prev.textContent=''; return; }
   var dtInicio    = new Date(dataInicio+'T00:00:00');
   // First payment = 30 days after entry
-  var dtPrimeiro  = new Date(dtInicio);
-  dtPrimeiro.setDate(dtPrimeiro.getDate() + 30);
-  // Contract ends qtdMeses after first payment
-  var dtFim = new Date(dtPrimeiro);
-  dtFim.setMonth(dtFim.getMonth() + qtdMeses);
+  var dtPrimeiro  = new Date(dtInicio.getTime() + 30*24*60*60*1000);
+  // Contract ends qtdMeses*30 days after first payment
+  var dtFim = new Date(dtPrimeiro.getTime() + qtdMeses*30*24*60*60*1000);
   var aluguel = parseFloat(document.getElementById('r-aluguel').value)||0;
   var total   = aluguel * qtdMeses;
   prev.innerHTML =
@@ -3884,13 +3886,12 @@ function getContratoStatus(lote){
   var hoje     = new Date(); hoje.setHours(0,0,0,0);
   var dtInicio = new Date(lote.contratoInicio+'T00:00:00');
   // First payment = 30 days after entry
-  var dtPrimeiro = new Date(dtInicio);
-  dtPrimeiro.setDate(dtPrimeiro.getDate() + 30);
-  // Contract ends qtdMeses after first payment
-  var dtFim = new Date(dtPrimeiro);
-  dtFim.setMonth(dtFim.getMonth() + lote.contratoMeses);
+  var dtPrimeiro = new Date(dtInicio.getTime() + 30*24*60*60*1000);
+  // Contract ends qtdMeses*30 days after first payment
+  var dtFim = new Date(dtPrimeiro.getTime() + lote.contratoMeses*30*24*60*60*1000);
   var diasRestantes = Math.ceil((dtFim - hoje)/(1000*60*60*24));
-  var mesAtual = Math.floor((hoje - dtPrimeiro)/(1000*60*60*24) / 30) + 1;
+  var diasDesdePrimeiro = Math.floor((hoje - dtPrimeiro)/(1000*60*60*24));
+  var mesAtual = Math.floor(diasDesdePrimeiro / 30) + 1;
   mesAtual = Math.max(1, Math.min(mesAtual, lote.contratoMeses));
   var cor = diasRestantes < 0 ? 'red' : diasRestantes <= 15 ? 'yellow' : 'green';
   var txt = diasRestantes < 0
