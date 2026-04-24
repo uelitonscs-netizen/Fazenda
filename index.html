@@ -1048,7 +1048,9 @@ function sacosRestantes(i){
   return Math.max(0, qtd-(dias/30.44)*consumo);
 }
 function consumoEfetivo(i){
-  var totalCabecas = state.lotes.reduce(function(a,l){ return a+(parseFloat(l.qtd)||0); }, 0);
+  var totalCabecas = state.lotes.filter(function(l){
+    return l.tipo!=='terceiro' && l.tipo!=='encerrado';
+  }).reduce(function(a,l){ return a+(parseFloat(l.qtd)||0); }, 0);
   var kgSaco = parseFloat(i.kgSaco)||30;
   if(i.kgPorCabeca && parseFloat(i.kgPorCabeca) > 0){
     return (parseFloat(i.kgPorCabeca) * totalCabecas) / kgSaco;
