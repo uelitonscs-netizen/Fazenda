@@ -1666,9 +1666,11 @@ function renderAll(){
 function salvarLote(){
   var nome=document.getElementById('r-nome').value.trim();
   var qtd=parseInt(document.getElementById('r-qtd').value);
-  var pe=parseFloat(document.getElementById('r-peso-entrada').value);
-  if(!nome||!qtd||!pe){toast('Preencha nome, quantidade e peso de entrada.','error');return;}
-  var lote={id:Date.now(),nome:nome,tipo:document.getElementById('r-tipo').value,qtd:qtd,pesoEntrada:pe,
+  var tipo=document.getElementById('r-tipo').value;
+  var pe=parseFloat(document.getElementById('r-peso-entrada').value)||0;
+  var isTerceiro = tipo==='terceiro';
+  if(!nome||!qtd){toast('Preencha nome e quantidade.','error');return;}
+  var lote={id:Date.now(),nome:nome,tipo:document.getElementById('r-tipo').value,qtd:qtd,pesoEntrada:isTerceiro?0:pe,
     pesoAtual:parseFloat(document.getElementById('r-peso-atual').value)||pe,
     pesoMeta:parseFloat(document.getElementById('r-peso-meta').value)||pe,
     precoCompra:calcularPrecoArroba(),
