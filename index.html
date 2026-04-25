@@ -3871,8 +3871,8 @@ function atualizarPreviewContrato(){
   var dtInicio    = new Date(dataInicio+'T00:00:00');
   // First payment = 30 days after entry
   var dtPrimeiro  = new Date(dtInicio.getTime() + 30*24*60*60*1000);
-  // Contract ends qtdMeses*30 days after first payment
-  var dtFim = new Date(dtPrimeiro.getTime() + qtdMeses*30*24*60*60*1000);
+  // Last payment = first payment + (meses-1)*30 days
+  var dtFim = new Date(dtPrimeiro.getTime() + (qtdMeses-1)*30*24*60*60*1000);
   var aluguel = parseFloat(document.getElementById('r-aluguel').value)||0;
   var total   = aluguel * qtdMeses;
   prev.innerHTML =
@@ -3887,8 +3887,8 @@ function getContratoStatus(lote){
   var dtInicio = new Date(lote.contratoInicio+'T00:00:00');
   // First payment = 30 days after entry
   var dtPrimeiro = new Date(dtInicio.getTime() + 30*24*60*60*1000);
-  // Contract ends qtdMeses*30 days after first payment
-  var dtFim = new Date(dtPrimeiro.getTime() + lote.contratoMeses*30*24*60*60*1000);
+  // Last payment = first payment + (meses-1)*30 days
+  var dtFim = new Date(dtPrimeiro.getTime() + (lote.contratoMeses-1)*30*24*60*60*1000);
   var diasRestantes = Math.ceil((dtFim - hoje)/(1000*60*60*24));
   var diasDesdePrimeiro = Math.floor((hoje - dtPrimeiro)/(1000*60*60*24));
   var mesAtual = Math.floor(diasDesdePrimeiro / 30) + 1;
