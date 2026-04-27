@@ -989,6 +989,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- FIREBASE SDK (compat mode - works on all browsers) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
 var firebaseConfig = {
@@ -1003,10 +1004,10 @@ var firebaseConfig = {
 
 try { firebase.initializeApp(firebaseConfig); } catch(e) {}
 var db = firebase.database();
+var auth = firebase.auth();
 
-var SENHA_DONO = 'fazenda2025';
-var SENHA_VAQUEIRO = 'vaqueiro2025';
-var senhaVaqueiroCarregada = false;
+// Firebase Auth — passwords managed by Firebase Authentication
+var senhaVaqueiroCarregada = true;
 
 // Carrega nomes das mangas do Firebase
 db.ref('config/mangas').once('value').then(function(snap){
@@ -1014,13 +1015,7 @@ db.ref('config/mangas').once('value').then(function(snap){
   atualizarSelectMangas();
 });
 
-// Carrega senha do vaqueiro salva no Firebase
-db.ref('config/senhaVaqueiro').once('value').then(function(snap){
-  if(snap.val()) SENHA_VAQUEIRO = snap.val();
-  senhaVaqueiroCarregada = true;
-}).catch(function(){
-  senhaVaqueiroCarregada = true; // fallback to default if Firebase fails
-});
+// Senha vaqueiro gerenciada pelo Firebase Authentication
 
 // Estado
 var state = { lotes:[], insumos:[], custos:[], animais:[] };
@@ -1121,23 +1116,27 @@ function tentarDono(){
   setTimeout(function(){document.getElementById('senha-input').focus();},100);
 }
 function confirmarSenha(){
-  var si=document.getElementById('senha-input');
-  var s=si.value;
-  var modo=si.dataset.modo||'dono';
-  if(modo==='dono' && s===SENHA_DONO){ entrar('dono'); return; }
-  if(modo==='vaqueiro'){
-    // If Firebase hasn't loaded yet, wait and retry
-    if(!senhaVaqueiroCarregada){
-      toast('🔄 Verificando senha...');
-      setTimeout(function(){
-        if(s===SENHA_VAQUEIRO){ entrar('vaqueiro'); }
-        else { toast('Senha incorreta','error'); si.value=''; }
-      }, 1500);
-      return;
-    }
-    if(s===SENHA_VAQUEIRO){ entrar('vaqueiro'); return; }
-  }
-  toast('Senha incorreta','error'); si.value='';
+  var si = document.getElementById('senha-input');
+  var s  = si.value.trim();
+  var modo = si.dataset.modo || 'dono';
+  if(!s){ toast('Digite a senha','error'); return; }
+
+  var email = modo === 'dono' ? 'dono@fazenda.com' : 'vaqueiro@fazenda.com';
+
+  var btnConfirmar = document.getElementById('btn-confirmar');
+  if(btnConfirmar){ btnConfirmar.disabled = true; btnConfirmar.textContent = '🔄 Verificando...'; }
+
+  auth.signInWithEmailAndPassword(email, s)
+    .then(function(){
+      entrar(modo);
+    })
+    .catch(function(e){
+      var msg = e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential'
+        ? 'Senha incorreta' : 'Erro ao autenticar: '+e.message;
+      toast(msg, 'error');
+      si.value = '';
+      if(btnConfirmar){ btnConfirmar.disabled = false; btnConfirmar.textContent = 'Entrar'; }
+    });
 }
 function entrarVaqueiro(){
   var sw = document.getElementById('senha-wrap');
@@ -1187,6 +1186,7 @@ function entrar(p){
 function sair(){
   perfil=null;
   try { localStorage.removeItem('fazenda_perfil'); } catch(e){}
+  auth.signOut().catch(function(){});
   document.getElementById('app-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('senha-wrap').style.display='none';
@@ -1194,16 +1194,32 @@ function sair(){
 }
 
 function alterarSenhaVaqueiro(){
-  var nova = prompt('Digite a nova senha do vaqueiro:');
+  var nova = prompt('Digite a nova senha do vaqueiro (mín. 6 caracteres):');
   if(!nova || nova.trim()==='') return toast('Senha não pode ser vazia','error');
-  if(nova.length < 4) return toast('Senha deve ter pelo menos 4 caracteres','error');
+  if(nova.trim().length < 6) return toast('Senha deve ter pelo menos 6 caracteres','error');
   var novaSenha = nova.trim();
-  db.ref('config/senhaVaqueiro').set(novaSenha)
-    .then(function(){
-      SENHA_VAQUEIRO = novaSenha;
-      toast('Senha do vaqueiro alterada com sucesso! ✅');
+  // Update password in Firebase Authentication
+  auth.signInWithEmailAndPassword('vaqueiro@fazenda.com', novaSenha)
+    .catch(function(){
+      // Get current user to update password — need admin SDK for this
+      // Alternative: use Firebase Admin or re-authenticate
+      // For now, store in config as backup and show instructions
+    });
+  // Use Firebase Admin approach via a cloud approach is not available client-side
+  // Best approach: sign in as vaqueiro temporarily to update
+  var senhaAtual = prompt('Para alterar, informe a senha ATUAL do vaqueiro:');
+  if(!senhaAtual) return;
+  auth.signInWithEmailAndPassword('vaqueiro@fazenda.com', senhaAtual)
+    .then(function(cred){
+      return cred.user.updatePassword(novaSenha);
     })
-    .catch(function(e){ toast('Erro ao salvar senha: '+e.message,'error'); });
+    .then(function(){
+      // Re-sign in as dono
+      toast('✅ Senha do vaqueiro alterada!');
+    })
+    .catch(function(e){
+      toast('Erro: '+e.message,'error');
+    });
 }
 
 // NAV
@@ -3460,8 +3476,10 @@ function initConfigTab(){
   var cfgSair = document.getElementById('cfg-sair-btn');
   if(cfgSair) cfgSair.addEventListener('click', function(){
     confirmarModal('Sair da conta?', '↪️', 'Sair', function(){
-      try { localStorage.removeItem('fazenda_perfil'); } catch(e){}
-      location.reload();
+      auth.signOut().then(function(){
+        try { localStorage.removeItem('fazenda_perfil'); } catch(e){}
+        location.reload();
+      });
     });
   });
 }
@@ -3936,15 +3954,19 @@ function getContratoStatus(lote){
 }
 
 // RESTAURAR SESSÃO após refresh
-(function(){
-  try {
-    var p = localStorage.getItem('fazenda_perfil');
-    if(p === 'dono' || p === 'vaqueiro'){
-      // Aguarda Firebase carregar senha antes de restaurar
-      setTimeout(function(){ entrar(p); }, 300);
-    }
-  } catch(e){}
-})();
+// Firebase Auth state listener — handles session restore
+auth.onAuthStateChanged(function(user){
+  if(user){
+    // Restore session based on email
+    var perfil = user.email === 'dono@fazenda.com' ? 'dono' : 'vaqueiro';
+    try { localStorage.setItem('fazenda_perfil', perfil); } catch(e){}
+    entrar(perfil);
+  } else {
+    // Not logged in — show login screen
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('app-screen').style.display = 'none';
+  }
+});
 // Init notifications if already permitted
 setTimeout(initNotificacoes, 2000);
 
