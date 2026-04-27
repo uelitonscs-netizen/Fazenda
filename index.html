@@ -2666,8 +2666,10 @@ function _executarLoginBiometria(credData){
         timeout: 60000
       }
     }).then(function(){
-      entrar('dono');
-      toast('✅ Autenticado com biometria!');
+      // Sign in to Firebase Auth before entrar
+      auth.signInWithEmailAndPassword('dono@fazenda.com', 'fazenda2025')
+        .then(function(){ entrar('dono'); toast('✅ Autenticado com biometria!'); })
+        .catch(function(){ entrar('dono'); toast('✅ Autenticado com biometria!'); });
     }).catch(function(e){
       if(e.name === 'NotAllowedError'){
         toast('Autenticação cancelada','error');
