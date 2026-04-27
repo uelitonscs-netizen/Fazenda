@@ -2691,17 +2691,25 @@ function renderDashboardVaqueiro(){
   // Render two groups
   var gruposEl = document.getElementById('vaq-grupos-rebanho');
   if(gruposEl){
+    var totalMeu = state.lotes.filter(function(l){ return l.tipo!=='terceiro'&&l.tipo!=='encerrado'; }).reduce(function(a,l){ return a+l.qtd; },0);
+    var totalTerceiros = state.lotes.filter(function(l){ return l.tipo==='terceiro'; }).reduce(function(a,l){ return a+l.qtd; },0);
     var h = '';
     if(meusParts.length > 0){
       h += '<div style="background:var(--green-light);border:1.5px solid var(--green-mid);border-radius:12px;padding:.85rem 1rem;margin-bottom:.6rem">';
-      h += '<div style="font-size:.65rem;font-family:monospace;color:var(--green-mid);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.35rem">🐄 Meu Rebanho</div>';
-      h += '<div style="font-size:.85rem;color:var(--text);font-weight:600">'+meusParts.join(' · ')+'</div>';
+      h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem">';
+      h += '<span style="font-size:.65rem;font-family:monospace;color:var(--green-mid);letter-spacing:.08em;text-transform:uppercase">🐄 Meu Rebanho</span>';
+      h += '<span style="font-size:1.1rem;font-weight:700;color:var(--green)">'+totalMeu+'</span>';
+      h += '</div>';
+      h += '<div style="font-size:.82rem;color:var(--text2)">'+meusParts.join(' · ')+'</div>';
       h += '</div>';
     }
     if(terceirosParts.length > 0){
       h += '<div style="background:var(--sky-light);border:1.5px solid #90CAF9;border-radius:12px;padding:.85rem 1rem;margin-bottom:.6rem">';
-      h += '<div style="font-size:.65rem;font-family:monospace;color:var(--sky);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.35rem">🤝 Terceiros</div>';
-      h += '<div style="font-size:.85rem;color:var(--text);font-weight:600">'+terceirosParts.join(' · ')+'</div>';
+      h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem">';
+      h += '<span style="font-size:.65rem;font-family:monospace;color:var(--sky);letter-spacing:.08em;text-transform:uppercase">🤝 Terceiros</span>';
+      h += '<span style="font-size:1.1rem;font-weight:700;color:var(--sky)">'+totalTerceiros+'</span>';
+      h += '</div>';
+      h += '<div style="font-size:.82rem;color:var(--text2)">'+terceirosParts.join(' · ')+'</div>';
       h += '</div>';
     }
     gruposEl.innerHTML = h;
