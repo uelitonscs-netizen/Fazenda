@@ -1211,7 +1211,13 @@ function entrar(p){
   buildNav();
   applyPerfilUI();
   startListening();
-  if(p==='vaqueiro'){ showSectionById('dashboard-vaqueiro'); document.getElementById('fab-btn').style.display='flex'; }
+  if(p==='vaqueiro'){
+    showSectionById('dashboard-vaqueiro');
+    document.getElementById('fab-btn').style.display='flex';
+    // Re-render after Firebase data arrives
+    setTimeout(function(){ renderDashboardVaqueiro(); }, 800);
+    setTimeout(function(){ renderDashboardVaqueiro(); }, 2000);
+  }
   else { showSectionById('dashboard'); document.getElementById('fab-btn').style.display='flex'; }
 }
 function sair(){
@@ -1733,6 +1739,8 @@ function renderAnimais(){
 function renderAll(){
   var sec=document.querySelector('.section.active');
   var id=sec?sec.id:'dashboard';
+  // Always re-render vaqueiro dashboard when data arrives
+  if(id==='dashboard-vaqueiro') renderDashboardVaqueiro();
   if(id==='dashboard') renderDashboard();
   else if(id==='rebanho') renderRebanho();
   else if(id==='suplementacao') renderSuplementacao();
