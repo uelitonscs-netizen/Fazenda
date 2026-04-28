@@ -4022,22 +4022,70 @@ var MAPA_CONFIG = {
 
 // Map app manga names to mapa config IDs
 var MANGA_NAME_MAP = {
+  // Manga da Chegada variants
   'Manga da Chegada':    'manga-chegada',
+  'Manga Chegada':       'manga-chegada',
+  'Chegada':             'manga-chegada',
+  // Manga do Meio variants
   'Manga do Meio':       'manga-meio',
+  'Manga Meio':          'manga-meio',
+  'Meio':                'manga-meio',
+  // Manga do Alto variants
   'Manga do Alto':       'manga-alto',
+  'Manga Alto':          'manga-alto',
+  'Alto':                'manga-alto',
+  // Manga da Pedra variants
   'Manga da Pedra':      'manga-pedra',
+  'Manga Pedra':         'manga-pedra',
+  'Pedra':               'manga-pedra',
+  // Manga da Bananeira variants
   'Manga da Bananeira':  'manga-bananeira',
+  'Manga Bananeira':     'manga-bananeira',
+  'Bananeira':           'manga-bananeira',
+  // Atrás do Curral variants
   'Manga atrás do Curral': 'manga-curral',
   'Atrás do Curral':     'manga-curral',
+  'Atras do Curral':     'manga-curral',
+  'Manga do Curral':     'manga-curral',
+  'Curral':              'manga-curral',
+  // Bambu variants
   'Bambu':               'manga-bambu',
+  'Manga do Bambu':      'manga-bambu',
+  'Manga 1 do bambu':    'manga-bambu',
+  'Manga 1 do Bambu':    'manga-bambu',
+  // Quicui variants
   'Quicui':              'manga-quicui',
-  'Baixada':             'manga-baixada'
+  'Manga do Quicui':     'manga-quicui',
+  'Quiçuí':              'manga-quicui',
+  // Baixada variants
+  'Baixada':             'manga-baixada',
+  'Manga Baixada':       'manga-baixada',
+  'Manga da Baixada':    'manga-baixada'
 };
+
+// Flexible manga ID lookup — tries exact match first, then partial
+function getMangaId(mangaNome){
+  if(!mangaNome) return null;
+  // Exact match
+  if(MANGA_NAME_MAP[mangaNome]) return MANGA_NAME_MAP[mangaNome];
+  // Case-insensitive partial match
+  var lower = mangaNome.toLowerCase();
+  if(lower.indexOf('chegada') !== -1) return 'manga-chegada';
+  if(lower.indexOf('meio') !== -1) return 'manga-meio';
+  if(lower.indexOf('alto') !== -1) return 'manga-alto';
+  if(lower.indexOf('pedra') !== -1) return 'manga-pedra';
+  if(lower.indexOf('bananeira') !== -1) return 'manga-bananeira';
+  if(lower.indexOf('curral') !== -1) return 'manga-curral';
+  if(lower.indexOf('bambu') !== -1 || lower.indexOf('bamb') !== -1) return 'manga-bambu';
+  if(lower.indexOf('quicui') !== -1 || lower.indexOf('quiçu') !== -1) return 'manga-quicui';
+  if(lower.indexOf('baixada') !== -1) return 'manga-baixada';
+  return null;
+}
 
 function getMangaStatus(mangaId){
   // Find lotes in this manga
   var lotes = state.lotes.filter(function(l){
-    return l.tipo !== 'encerrado' && MANGA_NAME_MAP[l.manga||''] === mangaId;
+    return l.tipo !== 'encerrado' && getMangaId(l.manga||'') === mangaId;
   });
   if(lotes.length === 0) return { classe:'svg-manga-vazia', lotes:[] };
   var hasAlerta = lotes.some(function(l){
