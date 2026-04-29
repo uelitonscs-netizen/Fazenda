@@ -457,7 +457,18 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
               </div>
               <div class="field"><label>Data de Entrada</label><input type="date" id="r-data"></div>
             <div class="field"><label>🌿 Manga Atual</label>
-              <select id="r-manga"><option value="">— Sem manga —</option></select>
+              <select id="r-manga">
+                <option value="">— Sem manga —</option>
+                <option value="Manga da Chegada">Manga da Chegada</option>
+                <option value="Manga do Meio">Manga do Meio</option>
+                <option value="Manga do Alto">Manga do Alto</option>
+                <option value="Manga da Pedra">Manga da Pedra</option>
+                <option value="Manga da Bananeira">Manga da Bananeira</option>
+                <option value="Atrás do Curral">Atrás do Curral</option>
+                <option value="Bambu">Bambu</option>
+                <option value="Quicui">Quicui</option>
+                <option value="Baixada">Baixada</option>
+              </select>
             </div>
             <div class="field"><label>📅 Data de Entrada na Manga</label><input type="date" id="r-manga-data"></div>
             <div class="field"><label>⏱️ Dias Planejados na Manga</label><input type="number" id="r-manga-dias" placeholder="Ex: 30" min="1"></div>
@@ -1042,7 +1053,12 @@ var senhaVaqueiroCarregada = true;
 
 // Carrega nomes das mangas do Firebase
 db.ref('config/mangas').once('value').then(function(snap){
-  if(snap.val() && Array.isArray(snap.val())) MANGAS_NOMES = snap.val();
+  if(snap.val() && Array.isArray(snap.val()) && snap.val().length > 0){
+    MANGAS_NOMES = snap.val();
+  } else {
+    // Save defaults to Firebase so they persist
+    db.ref('config/mangas').set(MANGAS_NOMES).catch(function(){});
+  }
   atualizarSelectMangas();
 });
 
@@ -1050,7 +1066,7 @@ db.ref('config/mangas').once('value').then(function(snap){
 
 // Estado
 var state = { lotes:[], insumos:[], custos:[], animais:[] };
-var MANGAS_NOMES = ['Manga 1','Manga 2','Manga 3','Manga 4','Manga 5','Manga 6','Manga 7','Manga 8'];
+var MANGAS_NOMES = ['Manga da Chegada','Manga do Meio','Manga do Alto','Manga da Pedra','Manga da Bananeira','Atrás do Curral','Bambu','Quicui','Baixada'];
 var perfil = null; // 'dono' ou 'vaqueiro'
 var animalSelecionadoId = null;
 var salvandoFirebase = false;
@@ -4066,21 +4082,28 @@ var MANGA_NAME_MAP = {
 };
 
 // Flexible manga ID lookup — tries exact match first, then partial
+function normalizarNome(s){
+  // Remove accents, lowercase, strip numbers and extra spaces
+  return (s||'').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z\s]/g,'').replace(/\s+/g,' ').trim();
+}
+
 function getMangaId(mangaNome){
   if(!mangaNome) return null;
-  // Exact match
+  // Exact match first
   if(MANGA_NAME_MAP[mangaNome]) return MANGA_NAME_MAP[mangaNome];
-  // Case-insensitive partial match
-  var lower = mangaNome.toLowerCase();
-  if(lower.indexOf('chegada') !== -1) return 'manga-chegada';
-  if(lower.indexOf('meio') !== -1) return 'manga-meio';
-  if(lower.indexOf('alto') !== -1) return 'manga-alto';
-  if(lower.indexOf('pedra') !== -1) return 'manga-pedra';
-  if(lower.indexOf('bananeira') !== -1) return 'manga-bananeira';
-  if(lower.indexOf('curral') !== -1) return 'manga-curral';
-  if(lower.indexOf('bambu') !== -1 || lower.indexOf('bamb') !== -1) return 'manga-bambu';
-  if(lower.indexOf('quicui') !== -1 || lower.indexOf('quiçu') !== -1) return 'manga-quicui';
-  if(lower.indexOf('baixada') !== -1) return 'manga-baixada';
+  // Normalized partial keyword match
+  var n = normalizarNome(mangaNome);
+  if(n.indexOf('chegada') !== -1) return 'manga-chegada';
+  if(n.indexOf('meio') !== -1) return 'manga-meio';
+  if(n.indexOf('alto') !== -1) return 'manga-alto';
+  if(n.indexOf('pedra') !== -1) return 'manga-pedra';
+  if(n.indexOf('bananeira') !== -1) return 'manga-bananeira';
+  if(n.indexOf('curral') !== -1) return 'manga-curral';
+  if(n.indexOf('bambu') !== -1) return 'manga-bambu';
+  if(n.indexOf('quicui') !== -1) return 'manga-quicui';
+  if(n.indexOf('baixada') !== -1) return 'manga-baixada';
   return null;
 }
 
