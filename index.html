@@ -4020,21 +4020,21 @@ function getContratoStatus(lote){
 var MAPA_CONFIG = {
   // Block A - 14 alqueires
   a: [
-    { id:'manga-chegada',  nome:'Manga da Chegada', alq:'3,5',  points:'10,10 120,10 120,170 85,210 10,210',   cx:60,  cy:100 },
-    { id:'manga-meio',     nome:'Manga do Meio',    alq:'3,5',  points:'120,10 235,10 235,170 120,170',         cx:177, cy:90  },
-    { id:'manga-alto',     nome:'Manga do Alto',    alq:'3,5',  points:'235,10 330,10 330,170 235,170',         cx:282, cy:90  },
-    { id:'manga-pedra',    nome:'Manga da Pedra',   alq:'3,0',  points:'85,210 120,170 330,170 330,240 200,290 85,260', cx:210, cy:215 }
+    { id:'manga-chegada',  nome:'Manga da Chegada', alq:'3,5',  points:'10,10 120,10 120,170 85,210 10,210',   cx:60,  cy:100, wr:102, wt:12 },
+    { id:'manga-meio',     nome:'Manga do Meio',    alq:'3,5',  points:'120,10 235,10 235,170 120,170',         cx:177, cy:90,  wr:217, wt:12 },
+    { id:'manga-alto',     nome:'Manga do Alto',    alq:'3,5',  points:'235,10 330,10 330,170 235,170',         cx:282, cy:90,  wr:312, wt:12 },
+    { id:'manga-pedra',    nome:'Manga da Pedra',   alq:'3,0',  points:'85,210 120,170 330,170 330,240 200,290 85,260', cx:210, cy:215, wr:312, wt:172 }
   ],
   // Block B - 4.25 alqueires
   b: [
-    { id:'manga-bananeira', nome:'Manga da Bananeira',    alq:'2,1', points:'20,10 320,10 310,90 30,90',   cx:170, cy:45  },
-    { id:'manga-curral',    nome:'Atrás do Curral',       alq:'2,1', points:'30,90 310,90 330,170 10,170', cx:170, cy:120 }
+    { id:'manga-bananeira', nome:'Manga da Bananeira',    alq:'2,1', points:'20,10 320,10 310,90 30,90',   cx:170, cy:45,  wr:302, wt:12 },
+    { id:'manga-curral',    nome:'Atrás do Curral',       alq:'2,1', points:'30,90 310,90 330,170 10,170', cx:170, cy:120, wr:312, wt:92 }
   ],
   // Block C - 7 alqueires
   c: [
-    { id:'manga-bambu',   nome:'Bambu',   alq:'2,48', points:'10,10 180,10 190,145 10,145',   cx:97,  cy:55  },
-    { id:'manga-quicui',  nome:'Quicui',  alq:'2,5',  points:'10,145 190,145 180,290 10,290', cx:97,  cy:210 },
-    { id:'manga-baixada', nome:'Baixada', alq:'2,72', points:'180,10 330,10 330,290 180,290', cx:255, cy:150 }
+    { id:'manga-bambu',   nome:'Bambu',   alq:'2,48', points:'10,10 180,10 190,145 10,145',   cx:97,  cy:55,  wr:172, wt:12 },
+    { id:'manga-quicui',  nome:'Quicui',  alq:'2,5',  points:'10,145 190,145 180,290 10,290', cx:97,  cy:210, wr:172, wt:147 },
+    { id:'manga-baixada', nome:'Baixada', alq:'2,72', points:'180,10 330,10 330,290 180,290', cx:255, cy:150, wr:312, wt:12 }
   ]
 };
 
@@ -4134,13 +4134,13 @@ function renderSVGBloco(svgId, mangas, viewH){
     var status = getMangaStatus(m.id);
     html += '<polygon points="'+m.points+'" class="'+status.classe+'"/>';
 
-    // Watermark for own lotes
+        // Watermark for own lotes
     var temProprioLote = status.lotes.some(function(l){ return l.tipo !== 'terceiro'; });
-    if(temProprioLote){
-      // Place watermark in top-right corner of manga
-      var wmX = m.cx + 30;
-      var wmY = 18;
-      html += '<image href="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAAUABQDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDpNDvG161N5EWSPdtHmPyT6cDir19b3NpbGdhGFAwAjsxJ7VxlrrRFuyR3sSNvMjmDhQOAo5HsfqcVZm8VzW1k8Ul3FK29mJbBIG0Yxgdj7d68WNHDNrmTu/NnZ9YrW0ehoXfiNdKkW3uyxkZA42MGABHTmiueGrzSoskdjNMrDO/5Vzz6EZ/OiuZ1Kido3S7cxXOnq7P/ALdMXUdNhtrqSCFpEjY7tucirtvZpa2JEMkilwSxyMmiivVxCWnqcFP+J8i1pmk2zWYeUyysxJLO5/LjFFFFd0YRtsZn/9k=" x="'+(wmX-12)+'" y="'+(wmY-12)+'" width="24" height="24" opacity="0.16"/>';
+    if(temProprioLote && m.wr){
+      var iconSize = 20;
+      var ix = m.wr - iconSize;
+      var iy = m.wt;
+      html += '<image href="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAAUABQDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDpNDvG161N5EWSPdtHmPyT6cDir19b3NpbGdhGFAwAjsxJ7VxlrrRFuyR3sSNvMjmDhQOAo5HsfqcVZm8VzW1k8Ul3FK29mJbBIG0Yxgdj7d68WNHDNrmTu/NnZ9YrW0ehoXfiNdKkW3uyxkZA42MGABHTmiueGrzSoskdjNMrDO/5Vzz6EZ/OiuZ1Kido3S7cxXOnq7P/ALdMXUdNhtrqSCFpEjY7tucirtvZpa2JEMkilwSxyMmiivVxCWnqcFP+J8i1pmk2zWYeUyysxJLO5/LjFFFFd0YRtsZn/9k=" x="'+ix+'" y="'+iy+'" width="'+iconSize+'" height="'+iconSize+'" opacity="1"/>';
     }
     // Nome da manga
     html += '<text font-size="10" font-weight="700" fill="#1B4D2E" text-anchor="middle" x="'+m.cx+'" y="'+(m.cy-2)+'">'+m.nome+'</text>';
