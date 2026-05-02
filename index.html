@@ -910,6 +910,13 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         <div style="font-size:.7rem;color:var(--clay);margin-top:.3rem">uelitonscs-netizen.github.io/Fazenda</div>
       </div>
 
+      <!-- APP LINK -->
+      <div class="card" style="margin-bottom:.75rem">
+        <div style="font-size:.65rem;font-family:'DM Mono',monospace;color:var(--clay);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.6rem">🔗 Link do Aplicativo</div>
+        <div style="font-size:.8rem;color:var(--clay);background:var(--bg);border-radius:8px;padding:.6rem .8rem;font-family:'DM Mono',monospace;margin-bottom:.6rem;word-break:break-all">uelitonscs-netizen.github.io/Fazenda</div>
+        <button id="btn-copiar-link" style="width:100%;padding:.7rem;background:var(--green);color:#FFF;border:none;border-radius:10px;font-size:.85rem;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">📋 Copiar Link</button>
+      </div>
+
       <button id="cfg-sair-btn" style="width:100%;padding:.85rem;background:var(--red-light);border:1.5px solid var(--red);border-radius:12px;color:var(--red);font-size:.9rem;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:2rem">↪️ Sair da Conta</button>
 
     </div>
@@ -1118,12 +1125,16 @@ function setSyncStatus(s){
 }
 
 // FIREBASE SAVE
+var _saveTimer = null;
 function saveToFirebase(){
-  setSyncStatus('sync');
-  salvandoFirebase=true;
-  db.ref('fazenda').set(state)
+  if(_saveTimer) clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(function(){
+    setSyncStatus('sync');
+    salvandoFirebase=true;
+    db.ref('fazenda').set(state)
     .then(function(){ setSyncStatus('ok'); salvandoFirebase=false; })
     .catch(function(e){ setSyncStatus('off'); salvandoFirebase=false; toast('Erro ao salvar: '+e.message,'error'); });
+  }, 800);
 }
 
 // FIREBASE LISTEN — só escuta mudanças remotas quando não está salvando
@@ -1230,9 +1241,6 @@ function entrar(p){
   if(p==='vaqueiro'){
     showSectionById('dashboard-vaqueiro');
     document.getElementById('fab-btn').style.display='flex';
-    // Re-render after Firebase data arrives
-    setTimeout(function(){ renderDashboardVaqueiro(); }, 800);
-    setTimeout(function(){ renderDashboardVaqueiro(); }, 2000);
   }
   else { showSectionById('dashboard'); document.getElementById('fab-btn').style.display='flex'; }
 }
@@ -3532,6 +3540,47 @@ function initConfigTab(){
       }
     });
   }
+
+  // Copy app link
+  var btnCopiarLink = document.getElementById('btn-copiar-link');
+  if(btnCopiarLink) btnCopiarLink.addEventListener('click', function(){
+    var link = 'https://uelitonscs-netizen.github.io/Fazenda';
+    if(navigator.clipboard){
+      navigator.clipboard.writeText(link).then(function(){
+        toast('✅ Link copiado! Cole no WhatsApp.');
+      }).catch(function(){
+        prompt('Copie o link:', link);
+      });
+    } else {
+      prompt('Copie o link:', link);
+    }
+  });
+
+  // Copy app link
+  var btnCopiarLink = document.getElementById('btn-copiar-link');
+  if(btnCopiarLink) btnCopiarLink.addEventListener('click', function(){
+    var link = 'https://uelitonscs-netizen.github.io/Fazenda';
+    if(navigator.clipboard){
+      navigator.clipboard.writeText(link).then(function(){
+        toast('✅ Link copiado! Cole no WhatsApp.');
+      }).catch(function(){ prompt('Copie o link:', link); });
+    } else {
+      prompt('Copie o link:', link);
+    }
+  });
+
+    // Copy app link
+  var btnCopiarLink = document.getElementById('btn-copiar-link');
+  if(btnCopiarLink) btnCopiarLink.addEventListener('click', function(){
+    var link = 'https://uelitonscs-netizen.github.io/Fazenda';
+    if(navigator.clipboard){
+      navigator.clipboard.writeText(link).then(function(){
+        toast('✅ Link copiado! Cole no WhatsApp.');
+      }).catch(function(){ prompt('Copie o link:', link); });
+    } else {
+      prompt('Copie o link:', link);
+    }
+  });
 
   var cfgSair = document.getElementById('cfg-sair-btn');
   if(cfgSair) cfgSair.addEventListener('click', function(){
