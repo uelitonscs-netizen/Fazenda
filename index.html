@@ -1148,6 +1148,39 @@ function saveToFirebase(){
 
 // FIREBASE LISTEN — só escuta mudanças remotas quando não está salvando
 function startListening(){
+  // Force logout listener — checks if other sessions were terminated
+  var minhaSessaoId = localStorage.getItem('fazenda_sessao_id');
+
+  // New login notification — alert dono when someone else logs in
+  var _sessaoListenerIniciado = false;
+  db.ref('fazenda_sessoes').on('child_added', function(snap){
+    // Skip on first load
+    if(!_sessaoListenerIniciado) return;
+    var s = snap.val();
+    if(!s) return;
+    // Only notify if it's not our own session
+    if(s.id === minhaSessaoId) return;
+    // Only notify the dono
+    if(perfil !== 'dono') return;
+    var quem = s.perfil === 'dono' ? '👨‍🌾 Dono' : '🤠 Vaqueiro';
+    var onde = s.localizacao && s.localizacao !== 'Obtendo...' ? s.localizacao : s.dispositivo || 'dispositivo desconhecido';
+    enviarNotificacao('🔔 Novo login detectado', quem + ' · ' + onde);
+    toast('⚠️ Novo login: ' + quem + ' · ' + onde, 'error');
+  });
+  // Mark listener as started after initial load
+  setTimeout(function(){ _sessaoListenerIniciado = true; }, 3000);
+
+  db.ref('config/forceLogout').on('value', function(snap){
+    var ts = snap.val();
+    if(!ts) return;
+    var meuTs = localStorage.getItem('fazenda_sessao_ts');
+    // If forceLogout timestamp is newer than my session start, logout
+    if(meuTs && parseInt(ts) > parseInt(meuTs)){
+      toast('⚠️ Sessão encerrada pelo administrador.', 'error');
+      setTimeout(function(){ sair(); }, 2000);
+    }
+  });
+
   db.ref('fazenda').on('value', function(snap){
     if(salvandoFirebase) return;
     var data=snap.val();
@@ -4267,8 +4300,11 @@ function registrarSessao(perfil){
     ativa: true
   };
 
-  // Save session ID locally
-  try { localStorage.setItem('fazenda_sessao_id', sessaoId); } catch(e){}
+  // Save session ID and timestamp locally
+  try {
+    localStorage.setItem('fazenda_sessao_id', sessaoId);
+    localStorage.setItem('fazenda_sessao_ts', Date.now().toString());
+  } catch(e){}
 
   // Save to Firebase immediately
   db.ref('fazenda_sessoes/' + sessaoId).set(sessao).catch(function(){});
@@ -4363,7 +4399,7 @@ function renderSessoes(){
       });
 
       // Button to end all sessions
-            html += '<button onclick="encerrarTodasSessoes()" style="width:100%;padding:.7rem;background:var(--red-light);border:1.5px solid var(--red);border-radius:10px;color:var(--red);font-size:.82rem;font-weight:700;cursor:pointer;margin-top:.5rem">🚫 Encerrar Todas as Sessoes</button>';
+            html += '<button onclick="encerrarTodasSessoes()" style="width:100%;padding:.7rem;background:var(--red-light);border:1.5px solid var(--red);border-radius:10px;color:var(--red);font-size:.82rem;font-weight:700;cursor:pointer;margin-top:.5rem">🚫 Encerrar Outras Sessões</button>';
 
       el.innerHTML = html;
     })
@@ -4371,12 +4407,15 @@ function renderSessoes(){
 }
 
 function encerrarTodasSessoes(){
-  confirmarModal('Encerrar todas as sessões?', '🚫', 'Encerrar', function(){
+  confirmarModal('Encerrar outras sessões?', '🚫', 'Encerrar', function(){
+    var minhaSessaoId = localStorage.getItem('fazenda_sessao_id');
     db.ref('fazenda_sessoes').once('value').then(function(snap){
       var d = snap.val();
       if(!d) return;
       var updates = {};
       Object.keys(d).forEach(function(k){
+        // Skip current session
+        if(k === minhaSessaoId) return;
         if(d[k].ativa){
           updates[k+'/ativa'] = false;
           updates[k+'/dataLogout'] = new Date().toISOString();
@@ -4384,7 +4423,10 @@ function encerrarTodasSessoes(){
       });
       return db.ref('fazenda_sessoes').update(updates);
     }).then(function(){
-      toast('✅ Todas as sessões encerradas!');
+      // Set forceLogout timestamp — other devices will detect and logout
+      return db.ref('config/forceLogout').set(Date.now());
+    }).then(function(){
+      toast('✅ Outras sessões encerradas!');
       renderSessoes();
     }).catch(function(e){ toast('Erro: '+e.message, 'error'); });
   });
