@@ -1309,6 +1309,11 @@ function entrar(p){
   badge.className='perfil-badge '+(p==='dono'?'dono':'vaqueiro');
   buildNav();
   applyPerfilUI();
+  // Reset state before loading - prevents old fazenda data showing
+  state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[] };
+  stateNotas = { todos:[], notas:[], vacinas:[], lembretes:[] };
+  stateAlertas = [];
+  renderAll();
   startListening();
   if(p==='vaqueiro'){
     showSectionById('dashboard-vaqueiro');
