@@ -910,6 +910,15 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         <div style="font-size:.7rem;color:var(--clay);margin-top:.3rem">uelitonscs-netizen.github.io/Fazenda</div>
       </div>
 
+      <!-- SESSÕES ATIVAS -->
+      <div class="card" style="margin-bottom:.75rem" id="cfg-sessoes-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
+          <div style="font-size:.65rem;font-family:'DM Mono',monospace;color:var(--clay);text-transform:uppercase;letter-spacing:.1em">📱 Sessões Ativas</div>
+          <button onclick="renderSessoes()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:.2rem .5rem;font-size:.72rem;cursor:pointer;color:var(--clay)">🔄 Atualizar</button>
+        </div>
+        <div id="sessoes-list"><div style="color:var(--clay);font-size:.82rem">Toque em Atualizar para ver as sessões.</div></div>
+      </div>
+
       <!-- APP LINK -->
       <div class="card" style="margin-bottom:.75rem">
         <div style="font-size:.65rem;font-family:'DM Mono',monospace;color:var(--clay);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.6rem">🔗 Link do Aplicativo</div>
@@ -1207,6 +1216,7 @@ function entrarVaqueiro(){
 function entrar(p){
   perfil=p;
   try { localStorage.setItem('fazenda_perfil', p); } catch(e){}
+  registrarSessao(p);
   // When dono logs in normally, restore biometria cred from Firebase to localStorage
   if(p==='dono' && window.PublicKeyCredential){
     try {
@@ -1246,6 +1256,7 @@ function entrar(p){
 }
 function sair(){
   perfil=null;
+  encerrarSessaoAtual();
   try { localStorage.removeItem('fazenda_perfil'); } catch(e){}
   auth.signOut().catch(function(){});
   document.getElementById('app-screen').style.display='none';
@@ -4234,6 +4245,149 @@ function renderMapa(){
   renderSVGBloco('mapa-bloco-a', MAPA_CONFIG.a, 290);
   renderSVGBloco('mapa-bloco-b', MAPA_CONFIG.b, 170);
   renderSVGBloco('mapa-bloco-c', MAPA_CONFIG.c, 290);
+}
+
+
+// ===== MONITORAMENTO DE SESSÕES =====
+
+function registrarSessao(perfil){
+  var sessaoId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2,6);
+  var sessao = {
+    id: sessaoId,
+    perfil: perfil,
+    dataLogin: new Date().toISOString(),
+    dispositivo: navigator.userAgent.indexOf('Samsung') !== -1 ? 'Samsung' :
+                 navigator.userAgent.indexOf('iPhone') !== -1 ? 'iPhone' :
+                 navigator.userAgent.indexOf('iPad') !== -1 ? 'iPad' :
+                 navigator.userAgent.indexOf('Android') !== -1 ? 'Android' : 'Desktop',
+    browser: navigator.userAgent.indexOf('Chrome') !== -1 ? 'Chrome' :
+             navigator.userAgent.indexOf('Safari') !== -1 ? 'Safari' : 'Outro',
+    localizacao: 'Obtendo...',
+    ip: 'Obtendo...',
+    ativa: true
+  };
+
+  // Save session ID locally
+  try { localStorage.setItem('fazenda_sessao_id', sessaoId); } catch(e){}
+
+  // Save to Firebase immediately
+  db.ref('fazenda_sessoes/' + sessaoId).set(sessao).catch(function(){});
+
+  // Get IP-based location (no permission needed)
+  fetch('https://ipapi.co/json/')
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      var loc = (d.city || '') + (d.region ? ', '+d.region : '') + (d.country_name ? ' ('+d.country_name+')' : '');
+      db.ref('fazenda_sessoes/' + sessaoId).update({
+        localizacao: loc || 'Desconhecida',
+        ip: d.ip || 'Desconhecido',
+        pais: d.country_name || '',
+        cidade: d.city || ''
+      }).catch(function(){});
+    })
+    .catch(function(){
+      // Try GPS as fallback
+      if(navigator.geolocation){
+        navigator.geolocation.getCurrentPosition(function(pos){
+          var lat = pos.coords.latitude.toFixed(4);
+          var lon = pos.coords.longitude.toFixed(4);
+          // Reverse geocode
+          fetch('https://nominatim.openstreetmap.org/reverse?lat='+lat+'&lon='+lon+'&format=json')
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+              var loc = (d.address.city || d.address.town || d.address.village || '') + 
+                        (d.address.state ? ', '+d.address.state : '') +
+                        (d.address.country ? ' ('+d.address.country+')' : '');
+              db.ref('fazenda_sessoes/' + sessaoId).update({
+                localizacao: loc || 'GPS: '+lat+', '+lon
+              }).catch(function(){});
+            }).catch(function(){
+              db.ref('fazenda_sessoes/' + sessaoId).update({
+                localizacao: 'GPS: '+lat+', '+lon
+              }).catch(function(){});
+            });
+        }, function(){
+          db.ref('fazenda_sessoes/' + sessaoId).update({
+            localizacao: 'Não disponível'
+          }).catch(function(){});
+        });
+      }
+    });
+
+  // Update last seen every 5 minutes
+  setInterval(function(){
+    var sid = localStorage.getItem('fazenda_sessao_id');
+    if(sid) db.ref('fazenda_sessoes/'+sid+'/ultimaAtividade').set(new Date().toISOString()).catch(function(){});
+  }, 5 * 60 * 1000);
+}
+
+function encerrarSessaoAtual(){
+  var sid = localStorage.getItem('fazenda_sessao_id');
+  if(sid){
+    db.ref('fazenda_sessoes/'+sid).update({ ativa: false, dataLogout: new Date().toISOString() }).catch(function(){});
+    try { localStorage.removeItem('fazenda_sessao_id'); } catch(e){}
+  }
+}
+
+function renderSessoes(){
+  var el = document.getElementById('sessoes-list');
+  if(!el) return;
+  el.innerHTML = '<div style="color:var(--clay);font-size:.82rem">🔄 Carregando sessões...</div>';
+
+  db.ref('fazenda_sessoes').orderByChild('dataLogin').limitToLast(20).once('value')
+    .then(function(snap){
+      var d = snap.val();
+      if(!d){ el.innerHTML = '<div style="color:var(--clay);font-size:.82rem">Nenhuma sessão registrada.</div>'; return; }
+
+      var sessoes = Object.values(d).sort(function(a,b){ return b.dataLogin.localeCompare(a.dataLogin); });
+      var html = '';
+      var minhaId = localStorage.getItem('fazenda_sessao_id');
+
+      sessoes.forEach(function(s){
+        var isAtual = s.id === minhaId;
+        var data = new Date(s.dataLogin);
+        var dataStr = data.toLocaleDateString('pt-BR') + ' às ' + data.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+        var corBg = isAtual ? 'var(--green-light)' : s.ativa ? '#FFF8E1' : 'var(--bg)';
+        var corBorda = isAtual ? 'var(--green-mid)' : s.ativa ? '#F0B429' : 'var(--border)';
+
+        html += '<div style="background:'+corBg+';border:1.5px solid '+corBorda+';border-radius:10px;padding:.75rem;margin-bottom:.5rem">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem">';
+        html += '<span style="font-weight:700;font-size:.85rem">'+(s.perfil==='dono'?'👨‍🌾 Dono':'🤠 Vaqueiro')+(isAtual?' <span style="font-size:.7rem;color:var(--green-mid)">(esta sessão)</span>':'')+'</span>';
+        html += '<span style="font-size:.7rem;padding:.15rem .5rem;border-radius:20px;background:'+(s.ativa?'var(--green-light)':'var(--bg)')+';color:'+(s.ativa?'var(--green-mid)':'var(--clay)')+'">'+(s.ativa?'● Ativa':'○ Encerrada')+'</span>';
+        html += '</div>';
+        html += '<div style="font-size:.75rem;color:var(--clay)">📅 '+dataStr+'</div>';
+        html += '<div style="font-size:.75rem;color:var(--clay)">📍 '+(s.localizacao||'Desconhecida')+'</div>';
+        html += '<div style="font-size:.75rem;color:var(--clay)">📱 '+(s.dispositivo||'Desconhecido')+' · '+(s.browser||'')+'</div>';
+        if(s.ip && s.ip !== 'Obtendo...') html += '<div style="font-size:.72rem;color:var(--clay);font-family:monospace">IP: '+s.ip+'</div>';
+        html += '</div>';
+      });
+
+      // Button to end all sessions
+            html += '<button onclick="encerrarTodasSessoes()" style="width:100%;padding:.7rem;background:var(--red-light);border:1.5px solid var(--red);border-radius:10px;color:var(--red);font-size:.82rem;font-weight:700;cursor:pointer;margin-top:.5rem">🚫 Encerrar Todas as Sessoes</button>';
+
+      el.innerHTML = html;
+    })
+    .catch(function(){ el.innerHTML = '<div style="color:var(--red);font-size:.82rem">Erro ao carregar sessões.</div>'; });
+}
+
+function encerrarTodasSessoes(){
+  confirmarModal('Encerrar todas as sessões?', '🚫', 'Encerrar', function(){
+    db.ref('fazenda_sessoes').once('value').then(function(snap){
+      var d = snap.val();
+      if(!d) return;
+      var updates = {};
+      Object.keys(d).forEach(function(k){
+        if(d[k].ativa){
+          updates[k+'/ativa'] = false;
+          updates[k+'/dataLogout'] = new Date().toISOString();
+        }
+      });
+      return db.ref('fazenda_sessoes').update(updates);
+    }).then(function(){
+      toast('✅ Todas as sessões encerradas!');
+      renderSessoes();
+    }).catch(function(e){ toast('Erro: '+e.message, 'error'); });
+  });
 }
 
 // RESTAURAR SESSÃO após refresh
