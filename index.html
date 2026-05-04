@@ -934,6 +934,15 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         <div style="font-size:.7rem;color:var(--clay);margin-top:.3rem">uelitonscs-netizen.github.io/Fazenda</div>
       </div>
 
+      <!-- CHECK-INS DO VAQUEIRO -->
+      <div class="card" style="margin-bottom:.75rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
+          <div style="font-size:.65rem;font-family:'DM Mono',monospace;color:var(--clay);text-transform:uppercase;letter-spacing:.1em">👷 Presença do Vaqueiro</div>
+          <button onclick="renderCheckins()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:.2rem .5rem;font-size:.72rem;cursor:pointer;color:var(--clay)">🔄 Atualizar</button>
+        </div>
+        <div id="checkins-list"><div style="color:var(--clay);font-size:.82rem">Toque em Atualizar para ver os check-ins.</div></div>
+      </div>
+
       <!-- SESSÕES ATIVAS -->
       <div class="card" style="margin-bottom:.75rem" id="cfg-sessoes-card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
@@ -1209,6 +1218,19 @@ function startListening(){
   // Detach any existing listener first
   db.ref('fazenda').off();
   db.ref('fazenda_mae').off();
+
+  // Listen for vaqueiro check-ins — notify dono in real time
+  if(perfil === 'dono'){
+    db.ref('fazenda_notif_checkin').on('value', function(snap){
+      var d = snap.val();
+      if(!d || !d.ts) return;
+      // Only notify if checkin happened in last 30 seconds
+      if(Date.now() - d.ts < 30000){
+        enviarNotificacao(d.msg || '🤠 Vaqueiro chegou à fazenda', 'às ' + d.hora);
+        toast('🤠 ' + (d.msg||'Vaqueiro chegou') + ' às ' + d.hora);
+      }
+    });
+  }
   db.ref(getFirebasePrefix()).on('value', function(snap){
     if(salvandoFirebase) return;
     var data=snap.val();
@@ -1313,6 +1335,8 @@ function entrar(p){
   if(p==='vaqueiro'){
     showSectionById('dashboard-vaqueiro');
     document.getElementById('fab-btn').style.display='flex';
+    // Auto check-in when vaqueiro opens app
+    setTimeout(verificarCheckinVaqueiro, 2000);
   }
   else { showSectionById('dashboard'); document.getElementById('fab-btn').style.display='flex'; }
 }
@@ -4517,6 +4541,126 @@ function getFirebasePrefix(){
 function getLoginEmail(modo){
   if(fazendaAtiva === 'mae') return 'mae@fazenda.com';
   return modo === 'dono' ? 'dono@fazenda.com' : 'vaqueiro@fazenda.com';
+}
+
+
+// ===== CHECK-IN AUTOMÁTICO DO VAQUEIRO =====
+var FAZENDA_LAT = -17.9378470;
+var FAZENDA_LON = -41.2170670;
+var FAZENDA_RAIO_KM = 2.0;
+
+function calcularDistanciaKm(lat1, lon1, lat2, lon2){
+  var R = 6371;
+  var dLat = (lat2-lat1) * Math.PI/180;
+  var dLon = (lon2-lon1) * Math.PI/180;
+  var a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+          Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
+          Math.sin(dLon/2)*Math.sin(dLon/2);
+  var c = 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+function verificarCheckinVaqueiro(){
+  // Only for vaqueiro profile
+  if(perfil !== 'vaqueiro') return;
+  if(!navigator.geolocation) return;
+
+  // Check if already checked in today
+  var hoje = new Date().toISOString().split('T')[0];
+  var ultimoCheckin = localStorage.getItem('fazenda_checkin_data');
+  if(ultimoCheckin === hoje) return; // Already checked in today
+
+  navigator.geolocation.getCurrentPosition(function(pos){
+    var lat = pos.coords.latitude;
+    var lon = pos.coords.longitude;
+    var dist = calcularDistanciaKm(lat, lon, FAZENDA_LAT, FAZENDA_LON);
+
+    if(dist <= FAZENDA_RAIO_KM){
+      // Save checkin locally to avoid duplicates
+      localStorage.setItem('fazenda_checkin_data', hoje);
+
+      var agora = new Date();
+      var checkin = {
+        data: hoje,
+        hora: agora.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+        timestamp: agora.toISOString(),
+        lat: lat.toFixed(6),
+        lon: lon.toFixed(6),
+        distancia: dist.toFixed(2),
+        fazenda: fazendaAtiva
+      };
+
+      // Save to Firebase
+      var checkinId = 'checkin_' + Date.now();
+      db.ref('fazenda_checkins/' + checkinId).set(checkin)
+        .catch(function(){});
+
+      // Notify dono via Firebase (dono's device listens)
+      db.ref('fazenda_notif_checkin').set({
+        msg: '🤠 Vaqueiro chegou à fazenda',
+        hora: checkin.hora,
+        data: hoje,
+        ts: Date.now()
+      }).catch(function(){});
+
+      toast('📍 Check-in registrado — ' + checkin.hora);
+    }
+  }, function(){
+    // GPS denied or unavailable - silently fail
+  }, { timeout: 10000, maximumAge: 60000 });
+}
+
+function renderCheckins(){
+  var el = document.getElementById('checkins-list');
+  if(!el) return;
+  el.innerHTML = '<div style="color:var(--clay);font-size:.82rem">🔄 Carregando...</div>';
+
+  var hoje = new Date();
+  var mesInicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split('T')[0];
+
+  db.ref('fazenda_checkins').orderByChild('data').startAt(mesInicio).once('value')
+    .then(function(snap){
+      var d = snap.val();
+      if(!d){
+        el.innerHTML = '<div style="color:var(--clay);font-size:.82rem">Nenhum check-in este mês.</div>';
+        return;
+      }
+
+      var checkins = Object.values(d)
+        .filter(function(c){ return c.fazenda === fazendaAtiva || !c.fazenda; })
+        .sort(function(a,b){ return b.timestamp.localeCompare(a.timestamp); });
+
+      if(checkins.length === 0){
+        el.innerHTML = '<div style="color:var(--clay);font-size:.82rem">Nenhum check-in este mês.</div>';
+        return;
+      }
+
+      // Count unique days
+      var dias = {};
+      checkins.forEach(function(c){ dias[c.data] = true; });
+      var totalDias = Object.keys(dias).length;
+
+      var html = '<div style="background:var(--green-light);border:1.5px solid var(--green-mid);border-radius:10px;padding:.7rem 1rem;margin-bottom:.75rem;display:flex;justify-content:space-between;align-items:center">';
+      html += '<span style="font-size:.75rem;color:var(--clay)">Dias trabalhados este mês</span>';
+      html += '<span style="font-size:1.3rem;font-weight:700;color:var(--green)">'+totalDias+'</span>';
+      html += '</div>';
+
+      checkins.forEach(function(c){
+        var dataFmt = new Date(c.data+'T00:00:00').toLocaleDateString('pt-BR', {weekday:'short', day:'2-digit', month:'2-digit'});
+        html += '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.7rem .85rem;margin-bottom:.4rem;display:flex;justify-content:space-between;align-items:center">';
+        html += '<div>';
+        html += '<div style="font-size:.85rem;font-weight:600;color:var(--text)">'+dataFmt+'</div>';
+        html += '<div style="font-size:.72rem;color:var(--clay)">📍 '+c.distancia+'km da fazenda</div>';
+        html += '</div>';
+        html += '<div style="font-size:1rem;font-weight:700;color:var(--green-mid)">'+c.hora+'</div>';
+        html += '</div>';
+      });
+
+      el.innerHTML = html;
+    })
+    .catch(function(){
+      el.innerHTML = '<div style="color:var(--red);font-size:.82rem">Erro ao carregar.</div>';
+    });
 }
 
 // RESTAURAR SESSÃO após refresh
