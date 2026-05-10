@@ -1732,6 +1732,20 @@ function renderCustos(){
   document.getElementById('tabela-custos').innerHTML=rows;
 }
 
+function calcularPrazoLote(l){
+  // Calculate months to reach target weight based on GMD
+  var gmd = calcularGMD(l);
+  if(gmd && gmd > 0 && l.pesoMeta && l.pesoAtual){
+    var arrobasRestantes = l.pesoMeta - l.pesoAtual;
+    if(arrobasRestantes <= 0) return 1; // Already at target
+    var diasRestantes = arrobasRestantes / gmd;
+    var meses = Math.ceil(diasRestantes / 30);
+    return Math.max(1, meses);
+  }
+  // Fallback: use manual prazo field or default 10
+  return parseInt(document.getElementById('p-prazo').value)||10;
+}
+
 function calcularProjecao(){
   var pv=parseFloat(document.getElementById('p-preco').value)||330;
   var pw=parseFloat(document.getElementById('p-peso').value)||14;
@@ -1740,18 +1754,46 @@ function calcularProjecao(){
   var tc=nov.reduce(function(a,l){return a+l.qtd;},0);
   var cc=nov.reduce(function(a,l){return a+(l.qtd*l.pesoEntrada*l.precoCompra);},0);
   var ei=state.insumos.reduce(function(a,i){return a+(i.qtd*i.preco);},0);
+
+  // Calculate weighted average prazo based on each lote's GMD
+  var prazoMedio = pr;
+  if(tc > 0){
+    var totalPrazoPonderado = nov.reduce(function(a,l){
+      return a + calcularPrazoLote(l) * l.qtd;
+    }, 0);
+    prazoMedio = Math.round(totalPrazoPonderado / tc);
+  }
+
+  // Revenue per lote uses its own target weight and prazo
+  var recLotes = nov.reduce(function(a,l){
+    var pesoFinal = l.pesoMeta && l.pesoMeta > 0 ? l.pesoMeta : pw;
+    return a + (l.qtd * pesoFinal * pv);
+  }, 0);
+
   var recAluguel=state.lotes.reduce(function(a,l){
     if(l.tipo!=='terceiro') return a;
-    var mesesEfetivos = l.contratoMeses ? Math.min(l.contratoMeses, pr) : pr;
+    var mesesEfetivos = l.contratoMeses ? Math.min(l.contratoMeses, prazoMedio) : prazoMedio;
     return a + (l.aluguel||0)*mesesEfetivos;
   },0);
-  var co=custoMensalTotal()*pr,ti=cc+ei+co,rec=tc*pw*pv+recAluguel,luc=rec-ti;
+
+  var co=custoMensalTotal()*prazoMedio,ti=cc+ei+co,rec=recLotes+recAluguel,luc=rec-ti;
+  var pr = prazoMedio; // use calculated prazo for display
   var roi=ti>0?(luc/ti)*100:0;
   var rh='<div style="display:flex;flex-direction:column;gap:.75rem">';
   rh+='<div><p style="font-size:.7rem;color:var(--clay);margin-bottom:.6rem;font-family:\'DM Mono\',monospace">CUSTOS</p>';
   rh+='<div class="result-row"><span class="label">Compra rebanho</span><span class="value neg">'+fmt(cc)+'</span></div>';
   rh+='<div class="result-row"><span class="label">Estoque supl.</span><span class="value neg">'+fmt(ei)+'</span></div>';
-  rh+='<div class="result-row"><span class="label">Custo op. ('+pr+' meses)</span><span class="value neg">'+fmt(co)+'</span></div>';
+  rh+='<div class="result-row"><span class="label">Custo op. ('+prazoMedio+' meses médios)</span><span class="value neg">'+fmt(co)+'</span></div>';
+  // Per-lote breakdown
+  if(nov.length > 1){
+    rh+='<div style="font-size:.7rem;color:var(--clay);margin:.3rem 0 .1rem;padding:.3rem .5rem;background:var(--bg);border-radius:6px">';
+    nov.forEach(function(l){
+      var pl = calcularPrazoLote(l);
+      var pm = l.pesoMeta && l.pesoMeta > 0 ? l.pesoMeta : pw;
+      rh += l.nome+': '+pl+'m → '+fmtN(pm)+'@ &nbsp;';
+    });
+    rh += '</div>';
+  }
   rh+='<div class="result-row total"><span class="label">Total</span><span class="value neg">'+fmt(ti)+'</span></div>';
   rh+='<hr class="divider"><div class="result-row"><span class="label">Receita bruta</span><span class="value pos">'+fmt(rec)+'</span></div></div>';
   rh+='<div class="'+(luc>=0?'result-box':'result-box loss')+'">';
