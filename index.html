@@ -4892,13 +4892,19 @@ try { var _fa = localStorage.getItem('fazenda_ativa'); if(_fa) fazendaAtiva = _f
 // Firebase Auth state listener — handles session restore
 auth.onAuthStateChanged(function(user){
   if(user){
-    // Restore fazendaAtiva first
-    try {
-      var fa = localStorage.getItem('fazenda_ativa');
-      if(fa) fazendaAtiva = fa;
-    } catch(e){}
-    // Restore session based on email
-    var perfil = user.email === 'dono@fazenda.com' || user.email === 'mae@fazenda.com' ? 'dono' : 'vaqueiro';
+    // Determine fazendaAtiva from email — most reliable source
+    if(user.email === 'mae@fazenda.com'){
+      fazendaAtiva = 'mae';
+    } else {
+      // For minha fazenda users, restore from localStorage
+      try {
+        var fa = localStorage.getItem('fazenda_ativa');
+        if(fa && fa !== 'mae') fazendaAtiva = fa;
+        else fazendaAtiva = 'minha';
+      } catch(e){ fazendaAtiva = 'minha'; }
+    }
+    try { localStorage.setItem('fazenda_ativa', fazendaAtiva); } catch(e){}
+    var perfil = user.email === 'vaqueiro@fazenda.com' ? 'vaqueiro' : 'dono';
     try { localStorage.setItem('fazenda_perfil', perfil); } catch(e){}
     entrar(perfil);
   } else {
