@@ -1354,6 +1354,11 @@ function entrar(p){
   badge.className='perfil-badge '+(p==='dono'?'dono':'vaqueiro');
   buildNav();
   applyPerfilUI();
+  // Reset state before loading correct fazenda data
+  state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[] };
+  stateNotas = { todos:[], notas:[], vacinas:[], lembretes:[] };
+  stateAlertas = [];
+  renderAll();
   startListening();
   if(p==='vaqueiro'){
     showSectionById('dashboard-vaqueiro');
@@ -4606,9 +4611,6 @@ function selecionarFazenda(qual){
   try { localStorage.setItem('fazenda_ativa', qual); } catch(e){}
   try { localStorage.removeItem('fazenda_perfil'); } catch(e){}
 
-  // Force signOut before switching fazenda — prevents wrong data loading
-  auth.signOut().catch(function(){});
-
   // Reset state completely
   state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[] };
   stateNotas = { todos:[], notas:[], vacinas:[], lembretes:[] };
@@ -4618,11 +4620,17 @@ function selecionarFazenda(qual){
   db.ref('fazenda').off();
   db.ref('fazenda_mae').off();
 
-  document.getElementById('fazenda-selector').style.display = 'none';
-  document.getElementById('login-screen').style.display = 'flex';
-  // Update login subtitle
-  var sub = document.getElementById('login-sub-fazenda');
-  if(sub) sub.textContent = qual === 'mae' ? '👩 Fazenda da Mãe' : '🏠 Minha Fazenda';
+  // Wait for signOut to complete before showing login
+  auth.signOut().then(function(){
+    document.getElementById('fazenda-selector').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    // Update login subtitle
+    var sub = document.getElementById('login-sub-fazenda');
+    if(sub) sub.textContent = qual === 'mae' ? '👩 Fazenda da Mãe' : '🏠 Minha Fazenda';
+  }).catch(function(){
+    document.getElementById('fazenda-selector').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+  });
 }
 
 function getFirebasePrefix(){
