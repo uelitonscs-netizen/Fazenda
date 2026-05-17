@@ -3001,15 +3001,23 @@ function renderDashboardVaqueiro(){
         lhtml+='</div></div>';
       });
       lotesEl.innerHTML=lhtml;
-      // Event delegation
-      lotesEl.addEventListener('click', function(e){
-        var b = e.target; while(b && b.tagName!=='BUTTON') b=b.parentElement;
-        if(!b) return;
-        var id = parseInt(b.getAttribute('data-lid'));
-        if(isNaN(id)) return;
-        if(b.classList.contains('btn-mover-lote')) abrirModalMover(id);
-        if(b.classList.contains('btn-solicitar-lote')) solicitarMudancaVaqueiro(id);
-      });
+      // Wire buttons directly after innerHTML (Samsung fix)
+      var moverBtns = lotesEl.querySelectorAll('.btn-mover-lote');
+      for(var mi=0; mi<moverBtns.length; mi++){
+        (function(btn){
+          btn.addEventListener('click', function(){
+            abrirModalMover(parseInt(btn.getAttribute('data-lid')));
+          });
+        })(moverBtns[mi]);
+      }
+      var solBtns = lotesEl.querySelectorAll('.btn-solicitar-lote');
+      for(var si=0; si<solBtns.length; si++){
+        (function(btn){
+          btn.addEventListener('click', function(){
+            solicitarMudancaVaqueiro(parseInt(btn.getAttribute('data-lid')));
+          });
+        })(solBtns[si]);
+      }
     }
   }
 
@@ -4739,9 +4747,11 @@ function solicitarMudancaVaqueiro(loteId){
   var lote = state.lotes.find(function(l){ return l.id === loteId; });
   if(!lote) return;
 
-  var mangaOpts = MANGAS_NOMES.map(function(m){
-    return '<option value="'+m+'"'+(m===lote.manga?' selected':'')+'>'+m+'</option>';
-  }).join('');
+  var mangaOpts = '';
+  for(var mi=0; mi<MANGAS_NOMES.length; mi++){
+    var mn = MANGAS_NOMES[mi];
+    mangaOpts += '<option value="'+mn+'"'+(mn===lote.manga?' selected':'')+'>'+mn+'</option>';
+  }
 
   var box = document.getElementById('modal-box');
   box.innerHTML =
