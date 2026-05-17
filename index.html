@@ -1072,7 +1072,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
 document.addEventListener('DOMContentLoaded', function() {
   checkBiometria();
   var btnPdf = document.getElementById('btn-pdf');
-  if(btnPdf) btnPdf.addEventListener('click', gerarRelatorioPDF);
+  if(btnPdf) btnPdf.addEventListener('click', abrirModalRelatorio);
   function on(id, ev, fn) { var el = document.getElementById(id); if (el) el.addEventListener(ev, fn); }
   on('btn-dono',    'click', function() { if (window.tentarDono) window.tentarDono(); });
   on('btn-vaqueiro','click', function() { if (window.entrarVaqueiro) window.entrarVaqueiro(); });
@@ -3535,7 +3535,93 @@ function calcularGMD(lote){
 }
 
 // ===== RELATÓRIO PDF =====
-function gerarRelatorioPDF(){
+
+function abrirModalRelatorio(){
+  var existing = document.getElementById('modal-relatorio-dyn');
+  if(existing) existing.parentNode.removeChild(existing);
+
+  var overlay = document.createElement('div');
+  overlay.id = 'modal-relatorio-dyn';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:1rem;box-sizing:border-box';
+
+  var box = document.createElement('div');
+  box.style.cssText = 'background:var(--card);border-radius:16px;padding:1.5rem;width:90%;max-width:360px;box-sizing:border-box;max-height:85vh;overflow-y:auto';
+
+  box.innerHTML =
+    '<div style="font-weight:700;font-size:1rem;margin-bottom:.25rem;color:var(--text)">📄 Gerar Relatório</div>'+
+    '<div style="font-size:.75rem;color:var(--clay);margin-bottom:1rem">Selecione o que incluir:</div>'+
+
+    '<div id="tog-resumo" class="tog-item tog-on" style="display:flex;justify-content:space-between;align-items:center;padding:.6rem .75rem;border:1.5px solid var(--green-mid);border-radius:10px;margin-bottom:.5rem;cursor:pointer;background:var(--green-light)">'+
+    '<span style="font-size:.85rem;font-weight:600">📊 Resumo Geral</span><span class="tog-dot" style="width:36px;height:20px;background:var(--green);border-radius:10px;display:flex;align-items:center;padding:2px;box-sizing:border-box"><span style="width:16px;height:16px;background:#FFF;border-radius:50%;margin-left:auto"></span></span></div>'+
+
+    '<div id="tog-lotes" class="tog-item tog-on" style="display:flex;justify-content:space-between;align-items:center;padding:.6rem .75rem;border:1.5px solid var(--green-mid);border-radius:10px;margin-bottom:.5rem;cursor:pointer;background:var(--green-light)">'+
+    '<span style="font-size:.85rem;font-weight:600">🐄 Lista de Lotes</span><span class="tog-dot" style="width:36px;height:20px;background:var(--green);border-radius:10px;display:flex;align-items:center;padding:2px;box-sizing:border-box"><span style="width:16px;height:16px;background:#FFF;border-radius:50%;margin-left:auto"></span></span></div>'+
+
+    '<div id="tog-supl" class="tog-item tog-on" style="display:flex;justify-content:space-between;align-items:center;padding:.6rem .75rem;border:1.5px solid var(--green-mid);border-radius:10px;margin-bottom:.5rem;cursor:pointer;background:var(--green-light)">'+
+    '<span style="font-size:.85rem;font-weight:600">📦 Suplementação</span><span class="tog-dot" style="width:36px;height:20px;background:var(--green);border-radius:10px;display:flex;align-items:center;padding:2px;box-sizing:border-box"><span style="width:16px;height:16px;background:#FFF;border-radius:50%;margin-left:auto"></span></span></div>'+
+
+    '<div id="tog-custos" class="tog-item tog-on" style="display:flex;justify-content:space-between;align-items:center;padding:.6rem .75rem;border:1.5px solid var(--green-mid);border-radius:10px;margin-bottom:.5rem;cursor:pointer;background:var(--green-light)">'+
+    '<span style="font-size:.85rem;font-weight:600">💸 Custos</span><span class="tog-dot" style="width:36px;height:20px;background:var(--green);border-radius:10px;display:flex;align-items:center;padding:2px;box-sizing:border-box"><span style="width:16px;height:16px;background:#FFF;border-radius:50%;margin-left:auto"></span></span></div>'+
+
+    '<div id="tog-pesagens" class="tog-item tog-on" style="display:flex;justify-content:space-between;align-items:center;padding:.6rem .75rem;border:1.5px solid var(--green-mid);border-radius:10px;margin-bottom:.5rem;cursor:pointer;background:var(--green-light)">'+
+    '<span style="font-size:.85rem;font-weight:600">⚖️ Pesagens</span><span class="tog-dot" style="width:36px;height:20px;background:var(--green);border-radius:10px;display:flex;align-items:center;padding:2px;box-sizing:border-box"><span style="width:16px;height:16px;background:#FFF;border-radius:50%;margin-left:auto"></span></span></div>'+
+
+    '<div id="tog-vendas" class="tog-item tog-on" style="display:flex;justify-content:space-between;align-items:center;padding:.6rem .75rem;border:1.5px solid var(--green-mid);border-radius:10px;margin-bottom:.5rem;cursor:pointer;background:var(--green-light)">'+
+    '<span style="font-size:.85rem;font-weight:600">💵 Vendas</span><span class="tog-dot" style="width:36px;height:20px;background:var(--green);border-radius:10px;display:flex;align-items:center;padding:2px;box-sizing:border-box"><span style="width:16px;height:16px;background:#FFF;border-radius:50%;margin-left:auto"></span></span></div>'+
+
+    '<div style="display:flex;gap:.5rem;margin-top:1rem">'+
+    '<button id="rel-cancelar" style="flex:1;padding:.75rem;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:.9rem;cursor:pointer;color:var(--text)">Cancelar</button>'+
+    '<button id="rel-gerar" style="flex:1;padding:.75rem;background:var(--green);color:#FFF;border:none;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer">📄 Gerar PDF</button>'+
+    '</div>';
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  // Wire toggles
+  var togIds = ['tog-resumo','tog-lotes','tog-supl','tog-custos','tog-pesagens','tog-vendas'];
+  for(var ti=0; ti<togIds.length; ti++){
+    (function(id){
+      var el = document.getElementById(id);
+      el.addEventListener('click', function(){
+        var on = el.classList.contains('tog-on');
+        if(on){
+          el.classList.remove('tog-on');
+          el.style.background = 'var(--bg)';
+          el.style.borderColor = 'var(--border)';
+          var dot = el.querySelector('.tog-dot');
+          dot.style.background = 'var(--border)';
+          dot.querySelector('span').style.marginLeft = '0';
+        } else {
+          el.classList.add('tog-on');
+          el.style.background = 'var(--green-light)';
+          el.style.borderColor = 'var(--green-mid)';
+          var dot = el.querySelector('.tog-dot');
+          dot.style.background = 'var(--green)';
+          dot.querySelector('span').style.marginLeft = 'auto';
+        }
+      });
+    })(togIds[ti]);
+  }
+
+  document.getElementById('rel-cancelar').addEventListener('click', function(){
+    overlay.parentNode.removeChild(overlay);
+  });
+
+  document.getElementById('rel-gerar').addEventListener('click', function(){
+    var opts = {
+      resumo:   document.getElementById('tog-resumo').classList.contains('tog-on'),
+      lotes:    document.getElementById('tog-lotes').classList.contains('tog-on'),
+      supl:     document.getElementById('tog-supl').classList.contains('tog-on'),
+      custos:   document.getElementById('tog-custos').classList.contains('tog-on'),
+      pesagens: document.getElementById('tog-pesagens').classList.contains('tog-on'),
+      vendas:   document.getElementById('tog-vendas').classList.contains('tog-on')
+    };
+    overlay.parentNode.removeChild(overlay);
+    gerarRelatorioPDF(opts);
+  });
+}
+
+function gerarRelatorioPDF(opts){
   var hoje = new Date().toLocaleDateString('pt-BR');
   var totalCabecas = state.lotes.filter(function(l){ return l.tipo!=='terceiro'&&l.tipo!=='encerrado'; }).reduce(function(a,l){return a+l.qtd;},0);
   var totalTerceiros = state.lotes.filter(function(l){ return l.tipo==='terceiro'; }).reduce(function(a,l){return a+l.qtd;},0);
@@ -3570,7 +3656,10 @@ function gerarRelatorioPDF(){
   html += '<h1>🐄 Fazenda Gestão — Relatório</h1>';
   html += '<div class="sub">Gerado em: '+hoje+'</div>';
 
+  if(!opts) opts = {resumo:true,lotes:true,supl:true,custos:true,pesagens:true,vendas:true};
+
   // KPIs resumo
+  if(opts.resumo){
   html += '<h2>📊 Resumo Geral</h2>';
   html += '<div class="grid">';
   html += '<div class="kpi"><div class="kpi-label">Total de Cabeças</div><div class="kpi-value">'+totalCabecas+'</div></div>';
@@ -3581,7 +3670,10 @@ function gerarRelatorioPDF(){
   if(totalLucroVendas!==0){ html += '<div class="kpi"><div class="kpi-label">Lucro Vendas</div><div class="kpi-value '+(totalLucroVendas>=0?'pos':'neg')+'">'+fmt(totalLucroVendas)+'</div></div>'; }
   html += '</div>';
 
+  }
+
   // Lotes
+  if(opts.lotes){
   html += '<h2>🐄 Lotes do Rebanho</h2>';
   var lotesAtivos = state.lotes.filter(function(l){ return l.tipo!=='encerrado'; });
   if(lotesAtivos.length > 0){
@@ -3604,8 +3696,10 @@ function gerarRelatorioPDF(){
     html += '</table>';
   }
 
+  }
+
   // Suplementação
-  if(state.insumos && state.insumos.length > 0){
+  if(opts.supl && state.insumos && state.insumos.length > 0){
     html += '<h2>📦 Estoque de Suplementação</h2>';
     html += '<table><tr><th>Produto</th><th>Estoque</th><th>Restante</th><th>Consumo/mês</th><th>Duração</th></tr>';
     state.insumos.forEach(function(i){
@@ -3618,7 +3712,7 @@ function gerarRelatorioPDF(){
   }
 
   // Custos
-  if(state.custos && state.custos.length > 0){
+  if(opts.custos && state.custos && state.custos.length > 0){
     html += '<h2>💸 Custos Cadastrados</h2>';
     html += '<table><tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Frequência</th></tr>';
     state.custos.forEach(function(c){
@@ -3628,7 +3722,7 @@ function gerarRelatorioPDF(){
   }
 
   // Pesagens
-  if(state.pesagens && state.pesagens.length > 0){
+  if(opts.pesagens && state.pesagens && state.pesagens.length > 0){
     html += '<h2>⚖️ Histórico de Pesagens</h2>';
     html += '<table><tr><th>Lote</th><th>Data</th><th>Peso Anterior</th><th>Novo Peso</th><th>Ganho</th><th>Obs.</th></tr>';
     var psort = state.pesagens.slice().sort(function(a,b){ return b.data.localeCompare(a.data); });
@@ -3643,7 +3737,7 @@ function gerarRelatorioPDF(){
   }
 
   // Vendas
-  if(state.vendas && state.vendas.length > 0){
+  if(opts.vendas && state.vendas && state.vendas.length > 0){
     html += '<h2>💵 Histórico de Vendas</h2>';
     html += '<table><tr><th>Lote</th><th>Data</th><th>Cab.</th><th>Peso</th><th>Preço</th><th>Receita</th><th>Custo</th><th>Lucro</th></tr>';
     var vsort = state.vendas.slice().sort(function(a,b){ return b.data.localeCompare(a.data); });
