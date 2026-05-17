@@ -373,7 +373,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
           <div class="form-grid three">
             <div class="field"><label>Nº do Brinco *</label><input type="text" id="an-brinco" placeholder="Ex: 0042"></div>
             <div class="field"><label>Lote</label><select id="an-lote"></select></div>
-            <div class="field"><label>Tipo</label><select id="an-tipo"><option value="novilha">Novilha</option><option value="vaca">Vaca</option><option value="bezerro">Bezerro</option><option value="touro">Touro</option></select></div>
+            <div class="field"><label>Tipo</label><select id="an-tipo"><option value="novilha">Novilha</option><option value="vaca">Vaca</option><option value="bezerro">Bezerra/o</option><option value="cria_terra">Cria da Terra</option><option value="touro">Touro</option></select></div>
             <div class="field"><label>Raça</label><input type="text" id="an-raca" placeholder="Ex: Nelore cruzado"></div>
             <div class="field"><label>Peso Atual (@)</label><input type="number" id="an-peso" placeholder="9.0" step="0.1"></div>
             <div class="field"><label>Sexo</label><select id="an-sexo"><option value="femea">Fêmea</option><option value="macho">Macho</option></select></div>
@@ -409,7 +409,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         <div class="card-title">🔍 Buscar Animais</div>
         <div class="animal-search-bar">
           <input type="text" id="an-busca" placeholder="Buscar por brinco ou raça..." oninput="renderAnimais()">
-          <select id="an-filtro-tipo" onchange="renderAnimais()"><option value="">Todos os tipos</option><option value="novilha">Novilha</option><option value="vaca">Vaca</option><option value="bezerro">Bezerro</option><option value="touro">Touro</option></select>
+          <select id="an-filtro-tipo" onchange="renderAnimais()"><option value="">Todos os tipos</option><option value="novilha">Novilha</option><option value="vaca">Vaca</option><option value="bezerro">Bezerra/o</option><option value="cria_terra">Cria da Terra</option><option value="touro">Touro</option></select>
           <select id="an-filtro-status" onchange="renderAnimais()"><option value="">Todos os status</option><option value="ativo">Ativo</option><option value="gestante">Gestante</option><option value="lactacao">Em Lactação</option><option value="seca">Seca</option><option value="vendido">Vendido</option><option value="morto">Descartado</option></select>
           <select id="an-filtro-lote" onchange="renderAnimais()"><option value="">Todos os lotes</option></select>
         </div>
@@ -472,7 +472,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
           <div class="collapse-body" id="form-lote">
             <div class="form-grid">
               <div class="field"><label>Nome do Lote</label><input type="text" id="r-nome" placeholder="Ex: Novilhas Nelore L1"></div>
-              <div class="field"><label>Tipo</label><select id="r-tipo" onchange="toggleAluguelField()" ><option value="novilha">Novilha (Engorda)</option><option value="vaca">Vaca de Recria</option><option value="bezerro">Bezerro</option><option value="touro">Touro</option><option value="terceiro">🤝 Terceiro (Arrendado)</option></select></div>
+              <div class="field"><label>Tipo</label><select id="r-tipo" onchange="toggleAluguelField()" ><option value="novilha">Novilha (Engorda)</option><option value="vaca">Vaca de Recria</option><option value="bezerro">Bezerra/o</option><option value="cria_terra">Cria da Terra</option><option value="touro">Touro</option><option value="terceiro">🤝 Terceiro (Arrendado)</option></select></div>
               <div class="field"><label>Qtd de Cabeças</label><input type="number" id="r-qtd" placeholder="43"></div>
               <div class="field" id="field-peso-entrada"><label>Peso Entrada (@)</label><input type="number" id="r-peso-entrada" placeholder="6.5" step="0.1"></div>
               <div class="field" id="field-peso-atual"><label>Peso Atual (@)</label><input type="number" id="r-peso-atual" placeholder="9.0" step="0.1"></div>
@@ -1483,9 +1483,11 @@ function renderDashboard(){
   var subParts=[];
   if(totalNovilhas>0) subParts.push(totalNovilhas+' novilha'+(totalNovilhas>1?'s':''));
   if(totalVacas>0) subParts.push(totalVacas+' vaca'+(totalVacas>1?'s':''));
-  if(totalBezerros>0) subParts.push(totalBezerros+' bezerro'+(totalBezerros>1?'s':''));
+  if(totalBezerros>0) subParts.push(totalBezerros+' bezerra/o recria');
   if(totalTouros>0) subParts.push(totalTouros+' touro'+(totalTouros>1?'s':''));
+  var totalCriaTerra=state.lotes.filter(function(l){return l.tipo==='cria_terra';}).reduce(function(a,l){return a+l.qtd;},0);
   if(totalTerceiros>0) subParts.push(totalTerceiros+' terceiro'+(totalTerceiros>1?'s':''));
+  if(totalCriaTerra>0) subParts.push(totalCriaTerra+' cria da terra');
   var kpiSub = subParts.join(' · ');
   var custoTotal=state.lotes.reduce(function(a,l){return a+(l.qtd*l.pesoEntrada*l.precoCompra);},0);
   var estoqueTotal=state.insumos.reduce(function(a,i){return a+(i.qtd*i.preco);},0);
@@ -1578,7 +1580,7 @@ function renderRebanho(){
     var tb=l.tipo==='novilha'?'green':l.tipo==='vaca'?'sky':'yellow';
     rows+='<div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:.9rem;margin-bottom:.75rem">';
     rows+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.6rem">';
-    rows+='<div><strong style="font-size:.9rem">'+l.nome+'</strong>'+(l.obs?'<br><span style="font-size:.72rem;color:var(--clay)">'+l.obs+'</span>':'')+' <span class="badge '+tb+'">'+(l.tipo==='novilha'?'Novilha':l.tipo==='vaca'?'Vaca de Recria':l.tipo==='bezerro'?'Bezerro':l.tipo==='touro'?'Touro':l.tipo==='terceiro'?'🤝 Terceiro':l.tipo)+'</span></div>';
+    rows+='<div><strong style="font-size:.9rem">'+l.nome+'</strong>'+(l.obs?'<br><span style="font-size:.72rem;color:var(--clay)">'+l.obs+'</span>':'')+' <span class="badge '+tb+'">'+(l.tipo==='novilha'?'Novilha':l.tipo==='vaca'?'Vaca de Recria':l.tipo==='bezerro'?'Bezerra/o':l.tipo==='cria_terra'?'Cria da Terra':l.tipo==='touro'?'Touro':l.tipo==='terceiro'?'🤝 Terceiro':l.tipo)+'</span></div>';
     rows+='<div style="display:flex;gap:.4rem">';
     rows+='<button class="btn sm outline" onclick="editarLote('+l.id+')">✏️</button>';
     rows+='<button class="btn sm" style="background:var(--red);color:white" onclick="abrirModalBaixa('+l.id+')">📉</button>';
@@ -3589,7 +3591,7 @@ function gerarRelatorioPDF(){
       var diasMeta = (gmd && l.pesoMeta && l.pesoAtual && gmd > 0) ? Math.ceil((l.pesoMeta - l.pesoAtual)/gmd) : null;
       html += '<tr>';
       html += '<td><strong>'+l.nome+'</strong></td>';
-      var tipoMap={'novilha':'Novilha','vaca':'Vaca de Recria','bezerro':'Bezerro','touro':'Touro','terceiro':'Terceiro','encerrado':'Encerrado'};
+      var tipoMap={'novilha':'Novilha','vaca':'Vaca de Recria','bezerro':'Bezerra/o','cria_terra':'Cria da Terra','touro':'Touro','terceiro':'Terceiro','encerrado':'Encerrado'};
       html += '<td>'+(tipoMap[l.tipo]||l.tipo)+'</td>';
       html += '<td>'+l.qtd+'</td>';
       html += '<td>'+(l.pesoEntrada?fmtN(l.pesoEntrada,1)+'@':'—')+'</td>';
