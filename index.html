@@ -2993,8 +2993,7 @@ function renderDashboardVaqueiro(){
         lhtml+='<div><strong style="font-size:.88rem;color:var(--text)">'+l.nome+'</strong>';
         lhtml+='<div style="font-size:.75rem;color:var(--clay);margin-top:.2rem">'+l.qtd+' cabeças · '+l.tipo+'</div></div>';
         lhtml+='<div style="display:flex;gap:.35rem">';
-        lhtml+='<button class="btn-solicitar-lote" data-lid="'+l.id+'" style="padding:.35rem .7rem;background:var(--gold-light);border:1.5px solid var(--gold-mid);border-radius:8px;color:var(--gold);font-size:.75rem;cursor:pointer;font-weight:600">✏️ Solicitar</button>';
-        lhtml+='<button class="btn-dividir-lote" data-lid="'+l.id+'" style="padding:.35rem .7rem;background:var(--sky-light);border:1.5px solid var(--sky);border-radius:8px;color:var(--sky);font-size:.75rem;cursor:pointer;font-weight:600">✂️ Dividir</button>';
+        lhtml+='<button class="btn-solicitar-lote" data-lid="'+l.id+'" style="padding:.35rem .7rem;background:var(--gold-light);border:1.5px solid var(--gold-mid);border-radius:8px;color:var(--gold);font-size:.75rem;cursor:pointer;font-weight:600">✏️ Editar</button>';
         lhtml+='</div></div>';
         lhtml+='<div style="font-size:.8rem;color:var(--text2)">';
         lhtml += l.manga ? '🌿 <strong>'+l.manga+'</strong>'+mangaBadge : '<span style="color:var(--clay)">Sem manga definida</span>';
@@ -3009,7 +3008,7 @@ function renderDashboardVaqueiro(){
         var id = parseInt(b.getAttribute('data-lid'));
         if(isNaN(id)) return;
         if(b.classList.contains('btn-mover-lote')) abrirModalMover(id);
-        if(b.classList.contains('btn-dividir-lote')) abrirModalDividir(id);
+        if(b.classList.contains('btn-solicitar-lote')) solicitarMudancaVaqueiro(id);
       });
     }
   }
@@ -4746,7 +4745,7 @@ function solicitarMudancaVaqueiro(loteId){
 
   var box = document.getElementById('modal-box');
   box.innerHTML =
-    '<div style="font-weight:700;font-size:1rem;margin-bottom:.5rem">✏️ Solicitar Mudança</div>'+
+    '<div style="font-weight:700;font-size:1rem;margin-bottom:.5rem">✏️ Editar Lote</div>'+
     '<div style="font-size:.82rem;color:var(--clay);margin-bottom:1rem">'+lote.nome+' · '+lote.qtd+' cabeças</div>'+
     '<div style="margin-bottom:.75rem"><label style="font-size:.7rem;color:var(--clay);display:block;margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.06em">Nova Manga</label>'+
     '<select id="sol-manga" style="width:100%;padding:.65rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.9rem;outline:none">'+mangaOpts+'</select></div>'+
@@ -4756,7 +4755,7 @@ function solicitarMudancaVaqueiro(loteId){
     '<input type="text" id="sol-motivo" placeholder="Ex: Pasto cheio, rotação..." style="width:100%;padding:.65rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.9rem;outline:none"></div>'+
     '<div style="display:flex;gap:.5rem;margin-top:1rem">'+
     '<button onclick="fecharModal()" style="flex:1;padding:.75rem;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:.9rem;cursor:pointer">Cancelar</button>'+
-    '<button onclick="enviarSolicitacao('+loteId+')" style="flex:1;padding:.75rem;background:var(--green);color:#FFF;border:none;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer">📤 Enviar</button>'+
+    '<button onclick="enviarSolicitacao('+loteId+')" style="flex:1;padding:.75rem;background:var(--green);color:#FFF;border:none;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer">✏️ Solicitar Edição</button>'+
     '</div>';
   document.getElementById('modal-overlay').style.display='flex';
 }
