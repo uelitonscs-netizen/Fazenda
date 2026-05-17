@@ -452,6 +452,14 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
 
     <!-- REBANHO (dono only) -->
     <div id="rebanho" class="section">
+      <!-- Solicitações pendentes - só aparece para dono -->
+      <div id="card-solicitacoes" style="display:none;background:#FFF;border-radius:14px;padding:1rem;margin-bottom:.75rem;border:1.5px solid #F0B429;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
+          <div style="font-size:.65rem;font-family:'DM Mono',monospace;color:#C47F00;text-transform:uppercase;letter-spacing:.1em">⏳ Solicitações Pendentes</div>
+          <button onclick="renderSolicitacoes()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:.2rem .5rem;font-size:.72rem;cursor:pointer;color:var(--clay)">🔄</button>
+        </div>
+        <div id="solicitacoes-list"></div>
+      </div>
       <div style="margin-bottom:.75rem">
         <div>
           <div style="display:flex;gap:.5rem;margin-bottom:.75rem;align-items:center">
@@ -1219,6 +1227,21 @@ function startListening(){
   db.ref('fazenda').off();
   db.ref('fazenda_mae').off();
 
+  // Listen for vaqueiro solicitacoes — notify dono in real time
+  if(perfil === 'dono'){
+    db.ref('fazenda_notif_solicitacao').on('value', function(snap){
+      var d = snap.val();
+      if(!d || !d.ts) return;
+      if(Date.now() - d.ts < 30000){
+        enviarNotificacao('⏳ '+d.msg, d.detalhe || '');
+        toast('⚠️ '+d.msg+' — '+d.detalhe, 'error');
+        // Highlight rebanho tab
+        var rebanhoTab = document.querySelector('[data-section="rebanho"]');
+        if(rebanhoTab) rebanhoTab.style.background = '#FFF8E1';
+      }
+    });
+  }
+
   // Listen for vaqueiro check-ins — notify dono in real time
   if(perfil === 'dono'){
     db.ref('fazenda_notif_checkin').on('value', function(snap){
@@ -1908,7 +1931,12 @@ function renderAll(){
   // Re-render mapa when data arrives
   if(id==='mapa') renderMapa();
   if(id==='dashboard') renderDashboard();
-  else if(id==='rebanho') renderRebanho();
+  else if(id==='rebanho'){
+    renderRebanho();
+    var cardSol = document.getElementById('card-solicitacoes');
+    if(cardSol) cardSol.style.display = perfil==='dono' ? 'block' : 'none';
+    if(perfil==='dono') renderSolicitacoes();
+  }
   else if(id==='suplementacao') renderSuplementacao();
   else if(id==='custos') renderCustos();
   else if(id==='projecao') calcularProjecao();
@@ -2965,7 +2993,7 @@ function renderDashboardVaqueiro(){
         lhtml+='<div><strong style="font-size:.88rem;color:var(--text)">'+l.nome+'</strong>';
         lhtml+='<div style="font-size:.75rem;color:var(--clay);margin-top:.2rem">'+l.qtd+' cabeças · '+l.tipo+'</div></div>';
         lhtml+='<div style="display:flex;gap:.35rem">';
-        lhtml+='<button class="btn-mover-lote" data-lid="'+l.id+'" style="padding:.35rem .7rem;background:var(--green-light);border:1.5px solid var(--green-mid);border-radius:8px;color:var(--green);font-size:.75rem;cursor:pointer;font-weight:600">🌿 Mover</button>';
+        lhtml+='<button class="btn-solicitar-lote" data-lid="'+l.id+'" style="padding:.35rem .7rem;background:var(--gold-light);border:1.5px solid var(--gold-mid);border-radius:8px;color:var(--gold);font-size:.75rem;cursor:pointer;font-weight:600">✏️ Solicitar</button>';
         lhtml+='<button class="btn-dividir-lote" data-lid="'+l.id+'" style="padding:.35rem .7rem;background:var(--sky-light);border:1.5px solid var(--sky);border-radius:8px;color:var(--sky);font-size:.75rem;cursor:pointer;font-weight:600">✂️ Dividir</button>';
         lhtml+='</div></div>';
         lhtml+='<div style="font-size:.8rem;color:var(--text2)">';
@@ -4703,6 +4731,126 @@ function renderCheckins(){
     .catch(function(){
       el.innerHTML = '<div style="color:var(--red);font-size:.82rem">Erro ao carregar.</div>';
     });
+}
+
+
+// ===== SISTEMA DE APROVAÇÃO DE MUDANÇAS =====
+
+function solicitarMudancaVaqueiro(loteId){
+  var lote = state.lotes.find(function(l){ return l.id === loteId; });
+  if(!lote) return;
+
+  var mangaOpts = MANGAS_NOMES.map(function(m){
+    return '<option value="'+m+'"'+(m===lote.manga?' selected':'')+'>'+m+'</option>';
+  }).join('');
+
+  var box = document.getElementById('modal-box');
+  box.innerHTML =
+    '<div style="font-weight:700;font-size:1rem;margin-bottom:.5rem">✏️ Solicitar Mudança</div>'+
+    '<div style="font-size:.82rem;color:var(--clay);margin-bottom:1rem">'+lote.nome+' · '+lote.qtd+' cabeças</div>'+
+    '<div style="margin-bottom:.75rem"><label style="font-size:.7rem;color:var(--clay);display:block;margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.06em">Nova Manga</label>'+
+    '<select id="sol-manga" style="width:100%;padding:.65rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.9rem;outline:none">'+mangaOpts+'</select></div>'+
+    '<div style="margin-bottom:.75rem"><label style="font-size:.7rem;color:var(--clay);display:block;margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.06em">Quantidade de Cabeças</label>'+
+    '<input type="number" id="sol-qtd" value="'+lote.qtd+'" min="1" style="width:100%;padding:.65rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.9rem;outline:none"></div>'+
+    '<div style="margin-bottom:.75rem"><label style="font-size:.7rem;color:var(--clay);display:block;margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.06em">Motivo (opcional)</label>'+
+    '<input type="text" id="sol-motivo" placeholder="Ex: Pasto cheio, rotação..." style="width:100%;padding:.65rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.9rem;outline:none"></div>'+
+    '<div style="display:flex;gap:.5rem;margin-top:1rem">'+
+    '<button onclick="fecharModal()" style="flex:1;padding:.75rem;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:.9rem;cursor:pointer">Cancelar</button>'+
+    '<button onclick="enviarSolicitacao('+loteId+')" style="flex:1;padding:.75rem;background:var(--green);color:#FFF;border:none;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer">📤 Enviar</button>'+
+    '</div>';
+  document.getElementById('modal-overlay').style.display='flex';
+}
+
+function enviarSolicitacao(loteId){
+  var lote = state.lotes.find(function(l){ return l.id === loteId; });
+  if(!lote) return;
+  var novaManga = document.getElementById('sol-manga').value;
+  var novaQtd = parseInt(document.getElementById('sol-qtd').value) || lote.qtd;
+  var motivo = document.getElementById('sol-motivo').value.trim();
+
+  var sol = {
+    id: Date.now(),
+    loteId: loteId,
+    loteNome: lote.nome,
+    mangaAtual: lote.manga || '—',
+    qtdAtual: lote.qtd,
+    novaManga: novaManga,
+    novaQtd: novaQtd,
+    motivo: motivo,
+    status: 'pendente',
+    data: new Date().toISOString(),
+    fazenda: fazendaAtiva
+  };
+
+  db.ref('fazenda_solicitacoes/' + sol.id).set(sol)
+    .then(function(){
+      // Notify dono
+      db.ref('fazenda_notif_solicitacao').set({
+        msg: '🤠 Vaqueiro solicitou mudança: '+lote.nome,
+        detalhe: lote.manga+' → '+novaManga+(novaQtd!==lote.qtd?' · '+novaQtd+' cab.':''),
+        ts: Date.now()
+      }).catch(function(){});
+      toast('📤 Solicitação enviada! Aguardando aprovação.');
+      fecharModal();
+    })
+    .catch(function(e){ toast('Erro: '+e.message, 'error'); });
+}
+
+function renderSolicitacoes(){
+  var el = document.getElementById('solicitacoes-list');
+  if(!el) return;
+  el.innerHTML = '<div style="color:var(--clay);font-size:.82rem">🔄 Carregando...</div>';
+
+  db.ref('fazenda_solicitacoes').orderByChild('status').equalTo('pendente').once('value')
+    .then(function(snap){
+      var d = snap.val();
+      if(!d){ el.innerHTML = '<div style="color:var(--clay);font-size:.82rem">Nenhuma solicitação pendente.</div>'; return; }
+
+      var sols = Object.values(d).filter(function(s){ return !s.fazenda || s.fazenda === fazendaAtiva; });
+      if(sols.length === 0){ el.innerHTML = '<div style="color:var(--clay);font-size:.82rem">Nenhuma solicitação pendente.</div>'; return; }
+
+      var html = '';
+      sols.forEach(function(s){
+        var data = new Date(s.data).toLocaleDateString('pt-BR') + ' ' + new Date(s.data).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+        html += '<div style="background:#FFF8E1;border:1.5px solid #F0B429;border-radius:10px;padding:.85rem;margin-bottom:.6rem">';
+        html += '<div style="font-weight:700;font-size:.88rem;margin-bottom:.3rem">'+s.loteNome+'</div>';
+        html += '<div style="font-size:.78rem;color:var(--clay);margin-bottom:.25rem">📍 '+s.mangaAtual+' → <strong style="color:var(--green)">'+s.novaManga+'</strong></div>';
+        if(s.novaQtd !== s.qtdAtual) html += '<div style="font-size:.78rem;color:var(--clay);margin-bottom:.25rem">🐄 '+s.qtdAtual+' → <strong>'+s.novaQtd+'</strong> cab.</div>';
+        if(s.motivo) html += '<div style="font-size:.75rem;color:var(--clay);margin-bottom:.25rem">💬 '+s.motivo+'</div>';
+        html += '<div style="font-size:.7rem;color:var(--clay);margin-bottom:.6rem">📅 '+data+'</div>';
+        html += '<div style="display:flex;gap:.5rem">';
+        html += '<button onclick="aprovarSolicitacao('+s.id+')" style="flex:1;padding:.5rem;background:var(--green);color:#FFF;border:none;border-radius:8px;font-size:.8rem;font-weight:700;cursor:pointer">✅ Aprovar</button>';
+        html += '<button onclick="rejeitarSolicitacao('+s.id+')" style="flex:1;padding:.5rem;background:var(--red-light);border:1px solid var(--red);border-radius:8px;color:var(--red);font-size:.8rem;font-weight:700;cursor:pointer">❌ Rejeitar</button>';
+        html += '</div></div>';
+      });
+      el.innerHTML = html;
+    })
+    .catch(function(){ el.innerHTML = '<div style="color:var(--red);font-size:.82rem">Erro ao carregar.</div>'; });
+}
+
+function aprovarSolicitacao(solId){
+  db.ref('fazenda_solicitacoes/' + solId).once('value').then(function(snap){
+    var s = snap.val();
+    if(!s) return;
+    // Apply change to lote
+    var lote = state.lotes.find(function(l){ return l.id === s.loteId; });
+    if(!lote){ toast('Lote não encontrado','error'); return; }
+    lote.manga = s.novaManga;
+    lote.mangaData = new Date().toISOString().split('T')[0];
+    lote.qtd = s.novaQtd;
+    saveToFirebase();
+    // Update solicitacao status
+    db.ref('fazenda_solicitacoes/'+solId).update({ status:'aprovada', dataResposta: new Date().toISOString() });
+    toast('✅ Mudança aprovada e aplicada!');
+    renderSolicitacoes();
+    renderRebanho();
+  });
+}
+
+function rejeitarSolicitacao(solId){
+  db.ref('fazenda_solicitacoes/'+solId).update({ status:'rejeitada', dataResposta: new Date().toISOString() });
+  toast('❌ Solicitação rejeitada.');
+  renderSolicitacoes();
 }
 
 // RESTAURAR SESSÃO após refresh
