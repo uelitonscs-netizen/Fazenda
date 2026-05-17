@@ -1476,11 +1476,22 @@ function renderDashboard(){
   var totalCabecas=state.lotes.reduce(function(a,l){return a+l.qtd;},0);
   var novilhas=state.lotes.filter(function(l){return l.tipo==='novilha';});
   var totalNovilhas=novilhas.reduce(function(a,l){return a+l.qtd;},0);
+  var totalVacas=state.lotes.filter(function(l){return l.tipo==='vaca';}).reduce(function(a,l){return a+l.qtd;},0);
+  var totalBezerros=state.lotes.filter(function(l){return l.tipo==='bezerro';}).reduce(function(a,l){return a+l.qtd;},0);
+  var totalTouros=state.lotes.filter(function(l){return l.tipo==='touro';}).reduce(function(a,l){return a+l.qtd;},0);
+  var totalTerceiros=state.lotes.filter(function(l){return l.tipo==='terceiro';}).reduce(function(a,l){return a+l.qtd;},0);
+  var subParts=[];
+  if(totalNovilhas>0) subParts.push(totalNovilhas+' novilha'+(totalNovilhas>1?'s':''));
+  if(totalVacas>0) subParts.push(totalVacas+' vaca'+(totalVacas>1?'s':''));
+  if(totalBezerros>0) subParts.push(totalBezerros+' bezerro'+(totalBezerros>1?'s':''));
+  if(totalTouros>0) subParts.push(totalTouros+' touro'+(totalTouros>1?'s':''));
+  if(totalTerceiros>0) subParts.push(totalTerceiros+' terceiro'+(totalTerceiros>1?'s':''));
+  var kpiSub = subParts.join(' · ');
   var custoTotal=state.lotes.reduce(function(a,l){return a+(l.qtd*l.pesoEntrada*l.precoCompra);},0);
   var estoqueTotal=state.insumos.reduce(function(a,i){return a+(i.qtd*i.preco);},0);
   var custoMes=custoMensalTotal();
 
-  var kpiHtml='<div class="kpi green"><div class="kpi-label">Total de Cabeças</div><div class="kpi-value">'+totalCabecas+'</div><div class="kpi-sub">'+totalNovilhas+' novilhas</div></div>';
+  var kpiHtml='<div class="kpi green"><div class="kpi-label">Total de Cabeças</div><div class="kpi-value">'+totalCabecas+'</div><div class="kpi-sub">'+kpiSub+'</div></div>';
   if(perfil==='dono'){
     kpiHtml+='<div class="kpi sky"><div class="kpi-label">Investimento Rebanho</div><div class="kpi-value small">'+fmt(custoTotal)+'</div><div class="kpi-sub">Preço de compra total</div></div>';
     kpiHtml+='<div class="kpi"><div class="kpi-label">Estoque Suplementação</div><div class="kpi-value small">'+fmt(estoqueTotal)+'</div><div class="kpi-sub">'+state.insumos.length+' produtos</div></div>';
