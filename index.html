@@ -4604,6 +4604,20 @@ function initSecretTap(){
 function selecionarFazenda(qual){
   fazendaAtiva = qual;
   try { localStorage.setItem('fazenda_ativa', qual); } catch(e){}
+  try { localStorage.removeItem('fazenda_perfil'); } catch(e){}
+
+  // Force signOut before switching fazenda — prevents wrong data loading
+  auth.signOut().catch(function(){});
+
+  // Reset state completely
+  state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[] };
+  stateNotas = { todos:[], notas:[], vacinas:[], lembretes:[] };
+  stateAlertas = [];
+
+  // Detach Firebase listeners
+  db.ref('fazenda').off();
+  db.ref('fazenda_mae').off();
+
   document.getElementById('fazenda-selector').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
   // Update login subtitle
