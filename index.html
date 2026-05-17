@@ -4750,7 +4750,6 @@ function solicitarMudancaVaqueiro(loteId){
   // Remove existing
   var existing = document.getElementById('modal-editar-dyn');
   if(existing) existing.parentNode.removeChild(existing);
-  window.scrollTo(0,0);
 
   // Build manga options
   var mangaOpts = '';
@@ -4762,7 +4761,7 @@ function solicitarMudancaVaqueiro(loteId){
   // Create overlay
   var overlay = document.createElement('div');
   overlay.id = 'modal-editar-dyn';
-  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,.78);display:flex;align-items:flex-start;justify-content:center;padding:2rem 1rem;box-sizing:border-box;overflow-y:auto';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:1rem;box-sizing:border-box';
 
   var box = document.createElement('div');
   box.style.cssText = 'background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1.5rem;width:90%;max-width:340px;box-sizing:border-box';
