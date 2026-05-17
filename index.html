@@ -1265,19 +1265,9 @@ function startListening(){
       state.baixas=Array.isArray(data.baixas)?data.baixas:(data.baixas?Object.values(data.baixas):[]);
       renderAll();
     } else {
-      // Primeiro acesso — popula dados iniciais
-      state.lotes=[{id:1,nome:'Novilhas Nelore (Lote Principal)',tipo:'novilha',qtd:43,pesoEntrada:6.5,pesoAtual:9.0,pesoMeta:14.0,precoCompra:290,data:'2025-01-01',obs:'Nelore cruzado, recria para engorda e venda'}];
-      state.insumos=[
-        {id:1,nome:'Sal Mineral 80',tipo:'sal',qtd:30,kgSaco:30,preco:126,consumoMensal:3,kgPorCabeca:2.14,data:'2026-02-21'},
-        {id:2,nome:'Ração Engorda',tipo:'racao',qtd:10,kgSaco:40,preco:65,consumoMensal:1,kgPorCabeca:0.71,data:'2026-02-21'}
-      ];
-      state.custos=[
-        {id:1,desc:'Salário Vaqueiro',cat:'mao_de_obra',valor:1300,freq:'mensal',data:'2025-01-01',obs:''},
-        {id:2,desc:'Remédios e Vermífugos',cat:'sanidade',valor:200,freq:'bimestral',data:'2025-01-01',obs:'A cada 45 dias'}
-      ];
-      state.animais=[];
-      state.baixas=[];
-      saveToFirebase();
+      // Fazenda vazia — começa do zero
+      state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[] };
+      renderAll();
     }
     setSyncStatus('ok');
   });
