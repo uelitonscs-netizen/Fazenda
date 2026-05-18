@@ -3757,12 +3757,15 @@ function gerarRelatorioPDF(opts){
   html += '<div style="margin-top:30px;color:#999;font-size:10px;text-align:center">Fazenda Gestão — Relatório gerado em '+hoje+'</div>';
   html += '</body></html>';
 
-  // Open in new window for print
-  var win = window.open('', '_blank');
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  setTimeout(function(){ win.print(); }, 500);
+  // Abrir via Blob URL (compatível com Android Chrome)
+  var blob = new Blob([html], {type: 'text/html'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.target = '_blank';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
 }
 
 
@@ -3782,7 +3785,7 @@ function initConfigTab(){
 
   // Relatorio
   var cfgRel = document.getElementById('cfg-relatorio');
-  if(cfgRel) cfgRel.addEventListener('click', gerarRelatorioPDF);
+  if(cfgRel) cfgRel.addEventListener('click', abrirModalRelatorio);
 
   // Tema toggle
   var toggleTema = document.getElementById('toggle-tema-cfg');
