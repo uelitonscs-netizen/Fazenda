@@ -567,6 +567,19 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
       </div>
       <div class="card"><div class="card-title">💵 Histórico de Vendas</div><div id="historico-vendas"></div></div>
 
+      <!-- GANHOS POR LOTE -->
+      <div>
+        <div class="collapse-header" onclick="toggleCollapse('sec-ganhos')">
+          <span>💰 Ganhos por Lote</span>
+          <span class="arrow" id="arrow-sec-ganhos">▼</span>
+        </div>
+        <div class="collapse-body" id="sec-ganhos">
+          <div id="ganhos-kpis" style="margin-bottom:.75rem"></div>
+          <button class="btn outline" style="width:100%;justify-content:center;margin-bottom:.75rem;font-size:.85rem" id="btn-abrir-troca">💱 Registrar Troca</button>
+          <div id="ganhos-cards"></div>
+        </div>
+      </div>
+
     </div>
 
     <!-- CUSTOS (dono only) -->
@@ -1078,6 +1091,7 @@ document.addEventListener('DOMContentLoaded', function() {
   on('btn-vaqueiro','click', function() { if (window.entrarVaqueiro) window.entrarVaqueiro(); });
   on('btn-confirmar','click', function() { if (window.confirmarSenha) window.confirmarSenha(); });
   on('btn-sair',    'click', function() { if (window.sair) window.sair(); });
+  on('btn-abrir-troca', 'click', abrirModalTroca);
   on('senha-input', 'keydown', function(e) { if (e.key === 'Enter' && window.confirmarSenha) window.confirmarSenha(); });
 });
 </script>
@@ -1263,10 +1277,13 @@ function startListening(){
       state.custos=Array.isArray(data.custos)?data.custos:(data.custos?Object.values(data.custos):[]);
       state.animais=Array.isArray(data.animais)?data.animais:(data.animais?Object.values(data.animais):[]);
       state.baixas=Array.isArray(data.baixas)?data.baixas:(data.baixas?Object.values(data.baixas):[]);
+      state.pesagens=Array.isArray(data.pesagens)?data.pesagens:(data.pesagens?Object.values(data.pesagens):[]);
+      state.vendas=Array.isArray(data.vendas)?data.vendas:(data.vendas?Object.values(data.vendas):[]);
+      state.trocas=Array.isArray(data.trocas)?data.trocas:(data.trocas?Object.values(data.trocas):[]);
       renderAll();
     } else {
       // Fazenda vazia — começa do zero
-      state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[] };
+      state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[], trocas:[] };
       renderAll();
     }
     setSyncStatus('ok');
@@ -1345,7 +1362,7 @@ function entrar(p){
   buildNav();
   applyPerfilUI();
   // Reset state before loading correct fazenda data
-  state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[] };
+  state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[], trocas:[] };
   stateNotas = { todos:[], notas:[], vacinas:[], lembretes:[] };
   stateAlertas = [];
   renderAll();
@@ -1431,6 +1448,7 @@ function showSectionById(id){
     popularSelectLotes('vd-lote', true);
     renderHistoricoPesagens();
     renderHistoricoVendas();
+    renderGanhos();
   }
   else if(id==='suplementacao') renderSuplementacao();
   else if(id==='custos') renderCustos();
@@ -2692,62 +2710,39 @@ function deletarNota(id){
   stateNotas.notas = stateNotas.notas.filter(function(x){ return x.id!==id; });
   saveNotas(); renderNotasLivres(); toast('🗑️ Nota removida.');
 }
-
 function editarNota(id){
   var nota = null;
-  for(var i=0; i<stateNotas.notas.length; i++){
-    if(stateNotas.notas[i].id===id){ nota = stateNotas.notas[i]; break; }
-  }
+  for(var i=0;i<stateNotas.notas.length;i++){ if(stateNotas.notas[i].id===id){ nota=stateNotas.notas[i]; break; } }
   if(!nota) return;
-
-  var existing = document.getElementById('modal-edit-nota');
-  if(existing) existing.parentNode.removeChild(existing);
-
-  var overlay = document.createElement('div');
-  overlay.id = 'modal-edit-nota';
-  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:1rem;box-sizing:border-box';
-
-  var box = document.createElement('div');
-  box.style.cssText = 'background:var(--card);border-radius:16px;padding:1.5rem;width:90%;max-width:360px;box-sizing:border-box';
-
-  var tituloSafe = nota.titulo.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
-  var textoSafe  = nota.texto.replace(/&/g,'&amp;').replace(/</g,'&lt;');
-
-  box.innerHTML =
-    '<div style="font-weight:700;font-size:1rem;margin-bottom:1rem;color:var(--text)">✏️ Editar Nota</div>'+
-    '<div class="field" style="margin-bottom:.75rem"><label>Título</label><input id="edit-nota-titulo" type="text" value="'+tituloSafe+'"></div>'+
-    '<div class="field" style="margin-bottom:.75rem"><label>Texto</label><textarea id="edit-nota-texto" rows="4" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.7rem;color:var(--text);font-family:\'DM Sans\',sans-serif;font-size:.9rem;resize:vertical;box-sizing:border-box">'+textoSafe+'</textarea></div>'+
-    '<div class="field" style="margin-bottom:1rem"><label>Visibilidade</label><select id="edit-nota-visib" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.7rem;color:var(--text);font-size:.9rem"><option value="todos">Todos</option><option value="dono">Só Dono 🔒</option></select></div>'+
+  var ex = document.getElementById('modal-edit-nota');
+  if(ex) ex.parentNode.removeChild(ex);
+  var ov = document.createElement('div');
+  ov.id = 'modal-edit-nota';
+  ov.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:1rem;box-sizing:border-box';
+  var bx = document.createElement('div');
+  bx.style.cssText = 'background:var(--card);border-radius:16px;padding:1.5rem;width:90%;max-width:360px;box-sizing:border-box';
+  var ts = nota.titulo.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  var tx = nota.texto.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  bx.innerHTML = '<div style="font-weight:700;font-size:1rem;margin-bottom:1rem">✏️ Editar Nota</div>'+
+    '<div class="field" style="margin-bottom:.75rem"><label>Título</label><input id="en-titulo" type="text" value="'+ts+'"></div>'+
+    '<div class="field" style="margin-bottom:.75rem"><label>Texto</label><textarea id="en-texto" rows="4" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.7rem;color:var(--text);font-family:\'DM Sans\',sans-serif;font-size:.9rem;resize:vertical;box-sizing:border-box">'+tx+'</textarea></div>'+
+    '<div class="field" style="margin-bottom:1rem"><label>Visibilidade</label><select id="en-visib" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.7rem;color:var(--text);font-size:.9rem"><option value="todos">Todos</option><option value="dono">Só Dono 🔒</option></select></div>'+
     '<div style="display:flex;gap:.5rem">'+
-    '<button id="edit-nota-cancelar" style="flex:1;padding:.75rem;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:.9rem;cursor:pointer;color:var(--text)">Cancelar</button>'+
-    '<button id="edit-nota-salvar" style="flex:1;padding:.75rem;background:var(--green);color:#FFF;border:none;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer">💾 Salvar</button>'+
+    '<button id="en-cancel" style="flex:1;padding:.75rem;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:.9rem;cursor:pointer;color:var(--text)">Cancelar</button>'+
+    '<button id="en-save" style="flex:1;padding:.75rem;background:var(--green);color:#FFF;border:none;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer">💾 Salvar</button>'+
     '</div>';
-
-  overlay.appendChild(box);
-  document.body.appendChild(overlay);
-
-  document.getElementById('edit-nota-visib').value = nota.visib || 'todos';
-
-  document.getElementById('edit-nota-cancelar').addEventListener('click', function(){
-    overlay.parentNode.removeChild(overlay);
-  });
-
-  document.getElementById('edit-nota-salvar').addEventListener('click', function(){
-    var novoTitulo = document.getElementById('edit-nota-titulo').value.trim();
-    var novoTexto  = document.getElementById('edit-nota-texto').value.trim();
-    var novaVisib  = document.getElementById('edit-nota-visib').value;
-    if(!novoTitulo) return toast('Informe um título','error');
-    for(var i=0; i<stateNotas.notas.length; i++){
-      if(stateNotas.notas[i].id===id){
-        stateNotas.notas[i].titulo = novoTitulo;
-        stateNotas.notas[i].texto  = novoTexto;
-        stateNotas.notas[i].visib  = novaVisib;
-        break;
-      }
+  ov.appendChild(bx); document.body.appendChild(ov);
+  document.getElementById('en-visib').value = nota.visib||'todos';
+  document.getElementById('en-cancel').addEventListener('click', function(){ ov.parentNode.removeChild(ov); });
+  document.getElementById('en-save').addEventListener('click', function(){
+    var t = document.getElementById('en-titulo').value.trim();
+    var x = document.getElementById('en-texto').value.trim();
+    var v = document.getElementById('en-visib').value;
+    if(!t) return toast('Informe um título','error');
+    for(var i=0;i<stateNotas.notas.length;i++){
+      if(stateNotas.notas[i].id===id){ stateNotas.notas[i].titulo=t; stateNotas.notas[i].texto=x; stateNotas.notas[i].visib=v; break; }
     }
-    saveNotas(); renderNotasLivres();
-    overlay.parentNode.removeChild(overlay);
-    toast('✏️ Nota atualizada!');
+    saveNotas(); renderNotasLivres(); ov.parentNode.removeChild(ov); toast('✏️ Nota atualizada!');
   });
 }
 
@@ -3475,7 +3470,22 @@ function salvarVenda(){
   var receitaTotal = qtd * peso * preco;
   var custoUnitario = lote.pesoEntrada * lote.precoCompra;
   var custoTotal = qtd * custoUnitario;
-  var lucro = receitaTotal - custoTotal;
+  // Calcular custo rateado da fazenda proporcional ao período e cabeças
+  var totalCabAtivas = 0;
+  for(var li=0; li<state.lotes.length; li++){
+    var lt = state.lotes[li];
+    if(lt.tipo !== 'encerrado' && lt.tipo !== 'terceiro') totalCabAtivas += lt.qtd;
+  }
+  var custoPorCabMes = totalCabAtivas > 0 ? custoMensalTotal() / totalCabAtivas : 0;
+  var mesesLote = 1;
+  if(lote.data){
+    var dtEntrada = new Date(lote.data+'T00:00:00');
+    var dtVenda   = new Date(data+'T00:00:00');
+    var diffMs    = dtVenda - dtEntrada;
+    if(diffMs > 0) mesesLote = Math.max(1, Math.round(diffMs / (1000*60*60*24*30)));
+  }
+  var custoRateado = custoPorCabMes * mesesLote * qtd;
+  var lucro = receitaTotal - custoTotal - custoRateado;
   // Save venda record
   if(!state.vendas) state.vendas = [];
   state.vendas.push({
@@ -3487,6 +3497,8 @@ function salvarVenda(){
     preco: preco,
     receitaTotal: receitaTotal,
     custoTotal: custoTotal,
+    custoRateado: custoRateado,
+    mesesLote: mesesLote,
     lucro: lucro,
     data: data,
     obs: document.getElementById('vd-obs').value
@@ -3567,6 +3579,283 @@ function renderHistoricoVendas(){
   el.innerHTML = html;
 }
 
+
+// ===== GANHOS POR LOTE =====
+function renderGanhos(){
+  var elK = document.getElementById('ganhos-kpis');
+  var elC = document.getElementById('ganhos-cards');
+  if(!elK || !elC) return;
+
+  var vendas = state.vendas || [];
+  var trocas = state.trocas || [];
+
+  // KPIs
+  var totalReceita=0, totalCustoBase=0, totalCustoRateado=0;
+  for(var i=0;i<vendas.length;i++){
+    totalReceita     += vendas[i].receitaTotal || 0;
+    totalCustoBase   += vendas[i].custoTotal   || 0;
+    totalCustoRateado+= vendas[i].custoRateado || 0;
+  }
+  for(var j=0;j<trocas.length;j++){
+    totalReceita   += (trocas[j].valorAtribuido || 0);
+    totalCustoBase += (trocas[j].custoBase      || 0);
+  }
+  var lucroLiquido = totalReceita - totalCustoBase - totalCustoRateado;
+  var margem = totalReceita > 0 ? (lucroLiquido/totalReceita)*100 : 0;
+  var corL = lucroLiquido >= 0 ? 'var(--green)' : 'var(--red)';
+
+  // Custo atual rateado por cabeça
+  var totalCabAtivas = 0;
+  for(var k=0;k<state.lotes.length;k++){
+    var lt = state.lotes[k];
+    if(lt.tipo!=='encerrado' && lt.tipo!=='terceiro') totalCabAtivas += lt.qtd;
+  }
+  var custoPorCabMes = totalCabAtivas > 0 ? custoMensalTotal()/totalCabAtivas : 0;
+
+  var kh = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.5rem">';
+  kh += '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.75rem"><div style="font-size:.68rem;color:var(--clay);margin-bottom:.2rem">Total Recebido</div><div style="font-weight:700;color:var(--green)">'+fmt(totalReceita)+'</div></div>';
+  kh += '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.75rem"><div style="font-size:.68rem;color:var(--clay);margin-bottom:.2rem">Custo de Compra</div><div style="font-weight:700">'+fmt(totalCustoBase)+'</div></div>';
+  kh += '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.75rem"><div style="font-size:.68rem;color:var(--clay);margin-bottom:.2rem">Custos Rateados</div><div style="font-weight:700;color:var(--gold)">'+fmt(totalCustoRateado)+'</div></div>';
+  kh += '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.75rem"><div style="font-size:.68rem;color:var(--clay);margin-bottom:.2rem">Lucro Líquido</div><div style="font-weight:700;color:'+corL+'">'+fmt(lucroLiquido)+'</div></div>';
+  kh += '</div>';
+  if(totalReceita > 0){
+    var pct = Math.min(Math.max(margem,0),100);
+    kh += '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.75rem;margin-bottom:.5rem">';
+    kh += '<div style="display:flex;justify-content:space-between;margin-bottom:.35rem"><span style="font-size:.78rem;color:var(--clay)">Margem geral</span><span style="font-weight:700;color:'+corL+'">'+margem.toFixed(1)+'%</span></div>';
+    kh += '<div style="background:var(--border);border-radius:6px;height:7px"><div style="height:100%;border-radius:6px;background:'+(lucroLiquido>=0?'var(--green-mid)':'var(--red)')+';width:'+pct+'%"></div></div></div>';
+  }
+  if(custoPorCabMes > 0){
+    kh += '<div style="background:var(--gold-light);border:1px solid var(--gold-mid);border-radius:10px;padding:.6rem;font-size:.75rem;color:var(--gold);margin-bottom:.5rem">💡 Custo rateado atual: <strong>'+fmt(custoPorCabMes)+'/cab/mês</strong> com '+totalCabAtivas+' cab. ativas</div>';
+  }
+  elK.innerHTML = kh;
+
+  if(vendas.length===0 && trocas.length===0){
+    elC.innerHTML='<div style="color:var(--clay);font-size:.85rem;padding:.5rem 0">Nenhuma venda ou troca registrada ainda.</div>';
+    return;
+  }
+
+  // Montar lista ordenada por data
+  var movs=[];
+  for(var vi=0;vi<vendas.length;vi++) movs.push({tipo:'venda',data:vendas[vi].data,d:vendas[vi]});
+  for(var ti=0;ti<trocas.length;ti++) movs.push({tipo:'troca',data:trocas[ti].data,d:trocas[ti]});
+  movs.sort(function(a,b){ return b.data.localeCompare(a.data); });
+
+  var ch='';
+  for(var mi=0;mi<movs.length;mi++){
+    var m=movs[mi];
+    var dtF=new Date(m.data+'T00:00:00').toLocaleDateString('pt-BR');
+    if(m.tipo==='venda'){
+      var v=m.d;
+      var lv=(v.receitaTotal||0)-(v.custoTotal||0)-(v.custoRateado||0);
+      var cv=lv>=0?'var(--green)':'var(--red)';
+      ch+='<div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:.9rem;margin-bottom:.6rem">';
+      ch+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">';
+      ch+='<div><strong style="font-size:.88rem">'+v.loteNome+'</strong><br><span style="font-size:.72rem;color:var(--clay)">'+v.qtd+' cab. · '+dtF+'</span></div>';
+      ch+='<span style="font-size:.72rem;background:var(--green-light);color:var(--green);padding:.2rem .55rem;border-radius:20px;font-weight:700">Venda</span>';
+      ch+='</div>';
+      ch+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem;font-size:.78rem;color:var(--clay)">';
+      ch+='<div>Receita<br><strong style="color:var(--text)">'+fmt(v.receitaTotal)+'</strong></div>';
+      ch+='<div>Custo compra<br><strong style="color:var(--text)">'+fmt(v.custoTotal)+'</strong></div>';
+      if(v.custoRateado > 0) ch+='<div>Custos fazenda<br><strong style="color:var(--gold)">'+fmt(v.custoRateado)+'</strong></div>';
+      ch+='<div>Lucro líquido<br><strong style="color:'+cv+'">'+fmt(lv)+'</strong></div>';
+      ch+='</div>';
+      if(v.mesesLote) ch+='<div style="font-size:.7rem;color:var(--clay);margin-top:.35rem">Período: '+v.mesesLote+' mês(es) no lote</div>';
+      ch+='</div>';
+    } else {
+      var tr=m.d;
+      var lt2=(tr.valorAtribuido||0)-(tr.custoBase||0);
+      var ct2=lt2>=0?'var(--green)':'var(--red)';
+      ch+='<div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:.9rem;margin-bottom:.6rem">';
+      ch+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">';
+      ch+='<div><strong style="font-size:.88rem">Troca</strong><br><span style="font-size:.72rem;color:var(--clay)">'+dtF+'</span></div>';
+      ch+='<span style="font-size:.72rem;background:var(--gold-light);color:var(--gold);padding:.2rem .55rem;border-radius:20px;font-weight:700">Troca</span>';
+      ch+='</div>';
+      ch+='<div style="font-size:.78rem;color:var(--clay);margin-bottom:.3rem">Lotes saídos: <strong style="color:var(--text)">'+tr.lotesNomes+'</strong></div>';
+      ch+='<div style="font-size:.78rem;color:var(--clay);margin-bottom:.35rem">Bezerras: <strong style="color:var(--text)">'+tr.qtdBezerras+' cab. → '+tr.novoLoteNome+'</strong></div>';
+      ch+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.3rem;font-size:.78rem;color:var(--clay)">';
+      ch+='<div>Valor atrib.<br><strong style="color:var(--text)">'+fmt(tr.valorAtribuido)+'</strong></div>';
+      ch+='<div>Custo base<br><strong style="color:var(--text)">'+fmt(tr.custoBase)+'</strong></div>';
+      ch+='<div>Ganho<br><strong style="color:'+ct2+'">'+fmt(lt2)+'</strong></div>';
+      ch+='</div>';
+      if(tr.diferenca>0) ch+='<div style="font-size:.72rem;color:var(--green);margin-top:.3rem">+ Diferença recebida: '+fmt(tr.diferenca)+'</div>';
+      ch+='</div>';
+    }
+  }
+  elC.innerHTML = ch;
+}
+
+function abrirModalTroca(){
+  var ex=document.getElementById('modal-troca-ganhos');
+  if(ex) ex.parentNode.removeChild(ex);
+
+  var opts='<option value="">— Selecione —</option>';
+  for(var i=0;i<state.lotes.length;i++){
+    var l=state.lotes[i];
+    if(l.tipo!=='encerrado' && l.tipo!=='terceiro')
+      opts+='<option value="'+l.id+'">'+l.nome+' ('+l.qtd+' cab.)</option>';
+  }
+
+  var ov=document.createElement('div');
+  ov.id='modal-troca-ganhos';
+  ov.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,.75);display:flex;align-items:flex-end;justify-content:center;padding:1rem;box-sizing:border-box';
+  var bx=document.createElement('div');
+  bx.style.cssText='background:var(--card);border-radius:20px 20px 14px 14px;padding:1.5rem;width:100%;max-width:440px;max-height:88vh;overflow-y:auto;box-sizing:border-box';
+
+  var pad2=function(n){ return n<10?'0'+n:''+n; };
+  var hoje=new Date();
+  var hj=hoje.getFullYear()+'-'+pad2(hoje.getMonth()+1)+'-'+pad2(hoje.getDate());
+
+  bx.innerHTML=
+    '<div style="font-weight:700;font-size:1rem;margin-bottom:.75rem">💱 Registrar Troca</div>'+
+    '<div style="background:var(--gold-light);border:1px solid var(--gold-mid);border-radius:10px;padding:.65rem;font-size:.75rem;color:var(--gold);margin-bottom:1rem;line-height:1.5">'+
+    'Custo base das bezerras = (Custo dos lotes saídos − diferença recebida) ÷ nº de bezerras</div>'+
+    '<div class="field"><label>Lote 1 que saiu</label><select id="tc-lote1">'+opts+'</select></div>'+
+    '<div class="field"><label>Cabeças do Lote 1 que saíram</label><input type="number" id="tc-qtd1" placeholder="Ex: 2" min="1"></div>'+
+    '<div class="field"><label>Lote 2 que saiu (opcional)</label><select id="tc-lote2"><option value="">— Nenhum —</option>'+opts.replace('<option value="">— Selecione —</option>','')+'</select></div>'+
+    '<div class="field"><label>Cabeças do Lote 2 que saíram</label><input type="number" id="tc-qtd2" placeholder="0" min="0"></div>'+
+    '<div class="field"><label>Diferença recebida em R$ (0 se não teve)</label><input type="number" id="tc-dif" placeholder="0" min="0" step="0.01"></div>'+
+    '<div class="field"><label>Nº de bezerras recebidas</label><input type="number" id="tc-nbez" placeholder="Ex: 3" min="1"></div>'+
+    '<div class="field"><label>Nome do novo lote (bezerras)</label><input type="text" id="tc-nome" placeholder="Ex: Bezerras Troca Mai/26"></div>'+
+    '<div class="field"><label>Data da troca</label><input type="date" id="tc-data" value="'+hj+'"></div>'+
+    '<div id="tc-preview" style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.75rem;font-size:.8rem;color:var(--clay);margin-bottom:1rem;line-height:1.6">Preencha os campos para ver o cálculo.</div>'+
+    '<div style="display:flex;gap:.5rem">'+
+    '<button id="tc-cancel" style="flex:1;padding:.8rem;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:.9rem;cursor:pointer;font-family:\'DM Sans\',sans-serif">Cancelar</button>'+
+    '<button id="tc-save" style="flex:2;padding:.8rem;background:var(--green);color:#FFF;border:none;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:\'DM Sans\',sans-serif">💾 Salvar Troca</button>'+
+    '</div>';
+
+  ov.appendChild(bx);
+  document.body.appendChild(ov);
+
+  var ids=['tc-lote1','tc-qtd1','tc-lote2','tc-qtd2','tc-dif','tc-nbez'];
+  for(var x=0;x<ids.length;x++){
+    document.getElementById(ids[x]).addEventListener('input', calcTroca);
+    document.getElementById(ids[x]).addEventListener('change', calcTroca);
+  }
+  ov.addEventListener('click', function(e){ if(e.target===ov) ov.parentNode.removeChild(ov); });
+  document.getElementById('tc-cancel').addEventListener('click', function(){ ov.parentNode.removeChild(ov); });
+  document.getElementById('tc-save').addEventListener('click', function(){ salvarTroca(ov); });
+}
+
+function calcTroca(){
+  var lote1Id=parseInt(document.getElementById('tc-lote1').value)||0;
+  var qtd1=parseInt(document.getElementById('tc-qtd1').value)||0;
+  var lote2Id=parseInt(document.getElementById('tc-lote2').value)||0;
+  var qtd2=parseInt(document.getElementById('tc-qtd2').value)||0;
+  var dif=parseFloat(document.getElementById('tc-dif').value)||0;
+  var nbez=parseInt(document.getElementById('tc-nbez').value)||0;
+  var el=document.getElementById('tc-preview');
+  if(!el) return;
+
+  var custoTotal=0; var lotesNomes=[];
+  if(lote1Id && qtd1>0){
+    for(var i=0;i<state.lotes.length;i++){
+      if(state.lotes[i].id===lote1Id){
+        custoTotal += qtd1*state.lotes[i].pesoEntrada*state.lotes[i].precoCompra;
+        lotesNomes.push(state.lotes[i].nome+' ('+qtd1+' cab.)');
+        break;
+      }
+    }
+  }
+  if(lote2Id && qtd2>0){
+    for(var j=0;j<state.lotes.length;j++){
+      if(state.lotes[j].id===lote2Id){
+        custoTotal += qtd2*state.lotes[j].pesoEntrada*state.lotes[j].precoCompra;
+        lotesNomes.push(state.lotes[j].nome+' ('+qtd2+' cab.)');
+        break;
+      }
+    }
+  }
+  if(custoTotal<=0||nbez<=0){ el.textContent='Preencha os campos para ver o cálculo.'; return; }
+  var base=Math.max(custoTotal-dif,0)/nbez;
+  var ganho=dif;
+  el.innerHTML=
+    '<strong style="color:var(--text)">Resumo:</strong><br>'+
+    'Lotes saídos: <strong>'+lotesNomes.join(' + ')+'</strong><br>'+
+    'Custo total dos lotes: <strong>'+fmt(custoTotal)+'</strong><br>'+
+    'Diferença recebida: <strong style="color:var(--green)">'+fmt(dif)+'</strong><br>'+
+    '<span style="color:var(--border)">────────────</span><br>'+
+    'Custo base por bezerra: <strong style="color:var(--green-mid)">'+fmt(base)+'</strong><br>'+
+    'Ganho imediato: <strong style="color:'+(ganho>=0?'var(--green)':'var(--red)')+'">'+fmt(ganho)+'</strong>';
+}
+
+function salvarTroca(ov){
+  var lote1Id=parseInt(document.getElementById('tc-lote1').value)||0;
+  var qtd1=parseInt(document.getElementById('tc-qtd1').value)||0;
+  var lote2Id=parseInt(document.getElementById('tc-lote2').value)||0;
+  var qtd2=parseInt(document.getElementById('tc-qtd2').value)||0;
+  var dif=parseFloat(document.getElementById('tc-dif').value)||0;
+  var nbez=parseInt(document.getElementById('tc-nbez').value)||0;
+  var nomeNovo=document.getElementById('tc-nome').value.trim();
+  var data=document.getElementById('tc-data').value;
+
+  if(!lote1Id||!qtd1) return toast('Selecione o Lote 1 e a quantidade','error');
+  if(!nbez)           return toast('Informe o nº de bezerras','error');
+  if(!nomeNovo)       return toast('Informe o nome do novo lote','error');
+  if(!data)           return toast('Informe a data','error');
+
+  var custoTotal=0; var lotesNomes=[];
+  // Lote 1
+  var idx1=-1;
+  for(var i=0;i<state.lotes.length;i++){ if(state.lotes[i].id===lote1Id){idx1=i;break;} }
+  if(idx1<0) return toast('Lote 1 não encontrado','error');
+  if(qtd1>state.lotes[idx1].qtd) return toast('Qtd maior que o lote 1 ('+state.lotes[idx1].qtd+' cab.)','error');
+  custoTotal += qtd1*state.lotes[idx1].pesoEntrada*state.lotes[idx1].precoCompra;
+  lotesNomes.push(state.lotes[idx1].nome+' ('+qtd1+' cab.)');
+  state.lotes[idx1].qtd -= qtd1;
+  if(state.lotes[idx1].qtd===0) state.lotes[idx1].tipo='encerrado';
+
+  // Lote 2
+  if(lote2Id && qtd2>0){
+    var idx2=-1;
+    for(var j=0;j<state.lotes.length;j++){ if(state.lotes[j].id===lote2Id){idx2=j;break;} }
+    if(idx2>=0){
+      if(qtd2>state.lotes[idx2].qtd){ toast('Qtd do lote 2 maior que disponível — ignorado','error'); }
+      else {
+        custoTotal += qtd2*state.lotes[idx2].pesoEntrada*state.lotes[idx2].precoCompra;
+        lotesNomes.push(state.lotes[idx2].nome+' ('+qtd2+' cab.)');
+        state.lotes[idx2].qtd -= qtd2;
+        if(state.lotes[idx2].qtd===0) state.lotes[idx2].tipo='encerrado';
+      }
+    }
+  }
+
+  var custoBasePorBez = Math.max(custoTotal-dif,0)/nbez;
+
+  // Novo lote de bezerras
+  state.lotes.push({
+    id: Date.now(),
+    nome: nomeNovo,
+    tipo: 'bezerro',
+    qtd: nbez,
+    pesoEntrada: 0,
+    pesoAtual: 0,
+    pesoMeta: 0,
+    precoCompra: custoBasePorBez,
+    data: data,
+    obs: 'Recebidas por troca de: '+lotesNomes.join(', '),
+    manga: ''
+  });
+
+  if(!state.trocas) state.trocas=[];
+  state.trocas.push({
+    id: Date.now()+1,
+    data: data,
+    lotesNomes: lotesNomes.join(' + '),
+    valorAtribuido: custoTotal+dif,
+    custoBase: custoTotal,
+    diferenca: dif,
+    qtdBezerras: nbez,
+    novoLoteNome: nomeNovo,
+    custoBasePorBezerra: custoBasePorBez
+  });
+
+  saveToFirebase();
+  ov.parentNode.removeChild(ov);
+  renderGanhos();
+  renderRebanho();
+  popularSelectLotes('vd-lote', true);
+  toast('💱 Troca registrada! Novo lote: '+nomeNovo+' ('+nbez+' cab.) · custo base: '+fmt(custoBasePorBez)+'/cab.');
+}
 
 // ===== GMD (GANHO MÉDIO DIÁRIO) =====
 function calcularGMD(lote){
@@ -3815,14 +4104,11 @@ function gerarRelatorioPDF(opts){
   html += '<div style="margin-top:30px;color:#999;font-size:10px;text-align:center">Fazenda Gestão — Relatório gerado em '+hoje+'</div>';
   html += '</body></html>';
 
-  // Abrir via Blob URL (compatível com Android Chrome)
   var blob = new Blob([html], {type: 'text/html'});
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
-  a.href = url;
-  a.target = '_blank';
-  document.body.appendChild(a);
-  a.click();
+  a.href = url; a.target = '_blank';
+  document.body.appendChild(a); a.click();
   setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
 }
 
@@ -4770,7 +5056,7 @@ function selecionarFazenda(qual){
   try { localStorage.removeItem('fazenda_perfil'); } catch(e){}
 
   // Reset state completely
-  state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[] };
+  state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[], trocas:[] };
   stateNotas = { todos:[], notas:[], vacinas:[], lembretes:[] };
   stateAlertas = [];
 
