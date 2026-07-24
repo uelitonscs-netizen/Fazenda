@@ -356,7 +356,14 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         </div>
       </div>
       <div class="card" id="card-resumo-fin">
-        <div class="card-title">📊 Resumo Financeiro da Operação</div>
+        <div class="card-title" style="justify-content:space-between">
+          <span>📊 Resumo Financeiro da Operação</span>
+          <span style="display:flex;align-items:center;gap:.35rem;font-family:'DM Sans',sans-serif;text-transform:none;letter-spacing:0;font-weight:400">
+            <label for="dash-prazo" style="font-size:.68rem;color:var(--clay)">Prazo:</label>
+            <input type="number" id="dash-prazo" min="1" step="1" value="10" style="width:48px;padding:.25rem .35rem;font-size:.75rem;border:1px solid var(--border);border-radius:6px;background:var(--bg2);color:var(--text)" onchange="salvarPrazoDashboard()">
+            <span style="font-size:.68rem;color:var(--clay)">meses</span>
+          </span>
+        </div>
         <div id="resumo-financeiro"></div>
       </div>
     </div>
@@ -1133,11 +1140,25 @@ db.ref('config/mangas').once('value').then(function(snap){
   atualizarSelectMangas();
 });
 
+// Carrega prazo do Dashboard do Firebase
+db.ref('config/prazoDashboard').once('value').then(function(snap){
+  if(snap.val()) prazoDashboard = parseInt(snap.val())||10;
+  var elPrazo = document.getElementById('dash-prazo');
+  if(elPrazo) elPrazo.value = prazoDashboard;
+});
+function salvarPrazoDashboard(){
+  var v = parseInt(document.getElementById('dash-prazo').value)||10;
+  prazoDashboard = v;
+  db.ref('config/prazoDashboard').set(v).catch(function(){});
+  renderDashboard();
+}
+
 // Senha vaqueiro gerenciada pelo Firebase Authentication
 
 // Estado
 var state = { lotes:[], insumos:[], custos:[], animais:[] };
 var MANGAS_NOMES = ['Manga da Chegada','Manga do Meio','Manga do Alto','Manga da Pedra','Manga da Bananeira','Atrás do Curral','Bambu','Quicui','Baixada'];
+var prazoDashboard = 10;
 var perfil = null; // 'dono' ou 'vaqueiro'
 var fazendaAtiva = 'minha'; // 'minha' ou 'mae'
 var animalSelecionadoId = null;
@@ -1565,7 +1586,8 @@ function renderDashboard(){
 
     // Resumo financeiro
     var cu2=custoUnicoTotal();
-    var pv=330,pw=14,pr=10;
+    var pv=330,pw=14,pr=prazoDashboard||10;
+    var elPrazoD=document.getElementById('dash-prazo'); if(elPrazoD) elPrazoD.value=pr;
     var rec=novilhas.reduce(function(a,l){return a+(l.qtd*pw*pv);},0);
     var cc=novilhas.reduce(function(a,l){return a+(l.qtd*l.pesoEntrada*l.precoCompra);},0);
     var co=custoMes*pr, luc=rec-cc-co-estoqueTotal-cu2;
