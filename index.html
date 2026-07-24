@@ -1578,7 +1578,11 @@ function renderDashboard(){
     rfHtml+='<div class="result-row total"><span class="label">Total Investido</span><span class="value neg">'+fmt(cc+estoqueTotal+co+cu2)+'</span></div></div>';
     rfHtml+='<div class="'+(luc>=0?'result-box':'result-box loss')+'">';
     rfHtml+='<p style="font-size:.72rem;color:var(--clay);margin-bottom:.6rem;font-family:\'DM Mono\',monospace">PROJEÇÃO BASE (14@ · R$330/@)</p>';
-  var recAluguel=state.lotes.reduce(function(a,l){ return l.tipo==='terceiro'?(a+(l.aluguel||0)):a; },0);
+  var recAluguel=state.lotes.reduce(function(a,l){
+    if(l.tipo!=='terceiro') return a;
+    var mesesEfetivos = l.contratoMeses ? Math.min(l.contratoMeses, pr) : pr;
+    return a + (l.aluguel||0)*mesesEfetivos;
+  },0);
     rfHtml+='<div class="result-row"><span class="label">Receita bruta</span><span class="value pos">'+fmt(rec)+'</span></div>';
     if(recAluguel>0) rfHtml+='<div class="result-row"><span class="label" style="font-size:.78rem;color:var(--clay)">↳ incl. aluguel mangas</span><span class="value pos" style="font-size:.82rem">'+fmt(recAluguel)+'</span></div>';
     rfHtml+='<div class="result-row total"><span class="label">Lucro Líquido Est.</span><span class="value '+(luc>=0?'pos':'neg')+' big">'+fmt(luc)+'</span></div>';
