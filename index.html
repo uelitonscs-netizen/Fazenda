@@ -2132,7 +2132,7 @@ function editarCusto(id){
   document.getElementById('c-desc').value=c.desc;document.getElementById('c-desc').dataset.editId=id;
   document.getElementById('c-cat').value=c.cat;document.getElementById('c-valor').value=c.valor;
   document.getElementById('c-freq').value=c.freq;document.getElementById('c-data').value=c.data;
-  document.getElementById('c-obs').value=c.obs||'';showSectionById('custos');
+  document.getElementById('c-obs').value=c.obs||'';showSectionById('custos');window.scrollTo(0,0);
 }
 function deletarCusto(id){
   confirmarModal('Remover este custo?', '🗑️', 'Remover', function(){
