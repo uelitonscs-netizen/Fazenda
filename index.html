@@ -2016,6 +2016,9 @@ function renderAll(){
   else if(id==='custos') renderCustos();
   else if(id==='projecao') calcularProjecao();
   else if(id==='animais') renderAnimais();
+  // Mantém o Dashboard sempre atualizado em segundo plano, mesmo fora dele,
+  // para que os números já estejam corretos ao voltar pra essa aba.
+  if(id!=='dashboard') renderDashboard();
 }
 
 // ===== CRUD LOTES =====
@@ -2043,7 +2046,7 @@ function salvarLote(){
   var eid=document.getElementById('r-nome').dataset.editId;
   if(eid){var idx=state.lotes.findIndex(function(l){return l.id==eid;});if(idx!==-1){lote.id=parseInt(eid);state.lotes[idx]=lote;}delete document.getElementById('r-nome').dataset.editId;}
   else state.lotes.push(lote);
-  saveToFirebase();toast('✅ Lote salvo!');limparFormRebanho();renderRebanho();
+  saveToFirebase();toast('✅ Lote salvo!');limparFormRebanho();renderRebanho();renderDashboard();
 }
 function editarLote(id){
   openCollapse('form-lote');
@@ -2075,7 +2078,7 @@ function editarLote(id){
 function deletarLote(id){
   confirmarModal('Remover este lote?', '🗑️', 'Remover', function(){
     state.lotes=state.lotes.filter(function(l){return l.id!==id;});
-    saveToFirebase();toast('🗑️ Lote removido.');renderRebanho();
+    saveToFirebase();toast('🗑️ Lote removido.');renderRebanho();renderDashboard();
   });
 }
 function limparFormRebanho(){['r-nome','r-qtd','r-peso-entrada','r-peso-atual','r-peso-meta','r-preco-compra','r-data','r-obs','r-manga-data','r-manga-dias','r-aluguel','r-contrato-inicio','r-contrato-meses'].forEach(function(id){var el=document.getElementById(id);if(el){el.value='';delete el.dataset.editId;}});}
