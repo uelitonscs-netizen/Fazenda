@@ -2400,7 +2400,7 @@ function confirmarBaixa(){
   saveToFirebase();
   toast('📉 Baixa registrada — ' + qtd + ' cabeça(s) · Perda: ' + fmt(perda));
   fecharModalBaixa();
-  renderRebanho();
+  renderRebanho();renderDashboard();
 }
 
 // Atualiza impacto ao mudar campos
