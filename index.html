@@ -1082,6 +1082,36 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-aluguel">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title">💱 Alterar Valor do Aluguel</div>
+      <button class="modal-close" onclick="fecharModalAluguel()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-aluguel-info" style="background:rgba(212,168,83,.08);border:1px solid rgba(212,168,83,.2);border-radius:10px;padding:.9rem 1rem;margin-bottom:1rem;font-size:.85rem;color:var(--gold)"></div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Novo valor mensal (R$) *</label>
+          <input type="number" id="aluguel-novo-valor" placeholder="800.00" step="0.01">
+        </div>
+        <div class="field">
+          <label>Data da mudança</label>
+          <input type="date" id="aluguel-data">
+        </div>
+      </div>
+      <div class="field" style="margin-top:.75rem">
+        <label>Motivo / Observação</label>
+        <textarea id="aluguel-obs" rows="2" placeholder="Ex: dono retirou 5 cabeças do arrendamento"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn outline sm" onclick="fecharModalAluguel()">Cancelar</button>
+      <button class="btn sm" style="background:var(--gold);color:#1A0F08" onclick="confirmarAlteracaoAluguel()">💱 Registrar Alteração</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <button class="fab" id="fab-btn" onclick="abrirModalRapido()" style="display:none">⚡</button>
 
@@ -1140,16 +1170,30 @@ db.ref('config/mangas').once('value').then(function(snap){
   atualizarSelectMangas();
 });
 
-// Carrega prazo do Dashboard do Firebase
-db.ref('config/prazoDashboard').once('value').then(function(snap){
-  if(snap.val()) prazoDashboard = parseInt(snap.val())||10;
-  var elPrazo = document.getElementById('dash-prazo');
-  if(elPrazo) elPrazo.value = prazoDashboard;
-});
+// Prazo do Dashboard — salvo separado por fazenda; carregado após o login (ver startListening)
+var _prazoRef = null;
+function prazoDashboardPath(){ return 'config/prazoDashboard_' + getFirebasePrefix(); }
+function carregarPrazoDashboard(){
+  if(_prazoRef) _prazoRef.off();
+  _prazoRef = db.ref(prazoDashboardPath());
+  _prazoRef.on('value', function(snap){
+    var aplicar = function(v){
+      prazoDashboard = parseInt(v)||10;
+      var elPrazo = document.getElementById('dash-prazo');
+      if(elPrazo && document.activeElement !== elPrazo) elPrazo.value = prazoDashboard;
+      renderDashboard();
+    };
+    if(snap.val()) { aplicar(snap.val()); return; }
+    // Compatibilidade: valor salvo no formato antigo (único para as duas fazendas)
+    db.ref('config/prazoDashboard').once('value').then(function(old){ aplicar(old.val()||10); }).catch(function(){ aplicar(10); });
+  });
+}
 function salvarPrazoDashboard(){
   var v = parseInt(document.getElementById('dash-prazo').value)||10;
+  if(v < 1) v = 1;
   prazoDashboard = v;
-  db.ref('config/prazoDashboard').set(v).catch(function(){});
+  document.getElementById('dash-prazo').value = v;
+  db.ref(prazoDashboardPath()).set(v).catch(function(){ toast('Erro ao salvar prazo','error'); });
   renderDashboard();
 }
 
@@ -1226,6 +1270,7 @@ function saveToFirebase(){
 
 // FIREBASE LISTEN — só escuta mudanças remotas quando não está salvando
 function startListening(){
+  carregarPrazoDashboard();
   // Force logout listener — checks if other sessions were terminated
   var minhaSessaoId = localStorage.getItem('fazenda_sessao_id');
 
@@ -1294,7 +1339,8 @@ function startListening(){
     if(salvandoFirebase) return;
     var data=snap.val();
     if(data){
-      state.lotes=data.lotes||[];
+      state.lotes=Array.isArray(data.lotes)?data.lotes:(data.lotes?Object.values(data.lotes):[]);
+      state.lotes.forEach(function(l){ if(l && l.historicoAluguel && !Array.isArray(l.historicoAluguel)) l.historicoAluguel=Object.values(l.historicoAluguel); });
       state.insumos=Array.isArray(data.insumos)?data.insumos:(data.insumos?Object.values(data.insumos):[]);
       state.custos=Array.isArray(data.custos)?data.custos:(data.custos?Object.values(data.custos):[]);
       state.animais=Array.isArray(data.animais)?data.animais:(data.animais?Object.values(data.animais):[]);
@@ -1602,8 +1648,7 @@ function renderDashboard(){
     rfHtml+='<p style="font-size:.72rem;color:var(--clay);margin-bottom:.6rem;font-family:\'DM Mono\',monospace">PROJEÇÃO BASE (14@ · R$330/@)</p>';
   var recAluguel=state.lotes.reduce(function(a,l){
     if(l.tipo!=='terceiro') return a;
-    var mesesEfetivos = l.contratoMeses ? Math.min(l.contratoMeses, pr) : pr;
-    return a + (l.aluguel||0)*mesesEfetivos;
+    return a + calcularReceitaAluguelLote(l, pr);
   },0);
     rfHtml+='<div class="result-row"><span class="label">Receita bruta</span><span class="value pos">'+fmt(rec)+'</span></div>';
     if(recAluguel>0) rfHtml+='<div class="result-row"><span class="label" style="font-size:.78rem;color:var(--clay)">↳ incl. aluguel mangas</span><span class="value pos" style="font-size:.82rem">'+fmt(recAluguel)+'</span></div>';
@@ -1635,6 +1680,7 @@ function renderRebanho(){
     rows+='<div><strong style="font-size:.9rem">'+l.nome+'</strong>'+(l.obs?'<br><span style="font-size:.72rem;color:var(--clay)">'+l.obs+'</span>':'')+' <span class="badge '+tb+'">'+(l.tipo==='novilha'?'Novilha':l.tipo==='vaca'?'Vaca de Recria':l.tipo==='bezerro'?'Bezerra/o':l.tipo==='cria_terra'?'Cria da Terra':l.tipo==='touro'?'Touro':l.tipo==='terceiro'?'🤝 Terceiro':l.tipo)+'</span></div>';
     rows+='<div style="display:flex;gap:.4rem">';
     rows+='<button class="btn sm outline" onclick="editarLote('+l.id+')">✏️</button>';
+    if(l.tipo==='terceiro') rows+='<button class="btn sm outline" style="color:var(--gold);border-color:var(--gold)" onclick="abrirModalAluguel('+l.id+')">💱</button>';
     rows+='<button class="btn sm" style="background:var(--red);color:white" onclick="abrirModalBaixa('+l.id+')">📉</button>';
     rows+='<button class="btn sm danger" onclick="deletarLote('+l.id+')">🗑️</button>';
     rows+='</div></div>';
@@ -1647,6 +1693,10 @@ function renderRebanho(){
       rows+='<div>Peso meta: <strong style="color:var(--text)">'+fmtN(l.pesoMeta)+'@</strong></div>';
     } else {
       rows+='<div>Aluguel: <strong style="color:var(--green-mid)">'+fmt(l.aluguel||0)+'/mês</strong></div>';
+      if(l.historicoAluguel && l.historicoAluguel.length>0){
+        var ultAlt = l.historicoAluguel.slice().sort(function(a,b){return (b.data||'').localeCompare(a.data||'');})[0];
+        rows+='<div style="grid-column:1/-1;font-size:.7rem;color:var(--clay)">💱 '+l.historicoAluguel.length+' alteração(ões) · última em '+new Date(ultAlt.data+'T00:00:00').toLocaleDateString('pt-BR')+'</div>';
+      }
     }
     // GMD calculation
     var gmd = calcularGMD(l);
@@ -1869,8 +1919,7 @@ function calcularProjecao(){
 
   var recAluguel=state.lotes.reduce(function(a,l){
     if(l.tipo!=='terceiro') return a;
-    var mesesEfetivos = l.contratoMeses ? Math.min(l.contratoMeses, prazoMedio) : prazoMedio;
-    return a + (l.aluguel||0)*mesesEfetivos;
+    return a + calcularReceitaAluguelLote(l, prazoMedio);
   },0);
 
   var co=custoMensalTotal()*prazoMedio,cu=custoUnicoTotal(),ti=cc+ei+co+cu,rec=recLotes+recAluguel,luc=rec-ti;
@@ -2018,7 +2067,7 @@ function renderAll(){
   else if(id==='animais') renderAnimais();
   // Mantém o Dashboard sempre atualizado em segundo plano, mesmo fora dele,
   // para que os números já estejam corretos ao voltar pra essa aba.
-  if(id!=='dashboard') renderDashboard();
+  if(id!=='dashboard'){ try { renderDashboard(); } catch(e){ console.warn('renderDashboard (2º plano):', e); } }
 }
 
 // ===== CRUD LOTES =====
@@ -2044,7 +2093,7 @@ function salvarLote(){
     mangaData:document.getElementById('r-manga-data').value||'',
     mangaDias:parseInt(document.getElementById('r-manga-dias').value)||0};
   var eid=document.getElementById('r-nome').dataset.editId;
-  if(eid){var idx=state.lotes.findIndex(function(l){return l.id==eid;});if(idx!==-1){lote.id=parseInt(eid);state.lotes[idx]=lote;}delete document.getElementById('r-nome').dataset.editId;}
+  if(eid){var idx=state.lotes.findIndex(function(l){return l.id==eid;});if(idx!==-1){lote.id=parseInt(eid);lote.historicoAluguel=state.lotes[idx].historicoAluguel||[];state.lotes[idx]=lote;}delete document.getElementById('r-nome').dataset.editId;}
   else state.lotes.push(lote);
   saveToFirebase();toast('✅ Lote salvo!');limparFormRebanho();renderRebanho();renderDashboard();
 }
@@ -2325,6 +2374,7 @@ function removerFoto(){
 
 
 var loteIdBaixa = null;
+var loteIdAluguel = null;
 
 function abrirModalBaixa(loteId){
   loteIdBaixa = loteId;
@@ -2401,6 +2451,75 @@ function confirmarBaixa(){
   toast('📉 Baixa registrada — ' + qtd + ' cabeça(s) · Perda: ' + fmt(perda));
   fecharModalBaixa();
   renderRebanho();renderDashboard();
+}
+
+// ===== HISTÓRICO DE VALOR DE ALUGUEL (contratos com terceiros) =====
+function abrirModalAluguel(loteId){
+  loteIdAluguel = loteId;
+  var lote = state.lotes.find(function(l){ return l.id === loteId; });
+  if(!lote) return;
+  document.getElementById('aluguel-novo-valor').value = '';
+  document.getElementById('aluguel-data').value = new Date().toISOString().split('T')[0];
+  document.getElementById('aluguel-obs').value = '';
+  document.getElementById('modal-aluguel-info').innerHTML =
+    '<strong>' + lote.nome + '</strong> — Valor atual: ' + fmt(lote.aluguel||0) + '/mês';
+  document.getElementById('modal-aluguel').classList.add('open');
+}
+function fecharModalAluguel(){
+  document.getElementById('modal-aluguel').classList.remove('open');
+  loteIdAluguel = null;
+}
+function confirmarAlteracaoAluguel(){
+  var lote = state.lotes.find(function(l){ return l.id === loteIdAluguel; });
+  if(!lote) return;
+  var novoValorStr = document.getElementById('aluguel-novo-valor').value;
+  if(novoValorStr===''){ toast('Informe o novo valor','error'); return; }
+  var novoValor = parseFloat(novoValorStr)||0;
+  var data = document.getElementById('aluguel-data').value || new Date().toISOString().split('T')[0];
+  var obs = document.getElementById('aluguel-obs').value.trim();
+  var valorAnterior = lote.aluguel||0;
+  if(!lote.historicoAluguel) lote.historicoAluguel = [];
+  lote.historicoAluguel.push({
+    id: Date.now(),
+    data: data,
+    valorAnterior: valorAnterior,
+    valorNovo: novoValor,
+    obs: obs
+  });
+  lote.aluguel = novoValor;
+  saveToFirebase();
+  toast('💱 Aluguel atualizado: ' + fmt(valorAnterior) + ' → ' + fmt(novoValor));
+  fecharModalAluguel();
+  renderRebanho();renderDashboard();
+}
+// Reconstrói os períodos de valor (contratoInicio -> mudanças registradas -> valor atual)
+// e soma a receita real de cada trecho, em vez de aplicar o valor atual a todo o prazo.
+function calcularReceitaAluguelLote(lote, prazoLimiteMeses){
+  var valorAtual = lote.aluguel||0;
+  var contratoMeses = lote.contratoMeses || prazoLimiteMeses;
+  var mesesLimite = Math.min(contratoMeses, prazoLimiteMeses);
+  var histRaw = lote.historicoAluguel ? (Array.isArray(lote.historicoAluguel) ? lote.historicoAluguel : Object.values(lote.historicoAluguel)) : [];
+  var hist = histRaw.filter(function(h){ return h && h.data && !isNaN(new Date(h.data+'T00:00:00').getTime()); })
+    .sort(function(a,b){ return a.data.localeCompare(b.data); });
+  var dtInicio = lote.contratoInicio ? new Date(lote.contratoInicio+'T00:00:00') : null;
+  if(hist.length===0 || !dtInicio || isNaN(dtInicio.getTime())){
+    return valorAtual * mesesLimite;
+  }
+  var pontos = [{data: dtInicio, valor: (hist[0].valorAnterior!=null?hist[0].valorAnterior:valorAtual)}];
+  hist.forEach(function(h){ pontos.push({data: new Date(h.data+'T00:00:00'), valor: h.valorNovo||0}); });
+  var msPorMes = 30*24*60*60*1000;
+  var dtFimProjecao = new Date(dtInicio.getTime() + mesesLimite*msPorMes);
+  var total = 0;
+  for(var i=0;i<pontos.length;i++){
+    var ini = pontos[i].data < dtInicio ? dtInicio : pontos[i].data;
+    var fim = (i+1<pontos.length) ? pontos[i+1].data : dtFimProjecao;
+    if(fim < dtInicio) fim = dtInicio;
+    if(fim > dtFimProjecao) fim = dtFimProjecao;
+    if(fim <= ini) continue;
+    var mesesPeriodo = (fim.getTime()-ini.getTime())/msPorMes;
+    total += pontos[i].valor * mesesPeriodo;
+  }
+  return total;
 }
 
 // Atualiza impacto ao mudar campos
@@ -3903,6 +4022,9 @@ function abrirModalRelatorio(){
     '<div id="tog-vendas" class="tog-item tog-on" style="display:flex;justify-content:space-between;align-items:center;padding:.6rem .75rem;border:1.5px solid var(--green-mid);border-radius:10px;margin-bottom:.5rem;cursor:pointer;background:var(--green-light)">'+
     '<span style="font-size:.85rem;font-weight:600">💵 Vendas</span><span class="tog-dot" style="width:36px;height:20px;background:var(--green);border-radius:10px;display:flex;align-items:center;padding:2px;box-sizing:border-box"><span style="width:16px;height:16px;background:#FFF;border-radius:50%;margin-left:auto"></span></span></div>'+
 
+    '<div id="tog-aluguel" class="tog-item tog-on" style="display:flex;justify-content:space-between;align-items:center;padding:.6rem .75rem;border:1.5px solid var(--green-mid);border-radius:10px;margin-bottom:.5rem;cursor:pointer;background:var(--green-light)">'+
+    '<span style="font-size:.85rem;font-weight:600">💱 Histórico de Aluguel</span><span class="tog-dot" style="width:36px;height:20px;background:var(--green);border-radius:10px;display:flex;align-items:center;padding:2px;box-sizing:border-box"><span style="width:16px;height:16px;background:#FFF;border-radius:50%;margin-left:auto"></span></span></div>'+
+
     '<div style="display:flex;gap:.5rem;margin-top:1rem">'+
     '<button id="rel-cancelar" style="flex:1;padding:.75rem;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:.9rem;cursor:pointer;color:var(--text)">Cancelar</button>'+
     '<button id="rel-gerar" style="flex:1;padding:.75rem;background:var(--green);color:#FFF;border:none;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer">📄 Gerar PDF</button>'+
@@ -3912,7 +4034,7 @@ function abrirModalRelatorio(){
   document.body.appendChild(overlay);
 
   // Wire toggles
-  var togIds = ['tog-resumo','tog-lotes','tog-supl','tog-custos','tog-pesagens','tog-vendas'];
+  var togIds = ['tog-resumo','tog-lotes','tog-supl','tog-custos','tog-pesagens','tog-vendas','tog-aluguel'];
   for(var ti=0; ti<togIds.length; ti++){
     (function(id){
       var el = document.getElementById(id);
@@ -3948,7 +4070,8 @@ function abrirModalRelatorio(){
       supl:     document.getElementById('tog-supl').classList.contains('tog-on'),
       custos:   document.getElementById('tog-custos').classList.contains('tog-on'),
       pesagens: document.getElementById('tog-pesagens').classList.contains('tog-on'),
-      vendas:   document.getElementById('tog-vendas').classList.contains('tog-on')
+      vendas:   document.getElementById('tog-vendas').classList.contains('tog-on'),
+      aluguel:  document.getElementById('tog-aluguel').classList.contains('tog-on')
     };
     overlay.parentNode.removeChild(overlay);
     gerarRelatorioPDF(opts);
@@ -3990,7 +4113,7 @@ function gerarRelatorioPDF(opts){
   html += '<h1>🐄 Fazenda Gestão — Relatório</h1>';
   html += '<div class="sub">Gerado em: '+hoje+'</div>';
 
-  if(!opts) opts = {resumo:true,lotes:true,supl:true,custos:true,pesagens:true,vendas:true};
+  if(!opts) opts = {resumo:true,lotes:true,supl:true,custos:true,pesagens:true,vendas:true,aluguel:true};
 
   // KPIs resumo
   if(opts.resumo){
@@ -4086,6 +4209,28 @@ function gerarRelatorioPDF(opts){
     html += '<td class="pos"><strong>'+fmt(totalVendas)+'</strong></td><td></td>';
     html += '<td class="'+(totalLucroVendas>=0?'pos':'neg')+'"><strong>'+fmt(totalLucroVendas)+'</strong></td></tr>';
     html += '</table>';
+  }
+
+  // Histórico de Aluguel (contratos com terceiros)
+  if(opts.aluguel){
+    var lotesComHistorico = state.lotes.filter(function(l){ return l.tipo==='terceiro' && l.historicoAluguel && l.historicoAluguel.length>0; });
+    if(lotesComHistorico.length > 0){
+      html += '<h2>💱 Histórico de Valor de Aluguel</h2>';
+      lotesComHistorico.forEach(function(l){
+        html += '<h3>'+l.nome+' <span class="badge">valor atual: '+fmt(l.aluguel||0)+'/mês</span></h3>';
+        html += '<table><tr><th>Data</th><th>Valor Anterior</th><th>Valor Novo</th><th>Observação</th></tr>';
+        var hsort = l.historicoAluguel.slice().sort(function(a,b){ return a.data.localeCompare(b.data); });
+        hsort.forEach(function(h){
+          html += '<tr><td>'+new Date(h.data+'T00:00:00').toLocaleDateString('pt-BR')+'</td>';
+          html += '<td>'+fmt(h.valorAnterior||0)+'/mês</td>';
+          html += '<td class="pos">'+fmt(h.valorNovo||0)+'/mês</td>';
+          html += '<td>'+(h.obs||'—')+'</td></tr>';
+        });
+        html += '</table>';
+        var receitaCalc = calcularReceitaAluguelLote(l, l.contratoMeses||12);
+        html += '<div style="font-size:11px;color:#666;margin-bottom:14px">Receita acumulada estimada do contrato (ponderada pelos valores de cada período): <strong style="color:#1B4D2E">'+fmt(receitaCalc)+'</strong></div>';
+      });
+    }
   }
 
   html += '<div style="margin-top:30px;color:#999;font-size:10px;text-align:center">Fazenda Gestão — Relatório gerado em '+hoje+'</div>';
