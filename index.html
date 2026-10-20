@@ -1048,9 +1048,9 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
       <div class="form-grid">
         <div class="field">
           <label>Motivo *</label>
-          <select id="baixa-motivo">
+          <select id="baixa-motivo" onchange="onMotivoBaixaChange()">
             <option value="morte">💀 Morte</option>
-            <option value="venda">💰 Venda antecipada</option>
+            <option value="venda">💰 Venda (abre Registrar Venda)</option>
             <option value="descarte">🚫 Descarte</option>
             <option value="roubo">⚠️ Roubo/Extravio</option>
             <option value="outro">📝 Outro</option>
@@ -1218,6 +1218,31 @@ function totalCustoMensal(){ return state.custos.reduce(function(a,c){return a+c
 function totalSupMensal(){ return state.insumos.reduce(function(a,i){return a+(consumoEfetivo(i)*i.preco);},0); }
 function custoMensalTotal(){ return totalCustoMensal()+totalSupMensal(); }
 function custoUnicoTotal(){ var t=0; state.custos.forEach(function(c){ if(c.freq==='unico') t+=c.valor; }); return t; }
+// ===== BASE COMUM DOS CÁLCULOS (Dashboard, Projeção e Cenários usam a mesma regra) =====
+// Animais que serão vendidos: tudo menos terceiros (não são nossos), vacas (matrizes) e lotes encerrados
+function lotesParaVenda(){ return state.lotes.filter(function(l){ return l.tipo!=='terceiro' && l.tipo!=='vaca' && l.tipo!=='encerrado' && (l.qtd||0)>0; }); }
+// Vendas já realizadas: receita recebida e custo de compra dos animais vendidos
+function vendasRealizadas(){
+  var r={receita:0,custoCompra:0,qtd:0};
+  (state.vendas||[]).forEach(function(v){ r.receita+=(v.receitaTotal||0); r.custoCompra+=(v.custoTotal||0); r.qtd+=(v.qtd||0); });
+  return r;
+}
+// Valor de estoque: comprado (investimento já feito) e restante (ainda vai ser consumido)
+function estoqueCompradoValor(){ return state.insumos.reduce(function(a,i){ return a+((parseFloat(i.qtd)||0)*(parseFloat(i.preco)||0)); },0); }
+function estoqueRestanteValor(){ return state.insumos.reduce(function(a,i){ return a+(sacosRestantes(i)*(parseFloat(i.preco)||0)); },0); }
+// Custo operacional projetado: custos fixos × meses + só a suplementação que o estoque restante NÃO cobre
+function custoOperacionalProjetado(meses){
+  var supl = Math.max(0, totalSupMensal()*meses - estoqueRestanteValor());
+  return totalCustoMensal()*meses + supl;
+}
+// Receita projetada de venda: peso meta do lote (se houver) ou o peso informado, × preço
+function receitaProjetadaVenda(pesoPadrao, preco, fatorPeso){
+  var f = fatorPeso||1;
+  return lotesParaVenda().reduce(function(a,l){
+    var pf = (l.pesoMeta && l.pesoMeta>0) ? l.pesoMeta*f : pesoPadrao;
+    return a + l.qtd*pf*preco;
+  },0);
+}
 function sacosRestantes(i){
   var qtd=parseFloat(i.qtd)||0;
   var consumo=consumoEfetivo(i);
@@ -1634,24 +1659,30 @@ function renderDashboard(){
     var cu2=custoUnicoTotal();
     var pv=330,pw=14,pr=prazoDashboard||10;
     var elPrazoD=document.getElementById('dash-prazo'); if(elPrazoD) elPrazoD.value=pr;
-    var rec=novilhas.reduce(function(a,l){return a+(l.qtd*pw*pv);},0);
-    var cc=novilhas.reduce(function(a,l){return a+(l.qtd*l.pesoEntrada*l.precoCompra);},0);
-    var co=custoMes*pr, luc=rec-cc-co-estoqueTotal-cu2;
+    var vendidos=lotesParaVenda();
+    var vr=vendasRealizadas();
+    var rec=receitaProjetadaVenda(pw,pv);
+    var cc=vendidos.reduce(function(a,l){return a+(l.qtd*(l.pesoEntrada||0)*(l.precoCompra||0));},0);
+    var estoqueComprado=estoqueCompradoValor();
+    var co=custoOperacionalProjetado(pr);
+    var recAluguel=state.lotes.reduce(function(a,l){ if(l.tipo!=='terceiro') return a; return a + calcularReceitaAluguelLote(l, pr); },0);
+    var totalInv=cc+vr.custoCompra+estoqueComprado+co+cu2;
+    var recTotal=rec+recAluguel+vr.receita;
+    var luc=recTotal-totalInv;
     var rfHtml='<div style="display:flex;flex-direction:column;gap:.75rem">';
     rfHtml+='<div><p style="font-size:.72rem;color:var(--clay);margin-bottom:.6rem;font-family:\'DM Mono\',monospace">COMPOSIÇÃO DE CUSTOS</p>';
-    rfHtml+='<div class="result-row"><span class="label">Compra do rebanho</span><span class="value neg">'+fmt(cc)+'</span></div>';
-    rfHtml+='<div class="result-row"><span class="label">Estoque suplementação</span><span class="value neg">'+fmt(estoqueTotal)+'</span></div>';
+    rfHtml+='<div class="result-row"><span class="label">Compra do rebanho (no pasto)</span><span class="value neg">'+fmt(cc)+'</span></div>';
+    if(vr.qtd>0) rfHtml+='<div class="result-row"><span class="label">Compra dos já vendidos ('+vr.qtd+' cab.)</span><span class="value neg">'+fmt(vr.custoCompra)+'</span></div>';
+    rfHtml+='<div class="result-row"><span class="label">Estoque suplementação</span><span class="value neg">'+fmt(estoqueComprado)+'</span></div>';
     rfHtml+='<div class="result-row"><span class="label">Custo op. ('+pr+' meses)</span><span class="value neg">'+fmt(co)+'</span></div>';
     if(cu2>0) rfHtml+='<div class="result-row"><span class="label">Custos pontuais</span><span class="value neg">'+fmt(cu2)+'</span></div>';
-    rfHtml+='<div class="result-row total"><span class="label">Total Investido</span><span class="value neg">'+fmt(cc+estoqueTotal+co+cu2)+'</span></div></div>';
+    rfHtml+='<div class="result-row total"><span class="label">Total Investido</span><span class="value neg">'+fmt(totalInv)+'</span></div></div>';
     rfHtml+='<div class="'+(luc>=0?'result-box':'result-box loss')+'">';
-    rfHtml+='<p style="font-size:.72rem;color:var(--clay);margin-bottom:.6rem;font-family:\'DM Mono\',monospace">PROJEÇÃO BASE (14@ · R$330/@)</p>';
-  var recAluguel=state.lotes.reduce(function(a,l){
-    if(l.tipo!=='terceiro') return a;
-    return a + calcularReceitaAluguelLote(l, pr);
-  },0);
-    rfHtml+='<div class="result-row"><span class="label">Receita bruta</span><span class="value pos">'+fmt(rec)+'</span></div>';
-    if(recAluguel>0) rfHtml+='<div class="result-row"><span class="label" style="font-size:.78rem;color:var(--clay)">↳ incl. aluguel mangas</span><span class="value pos" style="font-size:.82rem">'+fmt(recAluguel)+'</span></div>';
+    rfHtml+='<p style="font-size:.72rem;color:var(--clay);margin-bottom:.6rem;font-family:\'DM Mono\',monospace">PROJEÇÃO BASE (peso meta ou 14@ · R$330/@)</p>';
+    rfHtml+='<div class="result-row"><span class="label">Venda projetada (no pasto)</span><span class="value pos">'+fmt(rec)+'</span></div>';
+    if(vr.receita>0) rfHtml+='<div class="result-row"><span class="label">Vendas realizadas</span><span class="value pos">'+fmt(vr.receita)+'</span></div>';
+    if(recAluguel>0) rfHtml+='<div class="result-row"><span class="label">Aluguel mangas</span><span class="value pos">'+fmt(recAluguel)+'</span></div>';
+    rfHtml+='<div class="result-row"><span class="label">Receita bruta total</span><span class="value pos">'+fmt(recTotal)+'</span></div>';
     rfHtml+='<div class="result-row total"><span class="label">Lucro Líquido Est.</span><span class="value '+(luc>=0?'pos':'neg')+' big">'+fmt(luc)+'</span></div>';
     rfHtml+='<div style="font-size:.72rem;color:var(--clay);margin-top:.4rem">Use a aba Projeção para simular</div></div></div>';
     document.getElementById('resumo-financeiro').innerHTML=rfHtml;
@@ -1752,9 +1783,10 @@ function renderRebanho(){
       bh+='<div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:.9rem;margin-bottom:.75rem">';
       bh+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">';
       bh+='<span class="badge red">'+(motivoLabel[b.motivo]||b.motivo)+'</span>';
-      bh+='<span style="font-size:.78rem;color:var(--clay)">'+df+'</span>';
+      bh+='<span style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.78rem;color:var(--clay)">'+df+'</span>';
+      bh+='<button class="btn sm outline" onclick="desfazerBaixa('+b.id+')">↩️ Desfazer</button></span>';
       bh+='</div>';
-      bh+='<div style="font-size:.85rem;font-weight:600;margin-bottom:.4rem">'+(loteNome?loteNome.nome:'—')+'</div>';
+      bh+='<div style="font-size:.85rem;font-weight:600;margin-bottom:.4rem">'+(loteNome?loteNome.nome:(b.loteNome||'—'))+'</div>';
       bh+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem;font-size:.78rem;color:var(--clay)">';
       bh+='<div>Qtd: <strong style="color:var(--text)">'+b.qtd+' cab.</strong></div>';
       bh+='<div>Perda: <strong style="color:#e74c3c">'+fmt(b.perda)+'</strong></div>';
@@ -1769,6 +1801,9 @@ function renderRebanho(){
       document.getElementById('rebanho').appendChild(card);
     }
     document.getElementById('historico-baixas-table').innerHTML=bh;
+  } else {
+    var cardVazio=document.getElementById('historico-baixas-card');
+    if(cardVazio && cardVazio.parentNode) cardVazio.parentNode.removeChild(cardVazio);
   }
 }
 
@@ -1897,10 +1932,11 @@ function calcularProjecao(){
   var pv=parseFloat(document.getElementById('p-preco').value)||330;
   var pw=parseFloat(document.getElementById('p-peso').value)||14;
   var pr=parseInt(document.getElementById('p-prazo').value)||10;
-  var nov=state.lotes.filter(function(l){return l.tipo!=='terceiro'&&l.tipo!=='vaca'&&l.tipo!=='encerrado';});
+  var nov=lotesParaVenda();
   var tc=nov.reduce(function(a,l){return a+l.qtd;},0);
-  var cc=nov.reduce(function(a,l){return a+(l.qtd*l.pesoEntrada*l.precoCompra);},0);
-  var ei=state.insumos.reduce(function(a,i){return a+(i.qtd*i.preco);},0);
+  var cc=nov.reduce(function(a,l){return a+(l.qtd*(l.pesoEntrada||0)*(l.precoCompra||0));},0);
+  var ei=estoqueCompradoValor();
+  var vr=vendasRealizadas();
 
   // Calculate weighted average prazo based on each lote's GMD
   var prazoMedio = pr;
@@ -1922,12 +1958,13 @@ function calcularProjecao(){
     return a + calcularReceitaAluguelLote(l, prazoMedio);
   },0);
 
-  var co=custoMensalTotal()*prazoMedio,cu=custoUnicoTotal(),ti=cc+ei+co+cu,rec=recLotes+recAluguel,luc=rec-ti;
+  var co=custoOperacionalProjetado(prazoMedio),cu=custoUnicoTotal(),ti=cc+vr.custoCompra+ei+co+cu,rec=recLotes+recAluguel+vr.receita,luc=rec-ti;
   var pr = prazoMedio; // use calculated prazo for display
   var roi=ti>0?(luc/ti)*100:0;
   var rh='<div style="display:flex;flex-direction:column;gap:.75rem">';
   rh+='<div><p style="font-size:.7rem;color:var(--clay);margin-bottom:.6rem;font-family:\'DM Mono\',monospace">CUSTOS</p>';
-  rh+='<div class="result-row"><span class="label">Compra rebanho</span><span class="value neg">'+fmt(cc)+'</span></div>';
+  rh+='<div class="result-row"><span class="label">Compra rebanho (no pasto)</span><span class="value neg">'+fmt(cc)+'</span></div>';
+  if(vr.qtd>0) rh+='<div class="result-row"><span class="label">Compra dos já vendidos ('+vr.qtd+' cab.)</span><span class="value neg">'+fmt(vr.custoCompra)+'</span></div>';
   rh+='<div class="result-row"><span class="label">Estoque supl.</span><span class="value neg">'+fmt(ei)+'</span></div>';
   rh+='<div class="result-row"><span class="label">Custo op. ('+prazoMedio+' meses médios)</span><span class="value neg">'+fmt(co)+'</span></div>';
   if(cu>0) rh+='<div class="result-row"><span class="label">Custos pontuais</span><span class="value neg">'+fmt(cu)+'</span></div>';
@@ -1942,18 +1979,22 @@ function calcularProjecao(){
     rh += '</div>';
   }
   rh+='<div class="result-row total"><span class="label">Total</span><span class="value neg">'+fmt(ti)+'</span></div>';
-  rh+='<hr class="divider"><div class="result-row"><span class="label">Receita bruta</span><span class="value pos">'+fmt(rec)+'</span></div></div>';
+  rh+='<hr class="divider"><div class="result-row"><span class="label">Venda projetada (no pasto)</span><span class="value pos">'+fmt(recLotes)+'</span></div>';
+  if(vr.receita>0) rh+='<div class="result-row"><span class="label">Vendas realizadas</span><span class="value pos">'+fmt(vr.receita)+'</span></div>';
+  if(recAluguel>0) rh+='<div class="result-row"><span class="label">Aluguel mangas</span><span class="value pos">'+fmt(recAluguel)+'</span></div>';
+  rh+='<div class="result-row"><span class="label">Receita bruta</span><span class="value pos">'+fmt(rec)+'</span></div></div>';
   rh+='<div class="'+(luc>=0?'result-box':'result-box loss')+'">';
   rh+='<p style="font-size:.7rem;color:var(--clay);margin-bottom:.8rem;font-family:\'DM Mono\',monospace">RESULTADO</p>';
   rh+='<div class="result-row total"><span class="label">Lucro Líquido</span><span class="value '+(luc>=0?'pos':'neg')+' big">'+fmt(luc)+'</span></div><hr class="divider">';
   rh+='<div class="result-row"><span class="label">ROI</span><span class="value '+(luc>=0?'pos':'neg')+'">'+fmtN(roi,1)+'%</span></div>';
   rh+='<div class="result-row"><span class="label">Lucro/mês</span><span class="value '+(luc>=0?'pos':'neg')+'">'+fmt(pr>0?luc/pr:0)+'</span></div>';
-  rh+='<div class="result-row"><span class="label">Lucro/cabeça</span><span class="value '+(luc>=0?'pos':'neg')+'">'+fmt(tc>0?luc/tc:0)+'</span></div></div></div>';
+  rh+='<div class="result-row"><span class="label">Lucro/cabeça</span><span class="value '+(luc>=0?'pos':'neg')+'">'+fmt((tc+vr.qtd)>0?luc/(tc+vr.qtd):0)+'</span></div></div></div>';
   document.getElementById('resultado-projecao').innerHTML=rh;
   var cens=[{nome:'Pessimista',preco:290,peso:13,prazo:12},{nome:'Moderado',preco:320,peso:14,prazo:10},{nome:'Otimista',preco:360,peso:15,prazo:8}];
   var ch='';
   cens.forEach(function(c){
-    var r=tc*c.peso*c.preco,cu2=cc+ei+(custoMensalTotal()*c.prazo)+custoUnicoTotal(),l=r-cu2,roi2=cu2>0?(l/cu2)*100:0;
+    var recAlugC=state.lotes.reduce(function(a,l){ if(l.tipo!=='terceiro') return a; return a + calcularReceitaAluguelLote(l, c.prazo); },0);
+    var r=receitaProjetadaVenda(c.peso,c.preco,c.peso/14)+recAlugC+vr.receita,cu2=cc+vr.custoCompra+ei+custoOperacionalProjetado(c.prazo)+custoUnicoTotal(),l=r-cu2,roi2=cu2>0?(l/cu2)*100:0;
     var cor=l>=0?'pos':'neg',bg=c.nome==='Pessimista'?'red':c.nome==='Moderado'?'yellow':'green';
     ch+='<div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:.9rem;margin-bottom:.75rem">';
     ch+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">';
@@ -2384,6 +2425,7 @@ function abrirModalBaixa(loteId){
   document.getElementById('baixa-data').value = new Date().toISOString().split('T')[0];
   document.getElementById('baixa-peso').value = lote.pesoAtual || '';
   document.getElementById('baixa-obs').value = '';
+  document.getElementById('baixa-motivo').value = 'morte';
   document.getElementById('modal-baixa-info').innerHTML =
     '<strong>' + lote.nome + '</strong> — ' + lote.qtd + ' cabeças · ' +
     fmtN(lote.pesoAtual) + '@ atual · Preço compra: ' + fmt(lote.precoCompra) + '/@';
@@ -2422,6 +2464,8 @@ function confirmarBaixa(){
   var data = document.getElementById('baixa-data').value;
   var obs = document.getElementById('baixa-obs').value.trim();
 
+  if(motivo === 'venda'){ onMotivoBaixaChange(); return; }
+
   if(qtd >= lote.qtd){
     toast('Quantidade maior ou igual ao lote. Use deletar lote se quiser remover tudo.','error');
     return;
@@ -2450,7 +2494,65 @@ function confirmarBaixa(){
   saveToFirebase();
   toast('📉 Baixa registrada — ' + qtd + ' cabeça(s) · Perda: ' + fmt(perda));
   fecharModalBaixa();
-  renderRebanho();renderDashboard();
+  renderRebanho();renderDashboard();atualizarSelectsLotes();
+}
+
+// Atualiza as listas de lotes dos formulários de pesagem e venda
+function atualizarSelectsLotes(){
+  var sel = document.getElementById('vd-lote');
+  var atual = sel ? sel.value : '';
+  popularSelectLotes('ps-lote', false);
+  popularSelectLotes('vd-lote', true);
+  if(sel && atual && state.lotes.some(function(l){ return String(l.id)===atual && l.tipo!=='encerrado'; })) sel.value = atual;
+}
+
+// "Venda" no modal de baixa: leva ao formulário Registrar Venda, que grava receita e lucro
+function onMotivoBaixaChange(){
+  var motivoEl = document.getElementById('baixa-motivo');
+  if(!motivoEl || motivoEl.value !== 'venda') return;
+  var lote = state.lotes.find(function(l){ return l.id === loteIdBaixa; });
+  if(!lote) return;
+  if(lote.tipo === 'terceiro'){
+    motivoEl.value = 'outro';
+    toast('Animais de terceiro não são vendidos por aqui. Use "Outro" para registrar a saída.','error');
+    return;
+  }
+  var qtdDigitada = parseInt(document.getElementById('baixa-qtd').value) || '';
+  var pesoDigitado = document.getElementById('baixa-peso').value;
+  var obsDigitada = document.getElementById('baixa-obs').value.trim();
+  var dataDigitada = document.getElementById('baixa-data').value;
+  fecharModalBaixa();
+  atualizarSelectsLotes();
+  document.getElementById('vd-lote').value = String(lote.id);
+  if(qtdDigitada) document.getElementById('vd-qtd').value = qtdDigitada;
+  if(pesoDigitado) document.getElementById('vd-peso').value = pesoDigitado;
+  if(obsDigitada) document.getElementById('vd-obs').value = obsDigitada;
+  if(dataDigitada) document.getElementById('vd-data').value = dataDigitada;
+  openCollapse('form-venda');
+  calcularResumoVenda();
+  var form = document.getElementById('form-venda');
+  if(form && form.scrollIntoView) setTimeout(function(){ form.scrollIntoView({behavior:'smooth', block:'start'}); }, 150);
+  toast('💵 Preencha o preço (R$/@) e registre a venda');
+}
+
+// Desfaz uma baixa: devolve as cabeças ao lote e remove o registro
+function desfazerBaixa(baixaId){
+  var b = (state.baixas||[]).find(function(x){ return x.id === baixaId; });
+  if(!b) return;
+  var lote = state.lotes.find(function(l){ return l.id == b.loteId; });
+  var msg = lote
+    ? 'Desfazer esta baixa? ' + b.qtd + ' cabeça(s) voltam para "' + lote.nome + '".'
+    : 'O lote desta baixa não existe mais. Remover apenas o registro do histórico?';
+  confirmarModal(msg, '↩️', 'Desfazer', function(){
+    if(lote){
+      lote.qtd = (lote.qtd||0) + (b.qtd||0);
+      if(lote.tipo === 'encerrado' && lote.qtd > 0 && lote.tipoAnterior) lote.tipo = lote.tipoAnterior;
+    }
+    state.baixas = state.baixas.filter(function(x){ return x.id !== baixaId; });
+    saveToFirebase();
+    toast(lote ? '↩️ Baixa desfeita — ' + b.qtd + ' cab. devolvidas a ' + lote.nome : '↩️ Registro removido');
+    renderRebanho();renderDashboard();atualizarSelectsLotes();
+  });
 }
 
 // ===== HISTÓRICO DE VALOR DE ALUGUEL (contratos com terceiros) =====
@@ -3552,6 +3654,7 @@ function popularSelectLotes(selectId, excluirTerceiro){
   sel.innerHTML = '<option value="">— Selecionar lote —</option>';
   state.lotes.forEach(function(l){
     if(excluirTerceiro && l.tipo==='terceiro') return;
+    if(l.tipo==='encerrado' || !(l.qtd>0)) return;
     var opt = document.createElement('option');
     opt.value = l.id;
     opt.textContent = l.nome + ' (' + l.qtd + ' cab.)';
@@ -3677,6 +3780,7 @@ function salvarVenda(){
   var idx = state.lotes.findIndex(function(l){ return l.id===loteId; });
   state.lotes[idx].qtd = lote.qtd - qtd;
   if(state.lotes[idx].qtd === 0){
+    state.lotes[idx].tipoAnterior = state.lotes[idx].tipo;
     state.lotes[idx].tipo = 'encerrado';
     toast('💵 Venda registrada! Lote encerrado. Receita: '+fmt(receitaTotal));
   } else {
@@ -3692,6 +3796,7 @@ function salvarVenda(){
   renderHistoricoVendas();
   renderRebanho();
   renderDashboard();
+  atualizarSelectsLotes();
 }
 
 function calcularResumoVenda(){
@@ -4815,7 +4920,7 @@ function getContratoStatus(lote){
     ? 'Vence hoje!'
     : 'Mês '+mesAtual+' de '+lote.contratoMeses+' · vence em '+diasRestantes+' dias';
   var subTxt = '1º pagamento: '+dtPrimeiro.toLocaleDateString('pt-BR')+' · Vence: '+dtFim.toLocaleDateString('pt-BR');
-  return { cor: cor, txt: txt, subTxt: subTxt, dtFim: dtFim, diasRestantes: diasRestantes, total: (lote.aluguel||0)*lote.contratoMeses };
+  return { cor: cor, txt: txt, subTxt: subTxt, dtFim: dtFim, diasRestantes: diasRestantes, total: calcularReceitaAluguelLote(lote, lote.contratoMeses) };
 }
 
 
