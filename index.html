@@ -928,6 +928,13 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
           </div>
           <span class="config-arrow">›</span>
         </div>
+        <div class="config-item" id="cfg-backup" onclick="exportarBackupJSON()">
+          <div class="config-item-left">
+            <div class="config-icon gold">💾</div>
+            <div><div class="config-label">Backup dos dados (JSON)</div><div class="config-sub">Baixa uma cópia de todos os dados desta fazenda</div></div>
+          </div>
+          <span class="config-arrow">›</span>
+        </div>
         <div class="config-item">
           <div class="config-item-left">
             <div class="config-icon sky">💾</div>
@@ -1282,7 +1289,26 @@ function setSyncStatus(s){
 
 // FIREBASE SAVE
 var _saveTimer = null;
+var dadosCarregados = false;
+// Baixa uma cópia completa dos dados da fazenda ativa (lotes, insumos, custos, animais, baixas, pesagens, vendas, trocas)
+function exportarBackupJSON(){
+  if(!dadosCarregados){ toast('Dados ainda não carregaram','error'); return; }
+  var payload = { app:'Fazenda Gestão', fazenda:getFirebasePrefix(), geradoEm:new Date().toISOString(), prazoDashboard:prazoDashboard, dados:state };
+  var blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  var d = new Date(); var pad=function(n){return n<10?'0'+n:n;};
+  a.href = url; a.download = 'fazenda-backup-'+getFirebasePrefix()+'-'+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'-'+pad(d.getHours())+pad(d.getMinutes())+'.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+  toast('💾 Backup baixado');
+}
 function saveToFirebase(){
+  if(!dadosCarregados){
+    toast('⚠️ Dados ainda não carregaram — alteração não salva. Verifique a conexão.','error');
+    setSyncStatus('off');
+    return;
+  }
   if(_saveTimer) clearTimeout(_saveTimer);
   _saveTimer = setTimeout(function(){
     setSyncStatus('sync');
@@ -1373,10 +1399,12 @@ function startListening(){
       state.pesagens=Array.isArray(data.pesagens)?data.pesagens:(data.pesagens?Object.values(data.pesagens):[]);
       state.vendas=Array.isArray(data.vendas)?data.vendas:(data.vendas?Object.values(data.vendas):[]);
       state.trocas=Array.isArray(data.trocas)?data.trocas:(data.trocas?Object.values(data.trocas):[]);
+      dadosCarregados = true;
       renderAll();
     } else {
       // Fazenda vazia — começa do zero
       state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[], trocas:[] };
+      dadosCarregados = true;
       renderAll();
     }
     setSyncStatus('ok');
