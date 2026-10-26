@@ -602,7 +602,8 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
               <div class="field"><label>Descrição</label><input type="text" id="c-desc" placeholder="Ex: Salário Vaqueiro"></div>
               <div class="field"><label>Categoria</label><select id="c-cat"><option value="mao_de_obra">Mão de Obra</option><option value="sanidade">Sanidade</option><option value="manutencao_terra">Manut. Terra</option><option value="manutencao_equipamento">Manut. Equipamentos</option><option value="infraestrutura">Infraestrutura</option><option value="combustivel">Combustível</option><option value="transporte">Transporte</option><option value="outro">Outro</option></select></div>
               <div class="field"><label>Valor (R$)</label><input type="number" id="c-valor" placeholder="1300" step="0.01"></div>
-              <div class="field"><label>Frequência</label><select id="c-freq"><option value="mensal">Mensal</option><option value="bimestral">A cada 2 meses</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual</option><option value="unico">Único</option></select></div>
+              <div class="field"><label>Frequência</label><select id="c-freq" onchange="toggleCampoDiasCusto()"><option value="mensal">Mensal</option><option value="bimestral">A cada 2 meses</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual</option><option value="dias">A cada X dias</option><option value="unico">Único</option></select></div>
+              <div class="field" id="c-dias-wrap" style="display:none"><label>A cada quantos dias?</label><input type="number" id="c-dias" min="1" step="1" placeholder="45"></div>
               <div class="field"><label>Data</label><input type="date" id="c-data"></div>
             </div>
             <div class="field" style="margin-top:.75rem"><label>Observação</label><input type="text" id="c-obs" placeholder="Detalhes..."></div>
@@ -611,7 +612,8 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         </div>
         <div class="card" style="margin:0"><div class="card-title">📊 Custos Mensais</div><div id="custos-mensais"></div></div>
       </div>
-      <div class="card"><div class="card-title">🗂️ Histórico de Custos</div><div id="tabela-custos"></div></div>
+      <div class="card"><div class="card-title">🗂️ Custos Cadastrados</div><div style="font-size:.74rem;color:var(--clay);margin:-.3rem 0 .8rem">Base do custo mensal e da projeção. Toque em 💵 para registrar um pagamento feito.</div><div id="tabela-custos"></div></div>
+      <div class="card"><div class="card-title">🧾 Pagamentos Realizados</div><div id="tabela-pagamentos"></div></div>
     </div>
 
     <!-- PROJEÇÃO (dono only) -->
@@ -1119,6 +1121,27 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-pagamento">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title">💵 Registrar Pagamento</div>
+      <button class="modal-close" onclick="fecharModalPagamento()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-pagamento-info" style="background:var(--green-light);border:1px solid var(--green-mid);border-radius:10px;padding:.8rem 1rem;margin-bottom:1rem;font-size:.85rem"></div>
+      <div class="form-grid">
+        <div class="field"><label>Valor pago (R$) *</label><input type="number" id="pg-valor" step="0.01"></div>
+        <div class="field"><label>Data do pagamento</label><input type="date" id="pg-data"></div>
+      </div>
+      <div class="field" style="margin-top:.75rem"><label>Observação</label><input type="text" id="pg-obs" placeholder="Ex: pago no Pix"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn outline sm" onclick="fecharModalPagamento()">Cancelar</button>
+      <button class="btn sm" onclick="confirmarPagamento()">💵 Registrar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <button class="fab" id="fab-btn" onclick="abrirModalRapido()" style="display:none">⚡</button>
 
@@ -1207,7 +1230,7 @@ function salvarPrazoDashboard(){
 // Senha vaqueiro gerenciada pelo Firebase Authentication
 
 // Estado
-var state = { lotes:[], insumos:[], custos:[], animais:[] };
+var state = { lotes:[], insumos:[], custos:[], animais:[], pagamentos:[] };
 var MANGAS_NOMES = ['Manga da Chegada','Manga do Meio','Manga do Alto','Manga da Pedra','Manga da Bananeira','Atrás do Curral','Bambu','Quicui','Baixada'];
 var prazoDashboard = 10;
 var perfil = null; // 'dono' ou 'vaqueiro'
@@ -1219,8 +1242,88 @@ var salvandoFirebase = false;
 function fmt(v){ return 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function fmtN(v,d){ d=d||1; return Number(v).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}); }
 function catLabel(c){ var m={mao_de_obra:'Mão de Obra',sanidade:'Sanidade',manutencao_terra:'Manut. Terra',manutencao_equipamento:'Manut. Equip.',infraestrutura:'Infraestrutura',combustivel:'Combustível',transporte:'Transporte',outro:'Outro'}; return m[c]||c; }
-function freqLabel(f){ var m={mensal:'Mensal',bimestral:'Bimestral',trimestral:'Trimestral',semestral:'Semestral',anual:'Anual',unico:'Pontual'}; return m[f]||f; }
-function custoMensal(c){ if(c.freq==='unico') return 0; var d={mensal:1,bimestral:2,trimestral:3,semestral:6,anual:12}; return c.valor/(d[c.freq]||1); }
+function freqLabel(f, c){ if(f==='dias') return 'A cada '+((c&&c.intervaloDias)||'?')+' dias'; var m={mensal:'Mensal',bimestral:'Bimestral',trimestral:'Trimestral',semestral:'Semestral',anual:'Anual',unico:'Pontual'}; return m[f]||f; }
+// Mês comercial de 30 dias (mesma base usada no resto do app)
+function custoMensal(c){ if(c.freq==='unico') return 0; if(c.freq==='dias') return (c.intervaloDias>0) ? c.valor*30/c.intervaloDias : 0; var d={mensal:1,bimestral:2,trimestral:3,semestral:6,anual:12}; return c.valor/(d[c.freq]||1); }
+// Intervalo do custo em dias (para prever o próximo pagamento)
+function intervaloDiasCusto(c){ if(c.freq==='dias') return c.intervaloDias||0; var d={mensal:30,bimestral:60,trimestral:90,semestral:180,anual:365}; return d[c.freq]||0; }
+// ===== PAGAMENTOS REALIZADOS (o que de fato saiu do caixa) =====
+var custoIdPagamento=null;
+var _mesesPagAbertos={};
+function fmtDataBR(d){ return d ? new Date(d+'T00:00:00').toLocaleDateString('pt-BR') : '—'; }
+function statusPagamentoCusto(c){
+  var pgs=(state.pagamentos||[]).filter(function(p){ return p.custoId==c.id && p.data; }).sort(function(a,b){ return b.data.localeCompare(a.data); });
+  var r={ultimo:pgs[0]||null, proximo:null, diasAteProximo:null};
+  var iv=intervaloDiasCusto(c);
+  if(r.ultimo && iv>0 && c.freq!=='unico'){
+    var dt=new Date(r.ultimo.data+'T00:00:00');
+    if(c.freq==='dias') dt.setDate(dt.getDate()+iv);
+    else { var mm={mensal:1,bimestral:2,trimestral:3,semestral:6,anual:12}[c.freq]||1; dt.setMonth(dt.getMonth()+mm); }
+    r.proximo=dt.toISOString().slice(0,10);
+    var hoje=new Date(); hoje.setHours(0,0,0,0);
+    r.diasAteProximo=Math.round((dt-hoje)/(1000*60*60*24));
+  }
+  return r;
+}
+function abrirModalPagamento(custoId){
+  var c=state.custos.find(function(x){ return x.id===custoId; }); if(!c) return;
+  custoIdPagamento=custoId;
+  document.getElementById('pg-valor').value=c.valor;
+  document.getElementById('pg-data').value=new Date().toISOString().slice(0,10);
+  document.getElementById('pg-obs').value='';
+  document.getElementById('modal-pagamento-info').innerHTML='<strong>'+c.desc+'</strong> · '+freqLabel(c.freq,c)+' · valor cadastrado '+fmt(c.valor);
+  document.getElementById('modal-pagamento').classList.add('open');
+}
+function fecharModalPagamento(){ document.getElementById('modal-pagamento').classList.remove('open'); custoIdPagamento=null; }
+function confirmarPagamento(){
+  var c=state.custos.find(function(x){ return x.id===custoIdPagamento; }); if(!c) return;
+  var valor=parseFloat(document.getElementById('pg-valor').value);
+  if(!(valor>0)){ toast('Informe o valor pago','error'); return; }
+  var data=document.getElementById('pg-data').value||new Date().toISOString().slice(0,10);
+  if(!state.pagamentos) state.pagamentos=[];
+  state.pagamentos.push({ id:Date.now(), custoId:c.id, desc:c.desc, cat:c.cat, valor:valor, data:data, obs:document.getElementById('pg-obs').value.trim() });
+  saveToFirebase();
+  toast('💵 Pagamento registrado: '+c.desc+' · '+fmt(valor));
+  fecharModalPagamento();
+  renderCustos();
+}
+function deletarPagamento(id){
+  var p=(state.pagamentos||[]).find(function(x){ return x.id===id; }); if(!p) return;
+  confirmarModal('Remover o pagamento de '+p.desc+' ('+fmt(p.valor)+' em '+fmtDataBR(p.data)+')?','🗑️','Remover',function(){
+    state.pagamentos=state.pagamentos.filter(function(x){ return x.id!==id; });
+    saveToFirebase(); toast('🗑️ Pagamento removido'); renderCustos();
+  });
+}
+function pagamentosPorMes(){
+  var g={};
+  (state.pagamentos||[]).forEach(function(p){ var k=(p.data||'').slice(0,7)||'sem-data'; (g[k]=g[k]||[]).push(p); });
+  return Object.keys(g).sort().reverse().map(function(k){
+    var itens=g[k].sort(function(a,b){ return (b.data||'').localeCompare(a.data||''); });
+    return { mes:k, itens:itens, total:itens.reduce(function(a,p){ return a+(p.valor||0); },0) };
+  });
+}
+function nomeMes(k){ if(k==='sem-data') return 'Sem data'; var p=k.split('-'); var n=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']; return n[parseInt(p[1],10)-1]+' de '+p[0]; }
+function renderPagamentos(){
+  var el=document.getElementById('tabela-pagamentos'); if(!el) return;
+  var meses=pagamentosPorMes();
+  if(meses.length===0){ el.innerHTML='<div class="empty"><div class="icon">🧾</div><p>Nenhum pagamento registrado. Use o 💵 em cada custo.</p></div>'; return; }
+  var planejado=totalCustoMensal();
+  var h='<div style="font-size:.74rem;color:var(--clay);margin-bottom:.6rem">Custo fixo planejado: <strong style="color:var(--text)">'+fmt(planejado)+'/mês</strong> (sem suplementação)</div>';
+  meses.forEach(function(m,i){
+    var aberto = (_mesesPagAbertos[m.mes]!==undefined) ? _mesesPagAbertos[m.mes] : (i===0);
+    h+='<details '+(aberto?'open ':'')+'ontoggle="_mesesPagAbertos[\''+m.mes+'\']=this.open" style="border:1px solid var(--border);border-radius:10px;padding:.55rem .8rem;margin-bottom:.6rem">';
+    h+='<summary style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:.86rem"><span style="font-weight:600">'+nomeMes(m.mes)+'</span><span class="mono">'+fmt(m.total)+'</span></summary>';
+    m.itens.forEach(function(p){
+      h+='<div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;border-top:1px solid var(--border);padding:.45rem 0;font-size:.8rem">';
+      h+='<div><strong>'+p.desc+'</strong><br><span style="color:var(--clay);font-size:.72rem">'+fmtDataBR(p.data)+(p.obs?' · '+p.obs:'')+'</span></div>';
+      h+='<div style="display:flex;align-items:center;gap:.4rem"><span class="mono">'+fmt(p.valor)+'</span><button class="btn sm outline" onclick="deletarPagamento('+p.id+')">🗑️</button></div>';
+      h+='</div>';
+    });
+    h+='</details>';
+  });
+  el.innerHTML=h;
+}
+function toggleCampoDiasCusto(){ var w=document.getElementById('c-dias-wrap'); if(w) w.style.display = document.getElementById('c-freq').value==='dias' ? '' : 'none'; }
 function totalCustoMensal(){ return state.custos.reduce(function(a,c){return a+custoMensal(c);},0); }
 function totalSupMensal(){ return state.insumos.reduce(function(a,i){return a+(consumoEfetivo(i)*i.preco);},0); }
 function custoMensalTotal(){ return totalCustoMensal()+totalSupMensal(); }
@@ -1399,11 +1502,12 @@ function startListening(){
       state.pesagens=Array.isArray(data.pesagens)?data.pesagens:(data.pesagens?Object.values(data.pesagens):[]);
       state.vendas=Array.isArray(data.vendas)?data.vendas:(data.vendas?Object.values(data.vendas):[]);
       state.trocas=Array.isArray(data.trocas)?data.trocas:(data.trocas?Object.values(data.trocas):[]);
+      state.pagamentos=Array.isArray(data.pagamentos)?data.pagamentos:(data.pagamentos?Object.values(data.pagamentos):[]);
       dadosCarregados = true;
       renderAll();
     } else {
       // Fazenda vazia — começa do zero
-      state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[], trocas:[] };
+      state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[], trocas:[], pagamentos:[] };
       dadosCarregados = true;
       renderAll();
     }
@@ -1483,7 +1587,7 @@ function entrar(p){
   buildNav();
   applyPerfilUI();
   // Reset state before loading correct fazenda data
-  state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[], trocas:[] };
+  state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[], trocas:[], pagamentos:[] };
   stateNotas = { todos:[], notas:[], vacinas:[], lembretes:[] };
   stateAlertas = [];
   renderAll();
@@ -1926,14 +2030,14 @@ function renderCustos(){
     mh+='<div class="result-row total"><span class="label">Total Pontual</span><span class="value">'+fmt(totalU)+'</span></div>';
   }
   document.getElementById('custos-mensais').innerHTML=mh||'<div class="empty"><p>Nenhum custo</p></div>';
-  if(state.custos.length===0){ document.getElementById('tabela-custos').innerHTML='<div class="empty"><div class="icon">💸</div><p>Nenhum custo</p></div>'; return; }
+  if(state.custos.length===0){ document.getElementById('tabela-custos').innerHTML='<div class="empty"><div class="icon">💸</div><p>Nenhum custo</p></div>'; renderPagamentos(); return; }
   var rows='';
   state.custos.forEach(function(c){
     rows+='<div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:.9rem;margin-bottom:.75rem">';
     rows+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">';
     rows+='<div><strong style="font-size:.88rem">'+c.desc+'</strong><br>';
-    rows+='<span class="badge yellow">'+catLabel(c.cat)+'</span> <span class="badge sky">'+freqLabel(c.freq)+'</span></div>';
-    rows+='<div style="display:flex;gap:.4rem"><button class="btn sm outline" onclick="editarCusto('+c.id+')">✏️</button><button class="btn sm danger" onclick="deletarCusto('+c.id+')">🗑️</button></div>';
+    rows+='<span class="badge yellow">'+catLabel(c.cat)+'</span> <span class="badge sky">'+freqLabel(c.freq,c)+'</span></div>';
+    rows+='<div style="display:flex;gap:.4rem"><button class="btn sm outline" style="color:var(--green);border-color:var(--green-mid)" onclick="abrirModalPagamento('+c.id+')">💵</button><button class="btn sm outline" onclick="editarCusto('+c.id+')">✏️</button><button class="btn sm danger" onclick="deletarCusto('+c.id+')">🗑️</button></div>';
     rows+='</div>';
     rows+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem;font-size:.78rem;color:var(--clay)">';
     rows+='<div>Valor: <strong style="color:var(--text)">'+fmt(c.valor)+'</strong></div>';
@@ -1943,9 +2047,22 @@ function renderCustos(){
       rows+='<div>Custo/mês: <strong style="color:var(--text)">'+fmt(custoMensal(c))+'</strong></div>';
     }
     if(c.obs) rows+='<div style="grid-column:1/-1">Obs: <span style="color:var(--text)">'+c.obs+'</span></div>';
+    var st=statusPagamentoCusto(c);
+    if(st.ultimo){
+      rows+='<div style="grid-column:1/-1;margin-top:.2rem">Último pagamento: <strong style="color:var(--text)">'+fmtDataBR(st.ultimo.data)+' · '+fmt(st.ultimo.valor)+'</strong>';
+      if(st.proximo){
+        var corP=st.diasAteProximo<0?'red':st.diasAteProximo<=7?'yellow':'green';
+        var txtP=st.diasAteProximo<0?'atrasado '+Math.abs(st.diasAteProximo)+' dia(s)':st.diasAteProximo===0?'vence hoje':'em '+st.diasAteProximo+' dia(s)';
+        rows+='<br>Próximo previsto: <strong style="color:var(--text)">'+fmtDataBR(st.proximo)+'</strong> <span class="badge '+corP+'">'+txtP+'</span>';
+      }
+      rows+='</div>';
+    } else if(c.freq!=='unico'){
+      rows+='<div style="grid-column:1/-1;margin-top:.2rem;font-size:.72rem">Nenhum pagamento registrado ainda.</div>';
+    }
     rows+='</div></div>';
   });
   document.getElementById('tabela-custos').innerHTML=rows;
+  renderPagamentos();
 }
 
 function calcularPrazoLote(l){
@@ -2248,21 +2365,24 @@ function salvarCusto(){
   var desc=document.getElementById('c-desc').value.trim();
   var valor=parseFloat(document.getElementById('c-valor').value);
   if(!desc||!valor){toast('Preencha descrição e valor.','error');return;}
+  var freqSel=document.getElementById('c-freq').value;
+  var intervaloDias=parseInt(document.getElementById('c-dias').value)||0;
+  if(freqSel==='dias' && intervaloDias<1){toast('Informe a cada quantos dias.','error');return;}
   var custo={id:Date.now(),desc:desc,cat:document.getElementById('c-cat').value,valor:valor,
-    freq:document.getElementById('c-freq').value,
+    freq:freqSel, intervaloDias: freqSel==='dias'?intervaloDias:null,
     data:document.getElementById('c-data').value||new Date().toISOString().split('T')[0],
     obs:document.getElementById('c-obs').value};
   var eid=document.getElementById('c-desc').dataset.editId;
   if(eid){var idx=state.custos.findIndex(function(c){return c.id==eid;});if(idx!==-1){custo.id=parseInt(eid);state.custos[idx]=custo;}delete document.getElementById('c-desc').dataset.editId;}
   else state.custos.push(custo);
-  saveToFirebase();toast('✅ Custo salvo!');['c-desc','c-valor','c-data','c-obs'].forEach(function(id){document.getElementById(id).value='';});renderCustos();
+  saveToFirebase();toast('✅ Custo salvo!');['c-desc','c-valor','c-data','c-obs','c-dias'].forEach(function(id){document.getElementById(id).value='';});document.getElementById('c-freq').value='mensal';toggleCampoDiasCusto();renderCustos();
 }
 function editarCusto(id){
   openCollapse('form-custo');
   var c=state.custos.find(function(x){return x.id===id;});if(!c)return;
   document.getElementById('c-desc').value=c.desc;document.getElementById('c-desc').dataset.editId=id;
   document.getElementById('c-cat').value=c.cat;document.getElementById('c-valor').value=c.valor;
-  document.getElementById('c-freq').value=c.freq;document.getElementById('c-data').value=c.data;
+  document.getElementById('c-freq').value=c.freq;document.getElementById('c-dias').value=c.intervaloDias||'';toggleCampoDiasCusto();document.getElementById('c-data').value=c.data;
   document.getElementById('c-obs').value=c.obs||'';showSectionById('custos');window.scrollTo(0,0);
 }
 function deletarCusto(id){
@@ -4210,6 +4330,9 @@ function abrirModalRelatorio(){
     '<div id="tog-aluguel" class="tog-item tog-on" style="display:flex;justify-content:space-between;align-items:center;padding:.6rem .75rem;border:1.5px solid var(--green-mid);border-radius:10px;margin-bottom:.5rem;cursor:pointer;background:var(--green-light)">'+
     '<span style="font-size:.85rem;font-weight:600">💱 Histórico de Aluguel</span><span class="tog-dot" style="width:36px;height:20px;background:var(--green);border-radius:10px;display:flex;align-items:center;padding:2px;box-sizing:border-box"><span style="width:16px;height:16px;background:#FFF;border-radius:50%;margin-left:auto"></span></span></div>'+
 
+    '<div id="tog-pagamentos" class="tog-item tog-on" style="display:flex;justify-content:space-between;align-items:center;padding:.6rem .75rem;border:1.5px solid var(--green-mid);border-radius:10px;margin-bottom:.5rem;cursor:pointer;background:var(--green-light)">'+
+    '<span style="font-size:.85rem;font-weight:600">🧾 Pagamentos Realizados</span><span class="tog-dot" style="width:36px;height:20px;background:var(--green);border-radius:10px;display:flex;align-items:center;padding:2px;box-sizing:border-box"><span style="width:16px;height:16px;background:#FFF;border-radius:50%;margin-left:auto"></span></span></div>'+
+
     '<div style="display:flex;gap:.5rem;margin-top:1rem">'+
     '<button id="rel-cancelar" style="flex:1;padding:.75rem;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:.9rem;cursor:pointer;color:var(--text)">Cancelar</button>'+
     '<button id="rel-gerar" style="flex:1;padding:.75rem;background:var(--green);color:#FFF;border:none;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer">📄 Gerar PDF</button>'+
@@ -4219,7 +4342,7 @@ function abrirModalRelatorio(){
   document.body.appendChild(overlay);
 
   // Wire toggles
-  var togIds = ['tog-resumo','tog-lotes','tog-supl','tog-custos','tog-pesagens','tog-vendas','tog-aluguel'];
+  var togIds = ['tog-resumo','tog-lotes','tog-supl','tog-custos','tog-pesagens','tog-vendas','tog-aluguel','tog-pagamentos'];
   for(var ti=0; ti<togIds.length; ti++){
     (function(id){
       var el = document.getElementById(id);
@@ -4256,7 +4379,8 @@ function abrirModalRelatorio(){
       custos:   document.getElementById('tog-custos').classList.contains('tog-on'),
       pesagens: document.getElementById('tog-pesagens').classList.contains('tog-on'),
       vendas:   document.getElementById('tog-vendas').classList.contains('tog-on'),
-      aluguel:  document.getElementById('tog-aluguel').classList.contains('tog-on')
+      aluguel:  document.getElementById('tog-aluguel').classList.contains('tog-on'),
+      pagamentos: document.getElementById('tog-pagamentos').classList.contains('tog-on')
     };
     overlay.parentNode.removeChild(overlay);
     gerarRelatorioPDF(opts);
@@ -4298,7 +4422,7 @@ function gerarRelatorioPDF(opts){
   html += '<h1>🐄 Fazenda Gestão — Relatório</h1>';
   html += '<div class="sub">Gerado em: '+hoje+'</div>';
 
-  if(!opts) opts = {resumo:true,lotes:true,supl:true,custos:true,pesagens:true,vendas:true,aluguel:true};
+  if(!opts) opts = {resumo:true,lotes:true,supl:true,custos:true,pesagens:true,vendas:true,aluguel:true,pagamentos:true};
 
   // KPIs resumo
   if(opts.resumo){
@@ -4358,7 +4482,7 @@ function gerarRelatorioPDF(opts){
     html += '<h2>💸 Custos Cadastrados</h2>';
     html += '<table><tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Frequência</th></tr>';
     state.custos.forEach(function(c){
-      html += '<tr><td>'+c.desc+'</td><td>'+c.cat+'</td><td>'+fmt(c.valor)+'</td><td>'+c.freq+'</td></tr>';
+      html += '<tr><td>'+c.desc+'</td><td>'+catLabel(c.cat)+'</td><td>'+fmt(c.valor)+'</td><td>'+freqLabel(c.freq,c)+'</td></tr>';
     });
     html += '</table>';
   }
@@ -4415,6 +4539,20 @@ function gerarRelatorioPDF(opts){
         var receitaCalc = calcularReceitaAluguelLote(l, l.contratoMeses||12);
         html += '<div style="font-size:11px;color:#666;margin-bottom:14px">Receita acumulada estimada do contrato (ponderada pelos valores de cada período): <strong style="color:#1B4D2E">'+fmt(receitaCalc)+'</strong></div>';
       });
+    }
+  }
+
+  // Pagamentos realizados (caixa)
+  if(opts.pagamentos){
+    var mesesPg = pagamentosPorMes();
+    if(mesesPg.length > 0){
+      html += '<h2>🧾 Pagamentos Realizados</h2>';
+      html += '<table><tr><th>Mês</th><th>Total pago</th><th>Pagamentos</th></tr>';
+      mesesPg.forEach(function(m){ html += '<tr><td>'+nomeMes(m.mes)+'</td><td class="neg">'+fmt(m.total)+'</td><td>'+m.itens.length+'</td></tr>'; });
+      html += '</table>';
+      html += '<table><tr><th>Data</th><th>Descrição</th><th>Valor</th><th>Obs</th></tr>';
+      mesesPg.forEach(function(m){ m.itens.forEach(function(p){ html += '<tr><td>'+fmtDataBR(p.data)+'</td><td>'+p.desc+'</td><td>'+fmt(p.valor)+'</td><td>'+(p.obs||'—')+'</td></tr>'; }); });
+      html += '</table>';
     }
   }
 
@@ -5374,7 +5512,7 @@ function selecionarFazenda(qual){
   try { localStorage.removeItem('fazenda_perfil'); } catch(e){}
 
   // Reset state completely
-  state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[], trocas:[] };
+  state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[], trocas:[], pagamentos:[] };
   stateNotas = { todos:[], notas:[], vacinas:[], lembretes:[] };
   stateAlertas = [];
 
