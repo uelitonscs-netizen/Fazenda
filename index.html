@@ -359,9 +359,9 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         <div class="card-title" style="justify-content:space-between">
           <span>📊 Resumo Financeiro da Operação</span>
           <span style="display:flex;align-items:center;gap:.35rem;font-family:'DM Sans',sans-serif;text-transform:none;letter-spacing:0;font-weight:400">
-            <label for="dash-prazo" style="font-size:.68rem;color:var(--clay)">Prazo:</label>
-            <input type="number" id="dash-prazo" min="1" step="1" value="10" style="width:48px;padding:.25rem .35rem;font-size:.75rem;border:1px solid var(--border);border-radius:6px;background:var(--bg2);color:var(--text)" onchange="salvarPrazoDashboard()">
-            <span style="font-size:.68rem;color:var(--clay)">meses</span>
+            <label for="dash-gmd" style="font-size:.68rem;color:var(--clay)">Ganho padrão:</label>
+            <input type="number" id="dash-gmd" min="0.05" step="0.01" value="0.35" style="width:52px;padding:.25rem .35rem;font-size:.75rem;border:1px solid var(--border);border-radius:6px;background:var(--bg2);color:var(--text)" onchange="salvarGmdPadrao()">
+            <span style="font-size:.68rem;color:var(--clay)">kg/dia</span>
           </span>
         </div>
         <div id="resumo-financeiro"></div>
@@ -484,6 +484,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
               <div class="field" id="field-peso-entrada"><label>Peso Entrada (@)</label><input type="number" id="r-peso-entrada" placeholder="6.5" step="0.1"></div>
               <div class="field" id="field-peso-atual"><label>Peso Atual (@)</label><input type="number" id="r-peso-atual" placeholder="9.0" step="0.1"></div>
               <div class="field" id="field-peso-meta"><label>Peso Meta (@)</label><input type="number" id="r-peso-meta" placeholder="14.0" step="0.1"></div>
+              <div class="field" id="field-prazo"><label>Prazo manual (meses)</label><input type="number" id="r-prazo" min="1" step="1" placeholder="vazio = pelo peso/GMD"></div>
               <div class="field" id="field-preco-compra">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem">
                   <label style="margin:0" id="label-preco-compra">Preço Compra (R$/@)</label>
@@ -1218,8 +1219,27 @@ function carregarPrazoDashboard(){
     db.ref('config/prazoDashboard').once('value').then(function(old){ aplicar(old.val()||10); }).catch(function(){ aplicar(10); });
   });
 }
+var gmdPadraoKg = 0.35, _gmdRef = null;
+function gmdPadraoArroba(){ return (gmdPadraoKg>0?gmdPadraoKg:0.35)/15; }
+function carregarGmdPadrao(){
+  if(_gmdRef) _gmdRef.off();
+  _gmdRef = db.ref('config/gmdPadrao_' + getFirebasePrefix());
+  _gmdRef.on('value', function(snap){
+    var v=parseFloat(snap.val()); gmdPadraoKg = (v>0)?v:0.35;
+    var el=document.getElementById('dash-gmd'); if(el && document.activeElement!==el) el.value=gmdPadraoKg;
+    renderDashboard();
+  });
+}
+function salvarGmdPadrao(){
+  var v=parseFloat(document.getElementById('dash-gmd').value);
+  if(!(v>0)){ v=0.35; }
+  gmdPadraoKg=v; document.getElementById('dash-gmd').value=v;
+  db.ref('config/gmdPadrao_'+getFirebasePrefix()).set(v).catch(function(){ toast('Erro ao salvar ganho padrão','error'); });
+  renderDashboard(); renderRebanho();
+}
 function salvarPrazoDashboard(){
-  var v = parseInt(document.getElementById('dash-prazo').value)||10;
+  var elP=document.getElementById('dash-prazo'); if(!elP) return;
+  var v = parseInt(elP.value)||10;
   if(v < 1) v = 1;
   prazoDashboard = v;
   document.getElementById('dash-prazo').value = v;
@@ -1345,6 +1365,65 @@ function custoOperacionalProjetado(meses){
   var supl = Math.max(0, totalSupMensal()*meses - estoqueRestanteValor());
   return totalCustoMensal()*meses + supl;
 }
+// Custo operacional já consumido pelos animais vendidos (fatia rateada em cada venda), dividido por categoria
+function gastoComVendidos(){
+  var total=(state.vendas||[]).reduce(function(a,v){ return a+(v.custoRateado||0); },0);
+  var qtd=(state.vendas||[]).reduce(function(a,v){ return a+(v.qtd||0); },0);
+  var comp={}; var base=0;
+  state.custos.forEach(function(c){ if(c.freq!=='unico'){ var k=catLabel(c.cat); var m=custoMensal(c); comp[k]=(comp[k]||0)+m; base+=m; } });
+  var sup=totalSupMensal(); if(sup>0){ comp['Suplementação']=(comp['Suplementação']||0)+sup; base+=sup; }
+  var porCat=[];
+  Object.keys(comp).forEach(function(k){ if(base>0) porCat.push({cat:k, valor:total*(comp[k]/base)}); });
+  porCat.sort(function(a,b){ return b.valor-a.valor; });
+  return {total:total, qtd:qtd, porCat:porCat};
+}
+function htmlGastoComVendidos(vr){
+  var g=gastoComVendidos();
+  if(!(g.total>0)) return '';
+  var h='<details style="margin:-.2rem 0 .2rem">';
+  h+='<summary class="result-row" style="cursor:pointer;list-style:none;padding-left:.2rem"><span class="label" style="font-size:.8rem;color:var(--clay)">↳ gasto com os já vendidos ('+g.qtd+' cab.) <span style="font-size:.68rem">▾</span></span><span class="value" style="font-size:.85rem;color:var(--clay)">'+fmt(g.total)+'</span></summary>';
+  h+='<div style="padding:.2rem 0 .4rem 1.1rem;border-left:2px solid var(--border);margin-left:.4rem">';
+  g.porCat.forEach(function(x){ h+='<div class="result-row" style="padding:.15rem 0"><span class="label" style="font-size:.76rem;color:var(--clay)">'+x.cat+'</span><span class="value" style="font-size:.78rem;color:var(--clay)">'+fmt(x.valor)+'</span></div>'; });
+  h+='<div style="font-size:.66rem;color:var(--clay);margin-top:.3rem;opacity:.8">Já incluído no custo op. acima — não soma no total.</div>';
+  h+='</div></details>';
+  return h;
+}
+// ===== CICLO POR LOTE (entrada + prazo = venda prevista) =====
+var MS_MES = 30*24*60*60*1000;
+// Ciclo de cada lote. Ordem: prazo manual > GMD real (pesagens) > ganho padrão (kg/dia) > prazo padrão (sem pesos)
+function cicloLote(l){
+  var dt=l.data?new Date(l.data+'T00:00:00'):null; if(dt && isNaN(dt.getTime())) dt=null;
+  var decorrido=dt?Math.max(0,(Date.now()-dt.getTime())/MS_MES):0;
+  var r={ prazo:0, decorrido:decorrido, restante:0, previsao:null, atrasado:false, pronto:false, temData:!!dt, fonte:'', gmdKg:null };
+  if(l.prazoMeses>0){
+    r.prazo=l.prazoMeses; r.restante=Math.max(0,r.prazo-decorrido); r.atrasado=decorrido>r.prazo; r.fonte='manual';
+    r.previsao=dt?new Date(dt.getTime()+r.prazo*MS_MES):new Date(Date.now()+r.restante*MS_MES);
+    return r;
+  }
+  var meta=parseFloat(l.pesoMeta)||0, atual=parseFloat(l.pesoAtual)||parseFloat(l.pesoEntrada)||0;
+  if(meta>0 && atual>0){
+    var gReal=calcularGMD(l); var g=(gReal&&gReal>0)?gReal:gmdPadraoArroba();
+    r.fonte=(gReal&&gReal>0)?'gmd':'padrao'; r.gmdKg=g*15;
+    if(atual>=meta){ r.pronto=true; r.restante=0; }
+    else r.restante=((meta-atual)/g)/30;
+    r.previsao=new Date(Date.now()+r.restante*MS_MES); r.prazo=decorrido+r.restante;
+    return r;
+  }
+  r.prazo=prazoDashboard||10; r.restante=Math.max(0,r.prazo-decorrido); r.atrasado=decorrido>r.prazo; r.fonte='sem-peso';
+  r.previsao=dt?new Date(dt.getTime()+r.prazo*MS_MES):new Date(Date.now()+r.restante*MS_MES);
+  return r;
+}
+function prazoDoLote(l){ return cicloLote(l).prazo; }
+// Horizonte da operação: do primeiro lote que entrou até a última venda prevista (só lotes que serão vendidos)
+function horizonteOperacao(){
+  var ls=lotesParaVenda(); var ini=null, fim=null, restanteMax=0;
+  ls.forEach(function(l){ var ci=cicloLote(l); var d=ci.temData?new Date(l.data+'T00:00:00'):new Date();
+    if(!ini||d<ini) ini=d; if(ci.previsao && (!fim||ci.previsao>fim)) fim=ci.previsao; if(ci.restante>restanteMax) restanteMax=ci.restante; });
+  if(!ini||!fim) return { inicio:null, fim:null, meses:(prazoDashboard||10), restante:(prazoDashboard||10), lotes:ls.length };
+  var meses=Math.max(1,(fim-ini)/MS_MES);
+  return { inicio:ini, fim:fim, meses:meses, restante:restanteMax, lotes:ls.length };
+}
+function fmtMesAno(d){ if(!d) return '—'; var m=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']; return m[d.getMonth()]+'/'+String(d.getFullYear()).slice(2); }
 // Receita projetada de venda: peso meta do lote (se houver) ou o peso informado, × preço
 function receitaProjetadaVenda(pesoPadrao, preco, fatorPeso){
   var f = fatorPeso||1;
@@ -1425,6 +1504,7 @@ function saveToFirebase(){
 // FIREBASE LISTEN — só escuta mudanças remotas quando não está salvando
 function startListening(){
   carregarPrazoDashboard();
+  carregarGmdPadrao();
   // Force logout listener — checks if other sessions were terminated
   var minhaSessaoId = localStorage.getItem('fazenda_sessao_id');
 
@@ -1796,17 +1876,29 @@ function renderDashboard(){
     var rec=receitaProjetadaVenda(pw,pv);
     var cc=vendidos.reduce(function(a,l){return a+(l.qtd*(l.pesoEntrada||0)*(l.precoCompra||0));},0);
     var estoqueComprado=estoqueCompradoValor();
-    var co=custoOperacionalProjetado(pr);
-    var recAluguel=state.lotes.reduce(function(a,l){ if(l.tipo!=='terceiro') return a; return a + calcularReceitaAluguelLote(l, pr); },0);
+    var hz=horizonteOperacao();
+    var mesesOp=Math.round(hz.meses*10)/10;
+    var co=custoOperacionalProjetado(hz.meses);
+    var recAluguel=state.lotes.reduce(function(a,l){ if(l.tipo!=='terceiro') return a; return a + calcularReceitaAluguelLote(l, Math.max(pr,hz.meses)); },0);
     var totalInv=cc+vr.custoCompra+estoqueComprado+co+cu2;
     var recTotal=rec+recAluguel+vr.receita;
     var luc=recTotal-totalInv;
     var rfHtml='<div style="display:flex;flex-direction:column;gap:.75rem">';
+    if(hz.inicio){
+      var lotesAtrasados=lotesParaVenda().filter(function(l){ return cicloLote(l).atrasado; }).length;
+      rfHtml+='<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.6rem .8rem;font-size:.78rem;line-height:1.5"><span style="color:var(--clay)">Operação:</span> <strong>'+fmtMesAno(hz.inicio)+' → '+fmtMesAno(hz.fim)+'</strong> · <strong>'+mesesOp+' meses</strong> <span style="color:var(--clay)">· '+hz.lotes+' lote(s) · faltam '+Math.ceil(hz.restante)+' meses</span>';
+      var lotesProntos=lotesParaVenda().filter(function(l){ return cicloLote(l).pronto; }).length;
+      var comGmd=lotesParaVenda().filter(function(l){ return cicloLote(l).fonte==='gmd'; }).length;
+      if(lotesProntos>0) rfHtml+='<br><span class="badge green">✅ '+lotesProntos+' lote(s) no peso de venda</span>';
+      if(lotesAtrasados>0) rfHtml+='<br><span class="badge red">⚠️ '+lotesAtrasados+' lote(s) passaram do prazo manual</span>';
+      rfHtml+='<br><span style="font-size:.68rem;color:var(--clay)">Prazo de cada lote pelo peso que falta até a meta: GMD real das pesagens ('+comGmd+' lote(s)) ou ganho padrão de '+gmdPadraoKg+' kg/dia. Custo operacional cobre o período inteiro.</span></div>';
+    }
     rfHtml+='<div><p style="font-size:.72rem;color:var(--clay);margin-bottom:.6rem;font-family:\'DM Mono\',monospace">COMPOSIÇÃO DE CUSTOS</p>';
     rfHtml+='<div class="result-row"><span class="label">Compra do rebanho (no pasto)</span><span class="value neg">'+fmt(cc)+'</span></div>';
     if(vr.qtd>0) rfHtml+='<div class="result-row"><span class="label">Compra dos já vendidos ('+vr.qtd+' cab.)</span><span class="value neg">'+fmt(vr.custoCompra)+'</span></div>';
     rfHtml+='<div class="result-row"><span class="label">Estoque suplementação</span><span class="value neg">'+fmt(estoqueComprado)+'</span></div>';
-    rfHtml+='<div class="result-row"><span class="label">Custo op. ('+pr+' meses)</span><span class="value neg">'+fmt(co)+'</span></div>';
+    rfHtml+='<div class="result-row"><span class="label">Custo op. ('+mesesOp+' meses)</span><span class="value neg">'+fmt(co)+'</span></div>';
+    rfHtml+=htmlGastoComVendidos(vr);
     if(cu2>0) rfHtml+='<div class="result-row"><span class="label">Custos pontuais</span><span class="value neg">'+fmt(cu2)+'</span></div>';
     rfHtml+='<div class="result-row total"><span class="label">Total Investido</span><span class="value neg">'+fmt(totalInv)+'</span></div></div>';
     rfHtml+='<div class="'+(luc>=0?'result-box':'result-box loss')+'">';
@@ -1858,6 +1950,15 @@ function renderRebanho(){
       rows+='<div>Peso entrada: <strong style="color:var(--text)">'+fmtN(l.pesoEntrada)+'@</strong></div>';
       rows+='<div>Peso atual: <strong style="color:var(--text)">'+fmtN(l.pesoAtual)+'@</strong></div>';
       rows+='<div>Peso meta: <strong style="color:var(--text)">'+fmtN(l.pesoMeta)+'@</strong></div>';
+      if(l.tipo!=='vaca' && l.qtd>0){
+        var ci=cicloLote(l);
+        var cor=ci.pronto?'green':ci.atrasado?'red':(ci.restante<=1?'yellow':'green');
+        var txt=ci.pronto?'no peso de venda':ci.atrasado?'passou '+Math.ceil(ci.decorrido-ci.prazo)+' mês(es) do prazo':'faltam '+(ci.restante<1?'menos de 1 mês':Math.ceil(ci.restante)+' mês(es)');
+        var fonte=ci.fonte==='manual'?'prazo manual '+ci.prazo+' m':ci.fonte==='gmd'?'GMD real '+fmtN(ci.gmdKg,2)+' kg/dia':ci.fonte==='padrao'?'ganho padrão '+fmtN(ci.gmdKg,2)+' kg/dia':'prazo padrão '+ci.prazo+' m, sem peso';
+        var metaR=parseFloat(l.pesoMeta)||0, atualR=parseFloat(l.pesoAtual)||parseFloat(l.pesoEntrada)||0, faltaA=Math.max(0,metaR-atualR);
+        var faltaTxt=(metaR>0&&atualR>0)?(faltaA>0?'falta <strong style="color:var(--text)">'+fmtN(faltaA,1)+'@ ('+Math.round(faltaA*15)+' kg)</strong> por cabeça · '+Math.round(faltaA*15*(l.qtd||0))+' kg no lote':'meta atingida'):'';
+        rows+='<div style="grid-column:1/-1">📅 Venda prevista: <strong style="color:var(--text)">'+(ci.previsao?fmtMesAno(ci.previsao):'—')+'</strong> <span class="badge '+cor+'">'+txt+'</span> <span style="font-size:.7rem">('+fonte+')</span>'+(faltaTxt?'<br><span style="font-size:.74rem">⚖️ '+faltaTxt+'</span>':'')+'</div>';
+      }
     } else {
       rows+='<div>Aluguel: <strong style="color:var(--green-mid)">'+fmt(l.aluguel||0)+'/mês</strong></div>';
       if(l.historicoAluguel && l.historicoAluguel.length>0){
@@ -2066,17 +2167,10 @@ function renderCustos(){
 }
 
 function calcularPrazoLote(l){
-  // Calculate months to reach target weight based on GMD
-  var gmd = calcularGMD(l);
-  if(gmd && gmd > 0 && l.pesoMeta && l.pesoAtual){
-    var arrobasRestantes = l.pesoMeta - l.pesoAtual;
-    if(arrobasRestantes <= 0) return 1; // Already at target
-    var diasRestantes = arrobasRestantes / gmd;
-    var meses = Math.ceil(diasRestantes / 30);
-    return Math.max(1, meses);
-  }
-  // Fallback: use manual prazo field or default 10
-  return parseInt(document.getElementById('p-prazo').value)||10;
+  // Mesmo ciclo do Dashboard: prazo manual > GMD real > ganho padrão > (sem pesos) campo da Projeção
+  var ci=cicloLote(l);
+  if(ci.fonte==='sem-peso') return parseInt(document.getElementById('p-prazo').value)||10;
+  return Math.max(1, Math.ceil(ci.restante));
 }
 
 function calcularProjecao(){
@@ -2277,6 +2371,7 @@ function salvarLote(){
   var lote={id:Date.now(),nome:nome,tipo:document.getElementById('r-tipo').value,qtd:qtd,pesoEntrada:isTerceiro?0:pe,
     pesoAtual:parseFloat(document.getElementById('r-peso-atual').value)||pe,
     pesoMeta:parseFloat(document.getElementById('r-peso-meta').value)||pe,
+    prazoMeses:(isTerceiro?null:(parseInt(document.getElementById('r-prazo').value)||null)),
     precoCompra:calcularPrecoArroba(),
     data:document.getElementById('r-data').value||new Date().toISOString().split('T')[0],
     obs:document.getElementById('r-obs').value,
@@ -2299,7 +2394,7 @@ function editarLote(id){
   document.getElementById('r-nome').value=l.nome;document.getElementById('r-nome').dataset.editId=id;
   document.getElementById('r-tipo').value=(l.tipo==='encerrado'?(l.tipoAnterior||'novilha'):l.tipo);document.getElementById('r-qtd').value=l.qtd;
   document.getElementById('r-peso-entrada').value=l.pesoEntrada;document.getElementById('r-peso-atual').value=l.pesoAtual;
-  document.getElementById('r-peso-meta').value=l.pesoMeta;document.getElementById('r-preco-compra').value=l.precoCompra;
+  document.getElementById('r-peso-meta').value=l.pesoMeta;document.getElementById('r-preco-compra').value=l.precoCompra;document.getElementById('r-prazo').value=l.prazoMeses||'';
   document.getElementById('r-data').value=l.data;document.getElementById('r-obs').value=l.obs||'';
   document.getElementById('r-manga').value=l.manga||'';
   document.getElementById('r-manga-data').value=l.mangaData||'';
@@ -2326,7 +2421,7 @@ function deletarLote(id){
     saveToFirebase();toast('🗑️ Lote removido.');renderRebanho();renderDashboard();
   });
 }
-function limparFormRebanho(){['r-nome','r-qtd','r-peso-entrada','r-peso-atual','r-peso-meta','r-preco-compra','r-data','r-obs','r-manga-data','r-manga-dias','r-aluguel','r-contrato-inicio','r-contrato-meses'].forEach(function(id){var el=document.getElementById(id);if(el){el.value='';delete el.dataset.editId;}});}
+function limparFormRebanho(){['r-nome','r-qtd','r-prazo','r-peso-entrada','r-peso-atual','r-peso-meta','r-preco-compra','r-data','r-obs','r-manga-data','r-manga-dias','r-aluguel','r-contrato-inicio','r-contrato-meses'].forEach(function(id){var el=document.getElementById(id);if(el){el.value='';delete el.dataset.editId;}});}
 
 // ===== CRUD INSUMOS =====
 function salvarInsumo(){
@@ -3813,13 +3908,13 @@ function toggleAluguelField(){
   var fa = document.getElementById('field-aluguel');
   if(fa) fa.style.display = isTerceiro ? 'block' : 'none';
   // Hide/show peso and preco fields for terceiro
-  var hideFields = ['field-peso-entrada','field-peso-atual','field-peso-meta','field-preco-compra'];
+  var hideFields = ['field-peso-entrada','field-peso-atual','field-peso-meta','field-preco-compra','field-prazo'];
   hideFields.forEach(function(id){
     var el = document.getElementById(id);
     if(!el) return;
     if(isTerceiro){
       el.style.display = 'none';
-    } else if(isVacaRecria && id === 'field-peso-meta'){
+    } else if(isVacaRecria && (id === 'field-peso-meta' || id === 'field-prazo')){
       el.style.display = 'none'; // sem meta de engorda
     } else {
       el.style.display = '';
