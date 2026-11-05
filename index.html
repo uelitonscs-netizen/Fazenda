@@ -362,6 +362,8 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
             <label for="dash-gmd" style="font-size:.68rem;color:var(--clay)">Ganho padrão:</label>
             <input type="number" id="dash-gmd" min="0.05" step="0.01" value="0.35" style="width:52px;padding:.25rem .35rem;font-size:.75rem;border:1px solid var(--border);border-radius:6px;background:var(--bg2);color:var(--text)" onchange="salvarGmdPadrao()">
             <span style="font-size:.68rem;color:var(--clay)">kg/dia</span>
+            <label for="dash-gmdmeta" style="font-size:.68rem;color:var(--clay);margin-left:.4rem">Meta GMD:</label>
+            <input type="number" id="dash-gmdmeta" min="0.05" step="0.01" value="0.50" style="width:52px;padding:.25rem .35rem;font-size:.75rem;border:1px solid var(--border);border-radius:6px;background:var(--bg2);color:var(--text)" onchange="salvarGmdMeta()">
           </span>
         </div>
         <div id="resumo-financeiro"></div>
@@ -382,6 +384,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
             <div class="field"><label>Lote</label><select id="an-lote"></select></div>
             <div class="field"><label>Tipo</label><select id="an-tipo"><option value="novilha">Novilha</option><option value="vaca">Vaca</option><option value="bezerro">Bezerra/o</option><option value="cria_terra">Cria da Terra</option><option value="touro">Touro</option></select></div>
             <div class="field"><label>Raça</label><input type="text" id="an-raca" placeholder="Ex: Nelore cruzado"></div>
+            <div class="field"><label>Marca permanente</label><input type="text" id="an-marca" placeholder="Ex: ferro na anca, mancha na testa"></div>
             <div class="field"><label>Peso Atual (@)</label><input type="number" id="an-peso" placeholder="9.0" step="0.1"></div>
             <div class="field"><label>Sexo</label><select id="an-sexo"><option value="femea">Fêmea</option><option value="macho">Macho</option></select></div>
             <div class="field"><label>Data Nascimento</label><input type="date" id="an-nasc"></div>
@@ -544,11 +547,25 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         </div>
         <div class="collapse-body" id="form-pesagem">
           <div class="form-grid">
-            <div class="field"><label>Lote</label><select id="ps-lote"></select></div>
-            <div class="field"><label>Novo Peso Médio (@)</label><input type="number" id="ps-peso" placeholder="Ex: 11.5" step="0.1"></div>
-            <div class="field"><label>Data da Pesagem</label><input type="date" id="ps-data"></div>
+            <div class="field"><label>Lote</label><select id="ps-lote" onchange="renderPesagemLinhas()"></select></div>
+            <div class="field"><label>Data da Pesagem</label><input type="date" id="ps-data" onchange="renderPesagemLinhas()"></div>
           </div>
+          <div style="display:flex;gap:.5rem;margin:.7rem 0;flex-wrap:wrap;align-items:center">
+            <button class="btn sm outline" onclick="toggleColarPesos()">📋 Colar lista</button>
+            <button class="btn sm outline" onclick="addLinhaPesagem()">➕ Linha</button>
+            <span style="font-size:.72rem;color:var(--clay)">Brinco é opcional · peso em kg</span>
+          </div>
+          <div id="ps-colar-wrap" style="display:none;background:var(--bg);border:1px dashed var(--border);border-radius:10px;padding:.7rem .8rem;margin-bottom:.8rem">
+            <div style="font-size:.74rem;color:var(--clay);margin-bottom:.4rem">Um animal por linha: <span class="mono">brinco peso</span> ou só o peso. Ex: <span class="mono">052 400</span></div>
+            <textarea id="ps-colar" rows="4" style="width:100%;font-family:'DM Mono',monospace;font-size:.82rem" placeholder="052 400&#10;014 349&#10;372"></textarea>
+            <div style="display:flex;gap:.5rem;margin-top:.4rem;align-items:center"><button class="btn sm" onclick="colarListaPesos()">Preencher</button><span id="ps-colar-info" style="font-size:.72rem;color:var(--clay)"></span></div>
+          </div>
+          <div id="ps-linhas"></div>
+          <div id="ps-resumo" style="margin-top:.6rem"></div>
+          <div class="field" style="margin-top:.6rem"><label>Ou só a média do lote (@) — modo antigo</label><input type="number" id="ps-media" placeholder="Ex: 11.5" step="0.1" oninput="renderPesagemResumo()"></div>
           <div class="field" style="margin-top:.5rem"><label>Observação</label><input type="text" id="ps-obs" placeholder="Ex: Pesagem pré-venda"></div>
+          <label style="display:flex;align-items:center;gap:.5rem;font-size:.8rem;margin-top:.6rem;cursor:pointer"><input type="checkbox" id="ps-atualiza-lote" checked> Atualizar o peso médio do lote com esta pesagem</label>
+          <div id="ps-aviso-parcial" style="display:none;font-size:.74rem;color:var(--gold);margin-top:.3rem"></div>
           <button class="btn" style="margin-top:1rem;width:100%;justify-content:center" onclick="salvarPesagem()">⚖️ Registrar Pesagem</button>
         </div>
       </div>
@@ -1122,6 +1139,22 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-brinco">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header"><div class="modal-title">🏷️ Trocar Brinco</div><button class="modal-close" onclick="fecharModalBrinco()">✕</button></div>
+    <div class="modal-body">
+      <div id="modal-brinco-info" style="background:var(--green-light);border:1px solid var(--green-mid);border-radius:10px;padding:.8rem 1rem;margin-bottom:1rem;font-size:.85rem"></div>
+      <div class="form-grid">
+        <div class="field"><label>Novo brinco *</label><input type="text" id="tb-novo"></div>
+        <div class="field"><label>Motivo</label><select id="tb-motivo"><option value="caiu">Caiu / perdeu</option><option value="quebrou">Quebrou</option><option value="ilegivel">Ilegível</option><option value="outro">Outro</option></select></div>
+      </div>
+      <div class="field" style="margin-top:.6rem"><label>Data</label><input type="date" id="tb-data"></div>
+      <div style="font-size:.72rem;color:var(--clay);margin-top:.5rem">O número novo passa a apontar para a mesma ficha. As pesagens e eventos continuam.</div>
+    </div>
+    <div class="modal-footer"><button class="btn outline sm" onclick="fecharModalBrinco()">Cancelar</button><button class="btn sm" onclick="confirmarTrocaBrinco()">🏷️ Confirmar</button></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-pagamento">
   <div class="modal" style="max-width:480px">
     <div class="modal-header">
@@ -1236,6 +1269,21 @@ function salvarGmdPadrao(){
   gmdPadraoKg=v; document.getElementById('dash-gmd').value=v;
   db.ref('config/gmdPadrao_'+getFirebasePrefix()).set(v).catch(function(){ toast('Erro ao salvar ganho padrão','error'); });
   renderDashboard(); renderRebanho();
+}
+var gmdMetaKg = 0.50, _gmdMetaRef = null;
+function carregarGmdMeta(){
+  if(_gmdMetaRef) _gmdMetaRef.off();
+  _gmdMetaRef = db.ref('config/gmdMeta_' + getFirebasePrefix());
+  _gmdMetaRef.on('value', function(snap){
+    var v=parseFloat(snap.val()); gmdMetaKg = (v>0)?v:0.50;
+    var el=document.getElementById('dash-gmdmeta'); if(el && document.activeElement!==el) el.value=gmdMetaKg;
+  });
+}
+function salvarGmdMeta(){
+  var v=parseFloat(document.getElementById('dash-gmdmeta').value); if(!(v>0)) v=0.50;
+  gmdMetaKg=v; document.getElementById('dash-gmdmeta').value=v;
+  db.ref('config/gmdMeta_'+getFirebasePrefix()).set(v).catch(function(){ toast('Erro ao salvar meta','error'); });
+  renderRebanho();
 }
 function salvarPrazoDashboard(){
   var elP=document.getElementById('dash-prazo'); if(!elP) return;
@@ -1505,6 +1553,7 @@ function saveToFirebase(){
 function startListening(){
   carregarPrazoDashboard();
   carregarGmdPadrao();
+  carregarGmdMeta();
   // Force logout listener — checks if other sessions were terminated
   var minhaSessaoId = localStorage.getItem('fazenda_sessao_id');
 
@@ -1575,6 +1624,7 @@ function startListening(){
     if(data){
       state.lotes=Array.isArray(data.lotes)?data.lotes:(data.lotes?Object.values(data.lotes):[]);
       state.lotes.forEach(function(l){ if(l && l.historicoAluguel && !Array.isArray(l.historicoAluguel)) l.historicoAluguel=Object.values(l.historicoAluguel); });
+      (Array.isArray(data.animais)?data.animais:(data.animais?Object.values(data.animais):[])).forEach(function(a){ if(!a) return; ['pesagens','brincosAnteriores','eventos'].forEach(function(k){ if(a[k] && !Array.isArray(a[k])) a[k]=Object.values(a[k]); }); });
       state.insumos=Array.isArray(data.insumos)?data.insumos:(data.insumos?Object.values(data.insumos):[]);
       state.custos=Array.isArray(data.custos)?data.custos:(data.custos?Object.values(data.custos):[]);
       state.animais=Array.isArray(data.animais)?data.animais:(data.animais?Object.values(data.animais):[]);
@@ -1751,6 +1801,8 @@ function showSectionById(id){
     renderRebanho();
     popularSelectLotes('ps-lote', false);
     popularSelectLotes('vd-lote', true);
+    if(document.getElementById('ps-data') && !document.getElementById('ps-data').value) document.getElementById('ps-data').value=new Date().toISOString().slice(0,10);
+    renderPesagemLinhas();
     renderHistoricoPesagens();
     renderHistoricoVendas();
     renderGanhos();
@@ -1945,6 +1997,11 @@ function renderRebanho(){
     rows+='</div></div>';
     rows+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem .6rem;font-size:.78rem;color:var(--clay)">';
     rows+='<div>Cabeças: <strong style="color:var(--text)">'+l.qtd+'</strong></div>';
+    if(l.data){
+      var dEnt=new Date(l.data+'T00:00:00'); var mesesNaFaz=Math.max(0,(Date.now()-dEnt.getTime())/(30*24*60*60*1000));
+      var tempoTxt=mesesNaFaz<1?Math.round(mesesNaFaz*30)+' dias':(Math.round(mesesNaFaz*10)/10)+' meses';
+      rows+='<div style="grid-column:1/-1">🏡 Na fazenda desde: <strong style="color:var(--text)">'+dEnt.toLocaleDateString('pt-BR')+'</strong> <span style="font-size:.72rem">(há '+tempoTxt+')</span></div>';
+    }
     if(l.tipo!=='terceiro'){
       rows+='<div>Investido: <strong style="color:var(--text)">'+fmt(l.qtd*l.pesoEntrada*l.precoCompra)+'</strong></div>';
       rows+='<div>Peso entrada: <strong style="color:var(--text)">'+fmtN(l.pesoEntrada)+'@</strong></div>';
@@ -1968,12 +2025,25 @@ function renderRebanho(){
     }
     // GMD calculation
     var gmd = calcularGMD(l);
-    if(gmd !== null){
-      var diasRestMeta = (l.pesoMeta && l.pesoAtual && gmd > 0) ? Math.ceil((l.pesoMeta - l.pesoAtual) / gmd) : null;
-      rows+='<div style="grid-column:1/-1;background:var(--green-light);border:1px solid var(--green-mid);border-radius:8px;padding:.4rem .6rem;margin-top:.25rem">';
-      rows+='<span style="font-size:.72rem;color:var(--clay)">GMD: </span>';
-      rows+='<strong style="color:var(--green);font-size:.85rem">'+fmtN(gmd,3)+'@/dia</strong>';
-      if(diasRestMeta) rows+=' <span style="font-size:.72rem;color:var(--clay)"> · meta em ~'+diasRestMeta+' dias</span>';
+    var animaisLote=state.animais.filter(function(a){ return String(a.loteId)===String(l.id) && (!a.status||a.status==='ativo'||a.status==='gestante'||a.status==='lactacao'); });
+    if(gmd !== null || animaisLote.length){
+      rows+='<div style="grid-column:1/-1;background:var(--green-light);border:1px solid var(--green-mid);border-radius:8px;padding:.45rem .6rem;margin-top:.25rem">';
+      if(gmd !== null){
+        var gmdKgL=gmd*15; var pctMeta=gmdMetaKg>0?Math.round(gmdKgL/gmdMetaKg*100):null;
+        rows+='<span style="font-size:.72rem;color:var(--clay)">GMD do lote: </span><strong style="color:'+(gmdKgL<0?'var(--red)':gmdKgL<gmdMetaKg?'var(--gold)':'var(--green)')+';font-size:.85rem">'+fmtN(gmdKgL,2)+' kg/dia</strong>';
+        rows+=' <span style="font-size:.72rem;color:var(--clay)">· meta '+gmdMetaKg+'</span>';
+        if(pctMeta!==null) rows+=' <span class="badge '+(pctMeta<0?'red':pctMeta<100?'yellow':'green')+'">'+pctMeta+'% da meta</span>';
+      }
+      if(animaisLote.length){
+        var fracos=animaisLote.map(function(a){ return {a:a,g:gmdAnimalKg(a)}; }).filter(function(x){ return x.g!==null && x.g<gmdMetaKg; }).sort(function(x,y){ return x.g-y.g; });
+        rows+='<div style="font-size:.74rem;margin-top:.25rem">🏷️ Identificados: <strong style="color:var(--text)">'+animaisLote.length+' de '+l.qtd+'</strong>';
+        if(fracos.length){
+          rows+=' · <span style="color:var(--red)">⚠️ '+fracos.length+' abaixo da meta:</span> ';
+          rows+=fracos.slice(0,3).map(function(x){ return '<span class="mono" style="color:'+(x.g<0?'var(--red)':'var(--gold)')+'">'+x.a.brinco+' ('+(x.g>=0?'+':'')+fmtN(x.g,2)+')</span>'; }).join(' · ');
+          if(fracos.length>3) rows+=' <details style="display:inline"><summary style="display:inline;cursor:pointer;color:var(--green)">+'+(fracos.length-3)+'</summary> '+fracos.slice(3).map(function(x){ return '<span class="mono">'+x.a.brinco+' ('+(x.g>=0?'+':'')+fmtN(x.g,2)+')</span>'; }).join(' · ')+'</details>';
+        }
+        rows+='</div>';
+      }
       rows+='</div>';
     }
     if(l.tipo!=='terceiro') rows+='<div>R$/@: <strong style="color:var(--text)">'+fmt(l.precoCompra)+'</strong></div>';
@@ -2003,7 +2073,7 @@ function renderRebanho(){
         mangaBadge = ' <span class="badge '+cor+'">'+txt+'</span>';
       }
       rows+='<div style="grid-column:1/-1">🌿 Manga: <strong style="color:var(--green)">'+l.manga+'</strong>'+mangaBadge+'</div>';
-      if(l.mangaData) rows+='<div style="grid-column:1/-1">Entrada: <strong style="color:var(--text)">'+new Date(l.mangaData+'T00:00:00').toLocaleDateString('pt-BR')+'</strong>'+(l.mangaDias?' · '+l.mangaDias+' dias planejados':'')+'</div>';
+      if(l.mangaData) rows+='<div style="grid-column:1/-1">Na manga desde: <strong style="color:var(--text)">'+new Date(l.mangaData+'T00:00:00').toLocaleDateString('pt-BR')+'</strong>'+(l.mangaDias?' · '+l.mangaDias+' dias planejados':'')+'</div>';
     }
     rows+='</div></div>';
   });
@@ -2320,6 +2390,7 @@ function renderAnimais(){
     ch+='<div class="animal-card-body"><div class="animal-info-row">';
     if(a.raca) ch+='<span>🐄 <strong>'+a.raca+'</strong></span>';
     if(a.peso) ch+='<span>⚖️ <strong>'+a.peso+'@</strong></span>';
+    var gA=gmdAnimalKg(a); if(gA!==null) ch+='<span>'+badgeGmd(gA)+'</span>';
     if(a.partoProximo) ch+='<span>🐣 <strong>'+fd(a.partoProximo)+'</strong></span>';
     ch+='</div>';
     if(ult) ch+='<div style="margin-top:.55rem;font-size:.73rem;color:var(--clay)">'+(eventoIcon[ult.tipo]||'📝')+' '+ult.desc+' · '+fd(ult.data)+'</div>';
@@ -2500,9 +2571,9 @@ function salvarAnimal(){
     status:document.getElementById('an-status').value,
     partoUltimo:document.getElementById('an-parto-ultimo').value||null,
     partoProximo:document.getElementById('an-parto-proximo').value||null,
-    obs:document.getElementById('an-obs').value.trim(),foto:fotoBase64||null,eventos:[]};
+    obs:document.getElementById('an-obs').value.trim(),marca:(document.getElementById('an-marca')?document.getElementById('an-marca').value.trim():''),foto:fotoBase64||null,eventos:[],pesagens:[],brincosAnteriores:[]};
   var eid=document.getElementById('an-brinco').dataset.editId;
-  if(eid){var idx=state.animais.findIndex(function(a){return a.id==eid;});if(idx!==-1){animal.id=parseInt(eid);animal.eventos=state.animais[idx].eventos||[];state.animais[idx]=animal;}delete document.getElementById('an-brinco').dataset.editId;}
+  if(eid){var idx=state.animais.findIndex(function(a){return a.id==eid;});if(idx!==-1){animal.id=parseInt(eid);animal.eventos=state.animais[idx].eventos||[];animal.pesagens=state.animais[idx].pesagens||[];animal.brincosAnteriores=state.animais[idx].brincosAnteriores||[];state.animais[idx]=animal;}delete document.getElementById('an-brinco').dataset.editId;}
   else{if(state.animais.find(function(a){return a.brinco===brinco;})){toast('Brinco '+brinco+' já cadastrado!','error');return;}state.animais.push(animal);}
   saveToFirebase();toast('✅ Animal salvo!');limparFormAnimal();renderAnimais();
 }
@@ -2517,7 +2588,7 @@ function editarAnimal(id){
   document.getElementById('an-sexo').value=a.sexo;document.getElementById('an-nasc').value=a.nascimento||'';
   document.getElementById('an-entrada').value=a.entrada||'';document.getElementById('an-status').value=a.status;
   document.getElementById('an-parto-ultimo').value=a.partoUltimo||'';document.getElementById('an-parto-proximo').value=a.partoProximo||'';
-  document.getElementById('an-obs').value=a.obs||'';
+  document.getElementById('an-obs').value=a.obs||'';if(document.getElementById('an-marca'))document.getElementById('an-marca').value=a.marca||'';
   // Restaura foto se existir
   if(a.foto){
     fotoBase64=a.foto;
@@ -2572,6 +2643,17 @@ function abrirAnimal(id){
   if(a.partoProximo) h+='<div><span style="font-size:.68rem;color:var(--clay);font-family:\'DM Mono\',monospace">PRÓXIMO PARTO</span><div style="font-size:.85rem;margin-top:.2rem;color:var(--gold)">'+fd(a.partoProximo)+'</div></div>';
   h+='</div>';
   if(a.obs) h+='<div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;padding:.7rem .9rem;margin-bottom:1rem;font-size:.8rem;color:var(--clay);font-style:italic">'+a.obs+'</div>';
+  if(a.marca) h+='<div style="font-size:.8rem;margin:-.4rem 0 .8rem">🔖 Marca permanente: <strong>'+a.marca+'</strong></div>';
+  if(a.brincosAnteriores&&a.brincosAnteriores.length) h+='<div style="font-size:.76rem;color:var(--clay);margin-bottom:.8rem">🏷️ Brincos anteriores: '+a.brincosAnteriores.map(function(b){ return '<span class="mono">'+b.brinco+'</span> (até '+fd(b.ate)+')'; }).join(' → ')+' → <span class="mono">'+a.brinco+'</span></div>';
+  var psA=(a.pesagens||[]).slice().sort(function(x,y){ return y.data.localeCompare(x.data); });
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">';
+  h+='<span style="font-size:.82rem;font-weight:600;color:var(--wheat)">⚖️ Pesagens ('+psA.length+')</span>';
+  h+='<button class="btn sm outline" style="color:var(--gold);border-color:var(--gold)" onclick="abrirModalBrinco('+id+')">🏷️ Trocar brinco</button></div>';
+  if(psA.length){
+    psA.forEach(function(ps,i){ var prev=psA[i+1]; var g=prev?gmdEntre(prev.pesoKg,prev.data,ps.pesoKg,ps.data):null;
+      h+='<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:.4rem;font-size:.82rem;border-top:1px solid var(--border);padding:.4rem 0"><span>'+fd(ps.data)+'</span><span><strong>'+ps.pesoKg+' kg</strong> · '+fmtN(ps.pesoKg/15,1)+'@</span><span>'+badgeGmd(g)+'</span></div>'; });
+    var gm=gmdMedioAnimalKg(a); if(gm!==null) h+='<div class="result-row" style="margin:.3rem 0 .9rem"><span class="label">GMD médio desde a 1ª pesagem</span><span class="value '+(gm>=gmdMetaKg?'pos':'neg')+'">'+(gm>=0?'+':'')+fmtN(gm,2)+' kg/dia</span></div>';
+  } else h+='<p style="color:var(--clay);font-size:.8rem;margin-bottom:.9rem">Nenhuma pesagem individual ainda.</p>';
   h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">';
   h+='<span style="font-size:.82rem;font-weight:600;color:var(--wheat)">📋 Histórico</span>';
   h+='<button class="btn sm" onclick="abrirModalEvento('+id+')">+ Evento</button></div>';
@@ -3957,39 +4039,178 @@ function popularSelectLotes(selectId, excluirTerceiro){
   });
 }
 
+// ===== PESAGEM POR ANIMAL =====
+var psLinhas=[]; // {brinco, pesoKg, animalId, sugestoes}
+var KG_POR_ARROBA=15;
+function toggleColarPesos(){ var w=document.getElementById('ps-colar-wrap'); w.style.display=(w.style.display==='none')?'':'none'; }
+function addLinhaPesagem(){ psLinhas.push({brinco:'',pesoKg:null,animalId:null}); renderPesagemLinhas(); }
+function removerLinhaPesagem(i){ psLinhas.splice(i,1); renderPesagemLinhas(); }
+function colarListaPesos(){
+  var txt=document.getElementById('ps-colar').value||''; var n=0,comB=0;
+  txt.split(/\r?\n/).forEach(function(ln){
+    var t=ln.trim().replace(/[;,\t]+/g,' ').split(/\s+/).filter(Boolean); if(!t.length) return;
+    var peso=parseFloat(t[t.length-1].replace(',','.')); if(!(peso>0)) return;
+    var brinco=t.length>=2?t[0]:'';
+    psLinhas.push({brinco:brinco,pesoKg:peso,animalId:null}); n++; if(brinco) comB++;
+  });
+  document.getElementById('ps-colar-info').textContent=n+' linha(s) lida(s) · '+comB+' com brinco · '+(n-comB)+' sem brinco';
+  document.getElementById('ps-colar').value='';
+  renderPesagemLinhas();
+}
+function animalPorBrinco(brinco){ brinco=String(brinco||'').trim().toLowerCase(); if(!brinco) return null; return state.animais.find(function(a){ return String(a.brinco).trim().toLowerCase()===brinco; })||null; }
+// Último peso conhecido do animal em kg (pesagens individuais, ou o peso em @ do cadastro)
+function ultimoPesoAnimal(a){
+  var ps=(a.pesagens||[]).slice().sort(function(x,y){ return x.data.localeCompare(y.data); });
+  if(ps.length) return {kg:ps[ps.length-1].pesoKg, data:ps[ps.length-1].data, n:ps.length};
+  if(a.peso>0) return {kg:a.peso*KG_POR_ARROBA, data:a.entrada||null, n:0};
+  return null;
+}
+function gmdEntre(kgIni,dIni,kgFim,dFim){ if(!dIni||!dFim) return null; var dias=(new Date(dFim+'T00:00:00')-new Date(dIni+'T00:00:00'))/86400000; if(dias<=0) return null; return (kgFim-kgIni)/dias; }
+// GMD atual do animal (kg/dia): entre as duas últimas pesagens individuais
+function gmdAnimalKg(a){
+  var ps=(a.pesagens||[]).slice().sort(function(x,y){ return x.data.localeCompare(y.data); });
+  if(ps.length>=2) return gmdEntre(ps[ps.length-2].pesoKg,ps[ps.length-2].data,ps[ps.length-1].pesoKg,ps[ps.length-1].data);
+  return null;
+}
+function gmdMedioAnimalKg(a){
+  var ps=(a.pesagens||[]).slice().sort(function(x,y){ return x.data.localeCompare(y.data); });
+  if(ps.length>=2) return gmdEntre(ps[0].pesoKg,ps[0].data,ps[ps.length-1].pesoKg,ps[ps.length-1].data);
+  return null;
+}
+function badgeGmd(g){
+  if(g===null||g===undefined||isNaN(g)) return '<span class="badge" style="background:var(--bg);color:var(--clay);border:1px solid var(--border)">1ª pesagem</span>';
+  var cor=g<0?'red':(g<gmdMetaKg?'yellow':'green');
+  return '<span class="badge '+cor+'">'+(g>=0?'+':'')+fmtN(g,2)+' kg/dia</span>';
+}
+function sugestoesPorPeso(pesoKg, loteId, data, idxLinha){
+  var usados={}; psLinhas.forEach(function(l,i){ if(i!==idxLinha && l.animalId) usados[l.animalId]=1; if(i!==idxLinha && l.brinco){ var a=animalPorBrinco(l.brinco); if(a) usados[a.id]=1; } });
+  var cands=[];
+  state.animais.forEach(function(a){
+    if(String(a.loteId)!==String(loteId) || usados[a.id]) return;
+    if(a.status && a.status!=='ativo' && a.status!=='gestante' && a.status!=='lactacao') return;
+    var u=ultimoPesoAnimal(a); if(!u) return;
+    var g=gmdEntre(u.kg,u.data,pesoKg,data);
+    cands.push({a:a,u:u,g:g,impl:(g===null)?false:(g>1.5||g<-1.5)});
+  });
+  cands.sort(function(x,y){ var gx=x.g===null?99:Math.abs(x.g-gmdMetaKg), gy=y.g===null?99:Math.abs(y.g-gmdMetaKg); return gx-gy; });
+  return cands.slice(0,3);
+}
+function escolherSugestao(i, animalId){ psLinhas[i].animalId=animalId||null; psLinhas[i].brinco=''; renderPesagemLinhas(); }
+function onLinhaPesagem(i, campo, el){
+  if(campo==='brinco'){ psLinhas[i].brinco=el.value.trim(); psLinhas[i].animalId=null; }
+  else { var v=parseFloat(String(el.value).replace(',','.')); psLinhas[i].pesoKg=(v>0)?v:null; }
+  renderPesagemLinhas();
+}
+function renderPesagemLinhas(){
+  var wrap=document.getElementById('ps-linhas'); if(!wrap) return;
+  var loteId=parseInt(document.getElementById('ps-lote').value)||null;
+  var data=document.getElementById('ps-data').value||new Date().toISOString().slice(0,10);
+  if(!psLinhas.length){ wrap.innerHTML='<div style="font-size:.76rem;color:var(--clay);padding:.4rem 0">Nenhuma linha. Use "Colar lista" ou "➕ Linha". Para pesagem só pela média, use o campo abaixo.</div>'; renderPesagemResumo(); return; }
+  var h='<div style="display:grid;grid-template-columns:78px 1fr auto 28px;gap:.4rem;font-size:.68rem;color:var(--clay);padding-bottom:.2rem"><div>Brinco</div><div>Peso (kg)</div><div>GMD</div><div></div></div>';
+  psLinhas.forEach(function(l,i){
+    var a=l.animalId?state.animais.find(function(x){return x.id===l.animalId;}):animalPorBrinco(l.brinco);
+    var info='', gmdHtml='', aviso='';
+    if(l.pesoKg>0){
+      info=fmtN(l.pesoKg/KG_POR_ARROBA,1)+'@';
+      if(a){ var u=ultimoPesoAnimal(a); var g=u?gmdEntre(u.kg,u.data,l.pesoKg,data):null; gmdHtml=badgeGmd(g); if(a && String(a.loteId)!==String(loteId)) aviso='<span style="font-size:.68rem;color:var(--gold)"> · está em outro lote, será movido</span>'; }
+      else if(l.brinco){ gmdHtml='<span class="badge sky">novo</span>'; aviso='<span style="font-size:.68rem;color:var(--clay)"> · será cadastrado</span>'; }
+      else gmdHtml='<span class="badge yellow">anônimo</span>';
+    }
+    h+='<div style="display:grid;grid-template-columns:78px 1fr auto 28px;gap:.4rem;align-items:center;border-top:1px solid var(--border);padding:.35rem 0">';
+    if(l.animalId && a) h+='<div><strong class="mono" style="color:var(--gold)">'+a.brinco+'</strong> <a href="#" onclick="escolherSugestao('+i+',null);return false;" style="font-size:.65rem;color:var(--clay)">✕</a></div>';
+    else h+='<input type="text" value="'+(l.brinco||'').replace(/"/g,'&quot;')+'" placeholder="—" onchange="onLinhaPesagem('+i+',\'brinco\',this)" style="padding:.35rem .4rem;font-size:.82rem;font-family:\'DM Mono\',monospace">';
+    h+='<div style="display:flex;align-items:center;gap:.4rem"><input type="number" step="0.5" value="'+(l.pesoKg||'')+'" placeholder="kg" onchange="onLinhaPesagem('+i+',\'peso\',this)" style="width:84px;padding:.35rem .4rem;font-size:.85rem"><span style="font-size:.76rem;color:var(--clay)">'+info+aviso+'</span></div>';
+    h+='<div>'+gmdHtml+'</div>';
+    h+='<button class="btn sm outline" style="padding:.2rem .4rem" onclick="removerLinhaPesagem('+i+')">✕</button>';
+    h+='</div>';
+    if(l.pesoKg>0 && !l.brinco && !l.animalId && loteId){
+      var sug=sugestoesPorPeso(l.pesoKg, loteId, data, i);
+      if(sug.length){
+        h+='<div style="margin:0 0 .4rem 0;background:var(--gold-light,rgba(212,168,83,.1));border:1px solid rgba(212,168,83,.35);border-radius:8px;padding:.45rem .6rem;font-size:.74rem">🔎 Sem brinco com <strong>'+l.pesoKg+' kg</strong>. Pode ser:<br>';
+        sug.forEach(function(s){ var txt=s.a.brinco+' · '+Math.round(s.u.kg)+' kg'+(s.u.data?' em '+new Date(s.u.data+'T00:00:00').toLocaleDateString('pt-BR'):'')+(s.g!==null?' → '+(s.g>=0?'+':'')+fmtN(s.g,2)+' kg/dia'+(s.impl?' ⚠️':' ✓'):''); h+='<button class="btn sm outline" style="margin:.2rem .2rem 0 0;font-size:.72rem" onclick="escolherSugestao('+i+','+s.a.id+')">'+txt+'</button>'; });
+        h+='</div>';
+      }
+    }
+  });
+  wrap.innerHTML=h; renderPesagemResumo();
+}
+function renderPesagemResumo(){
+  var el=document.getElementById('ps-resumo'); if(!el) return;
+  var loteId=parseInt(document.getElementById('ps-lote').value)||null; var lote=state.lotes.find(function(l){return l.id===loteId;});
+  var data=document.getElementById('ps-data').value||new Date().toISOString().slice(0,10);
+  var pesados=psLinhas.filter(function(l){return l.pesoKg>0;});
+  var chk=document.getElementById('ps-atualiza-lote'), av=document.getElementById('ps-aviso-parcial');
+  if(!pesados.length){ el.innerHTML=''; if(av) av.style.display='none'; if(chk) chk.checked=true; return; }
+  var media=pesados.reduce(function(a,l){return a+l.pesoKg;},0)/pesados.length;
+  var gs=[]; var fracos=0, perdendo=0, ident=0;
+  pesados.forEach(function(l){ var a=l.animalId?state.animais.find(function(x){return x.id===l.animalId;}):animalPorBrinco(l.brinco); if(!a && l.brinco) ident++; if(a){ ident++; var u=ultimoPesoAnimal(a); var g=u?gmdEntre(u.kg,u.data,l.pesoKg,data):null; if(g!==null){ gs.push(g); if(g<0) perdendo++; if(g<gmdMetaKg) fracos++; } } });
+  var gmdLote=gs.length?gs.reduce(function(a,b){return a+b;},0)/gs.length:null;
+  var h='<div style="font-size:.7rem;color:var(--clay);font-family:\'DM Mono\',monospace;margin-bottom:.3rem">RESUMO DESTA PESAGEM</div>';
+  h+='<div class="result-row"><span class="label">Animais pesados</span><span class="value">'+pesados.length+(lote?' de '+lote.qtd:'')+' · '+ident+' identificados</span></div>';
+  h+='<div class="result-row"><span class="label">Peso médio</span><span class="value">'+Math.round(media)+' kg · '+fmtN(media/KG_POR_ARROBA,1)+'@</span></div>';
+  if(gmdLote!==null) h+='<div class="result-row"><span class="label">GMD dos identificados (meta '+gmdMetaKg+')</span><span class="value" style="color:'+(gmdLote<0?'var(--red)':gmdLote<gmdMetaKg?'var(--gold)':'var(--green)')+'">'+fmtN(gmdLote,2)+' kg/dia</span></div>';
+  if(gs.length) h+='<div class="result-row"><span class="label">Abaixo da meta / perdendo peso</span><span class="value" style="color:var(--red)">'+fracos+' / '+perdendo+'</span></div>';
+  el.innerHTML=h;
+  if(lote && chk && av){
+    var parcial=pesados.length<Math.ceil((lote.qtd||0)/2);
+    if(parcial){ chk.checked=false; av.style.display=''; av.textContent='⚠️ Só '+pesados.length+' de '+lote.qtd+' pesados. Usar essa média como peso do lote pode distorcer o prazo e o lucro. Marque acima se quiser atualizar mesmo assim.'; }
+    else { chk.checked=true; av.style.display='none'; }
+  }
+}
+function tipoAnimalDoLote(lote){ var m={novilha:'novilha',vaca:'vaca',bezerro:'bezerro',cria_terra:'bezerro',touro:'touro'}; return m[lote.tipo]||'novilha'; }
 function salvarPesagem(){
   var loteId = parseInt(document.getElementById('ps-lote').value);
-  var peso   = parseFloat(document.getElementById('ps-peso').value);
   var data   = document.getElementById('ps-data').value;
   if(!loteId) return toast('Selecione um lote','error');
-  if(!peso)   return toast('Informe o peso','error');
   if(!data)   return toast('Informe a data','error');
-  var lote = state.lotes.find(function(l){ return l.id===loteId; });
-  if(!lote) return;
+  var lote = state.lotes.find(function(l){ return l.id===loteId; }); if(!lote) return;
+  var obs=document.getElementById('ps-obs').value;
+  var pesados=psLinhas.filter(function(l){return l.pesoKg>0;});
+  var mediaManual=parseFloat(document.getElementById('ps-media').value);
+  var atualizar=document.getElementById('ps-atualiza-lote').checked;
+  var pesoArroba=null, nIdent=0, nNovos=0;
+  if(pesados.length){
+    pesados.forEach(function(l){
+      var a=l.animalId?state.animais.find(function(x){return x.id===l.animalId;}):animalPorBrinco(l.brinco);
+      if(!a && l.brinco){
+        a={id:Date.now()+Math.floor(Math.random()*1000),brinco:l.brinco,loteId:loteId,tipo:tipoAnimalDoLote(lote),raca:'',peso:null,sexo:'femea',nascimento:null,entrada:data,status:'ativo',partoUltimo:null,partoProximo:null,obs:'Cadastrado na pesagem',marca:'',foto:null,eventos:[],pesagens:[],brincosAnteriores:[]};
+        state.animais.push(a); nNovos++;
+      }
+      if(a){
+        if(!a.pesagens) a.pesagens=[];
+        a.pesagens.push({id:Date.now()+Math.floor(Math.random()*1000),data:data,pesoKg:l.pesoKg,loteId:loteId});
+        a.peso=Math.round(l.pesoKg/KG_POR_ARROBA*10)/10; a.loteId=loteId; nIdent++;
+      }
+    });
+    pesoArroba=pesados.reduce(function(s,l){return s+l.pesoKg;},0)/pesados.length/KG_POR_ARROBA;
+  } else if(mediaManual>0){ pesoArroba=mediaManual; atualizar=true; }
+  else return toast('Informe os pesos ou a média do lote','error');
   var pesoAnterior = lote.pesoAtual || lote.pesoEntrada || 0;
-  var ganho = peso - pesoAnterior;
-  // Save pesagem record
   if(!state.pesagens) state.pesagens = [];
-  state.pesagens.push({
-    id: Date.now(),
-    loteId: loteId,
-    loteNome: lote.nome,
-    peso: peso,
-    pesoAnterior: pesoAnterior,
-    ganho: ganho,
-    data: data,
-    obs: document.getElementById('ps-obs').value
-  });
-  // Update lote current weight
-  var idx = state.lotes.findIndex(function(l){ return l.id===loteId; });
-  state.lotes[idx].pesoAtual = peso;
+  state.pesagens.push({ id: Date.now(), loteId: loteId, loteNome: lote.nome, peso: Math.round(pesoArroba*100)/100, pesoAnterior: pesoAnterior, ganho: Math.round((pesoArroba-pesoAnterior)*100)/100, data: data, obs: obs, animaisPesados: pesados.length||null, identificados: nIdent||null, atualizouLote: atualizar });
+  if(atualizar){ var idx = state.lotes.findIndex(function(l){ return l.id===loteId; }); state.lotes[idx].pesoAtual = Math.round(pesoArroba*10)/10; }
   saveToFirebase();
-  toast('⚖️ Pesagem registrada! Ganho: '+fmtN(ganho,2)+'@');
-  document.getElementById('ps-peso').value='';
-  document.getElementById('ps-data').value='';
-  document.getElementById('ps-obs').value='';
-  renderHistoricoPesagens();
-  renderRebanho();
+  toast('⚖️ Pesagem registrada'+(pesados.length?' · '+pesados.length+' animais'+(nNovos?' · '+nNovos+' cadastrados':''):'')+(atualizar?' · lote: '+fmtN(pesoArroba,1)+'@':' · média do lote não alterada'));
+  psLinhas=[]; document.getElementById('ps-media').value=''; document.getElementById('ps-obs').value='';
+  renderPesagemLinhas(); renderHistoricoPesagens(); renderRebanho(); renderDashboard(); if(typeof renderAnimais==='function') renderAnimais();
+}
+// ===== TROCA DE BRINCO =====
+var animalIdBrinco=null;
+function abrirModalBrinco(id){ var a=state.animais.find(function(x){return x.id===id;}); if(!a) return; animalIdBrinco=id;
+  document.getElementById('tb-novo').value=''; document.getElementById('tb-motivo').value='caiu'; document.getElementById('tb-data').value=new Date().toISOString().slice(0,10);
+  var u=ultimoPesoAnimal(a); document.getElementById('modal-brinco-info').innerHTML='Animal <strong class="mono" style="color:var(--gold)">'+a.brinco+'</strong>'+(u?' · '+Math.round(u.kg)+' kg':'')+(a.marca?' · marca: '+a.marca:'');
+  document.getElementById('modal-brinco').classList.add('open'); }
+function fecharModalBrinco(){ document.getElementById('modal-brinco').classList.remove('open'); animalIdBrinco=null; }
+function confirmarTrocaBrinco(){
+  var a=state.animais.find(function(x){return x.id===animalIdBrinco;}); if(!a) return;
+  var novo=document.getElementById('tb-novo').value.trim(); if(!novo) return toast('Informe o novo brinco','error');
+  if(novo.toLowerCase()===String(a.brinco).trim().toLowerCase()) return toast('É o mesmo brinco atual','error');
+  var dup=animalPorBrinco(novo); if(dup && dup.id!==a.id) return toast('Brinco '+novo+' já é de outro animal','error');
+  if(!a.brincosAnteriores) a.brincosAnteriores=[];
+  a.brincosAnteriores.push({brinco:a.brinco, ate:document.getElementById('tb-data').value||new Date().toISOString().slice(0,10), motivo:document.getElementById('tb-motivo').value});
+  var antigo=a.brinco; a.brinco=novo;
+  saveToFirebase(); toast('🏷️ Brinco '+antigo+' → '+novo); fecharModalBrinco();
+  if(typeof renderAnimais==='function') renderAnimais(); if(document.getElementById('modal-animal').classList.contains('open')) abrirAnimal(a.id);
 }
 
 function renderHistoricoPesagens(){
@@ -4010,6 +4231,7 @@ function renderHistoricoPesagens(){
     html += '<strong style="font-size:.88rem;color:var(--text)">'+p.loteNome+'</strong>';
     html += '<span style="font-size:.75rem;color:var(--clay)">'+new Date(p.data+'T00:00:00').toLocaleDateString('pt-BR')+'</span>';
     html += '</div>';
+    if(p.animaisPesados) html += '<div style="font-size:.72rem;color:var(--clay);margin-bottom:.3rem">'+p.animaisPesados+' animal(is) pesado(s) · '+(p.identificados||0)+' identificado(s)'+(p.atualizouLote===false?' · <span class="badge yellow">parcial, média do lote não alterada</span>':'')+'</div>';
     html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.25rem;font-size:.78rem;color:var(--clay)">';
     html += '<div>Anterior: <strong style="color:var(--text)">'+fmtN(p.pesoAnterior,1)+'@</strong></div>';
     html += '<div>Novo: <strong style="color:var(--text)">'+fmtN(p.peso,1)+'@</strong></div>';
@@ -4364,8 +4586,9 @@ function salvarTroca(ov){
 }
 
 // ===== GMD (GANHO MÉDIO DIÁRIO) =====
+function pesagensValidasLote(loteId){ return (state.pesagens||[]).filter(function(p){ return p.loteId === loteId && p.atualizouLote !== false; }); }
 function calcularGMD(lote){
-  var pesagens = (state.pesagens||[]).filter(function(p){ return p.loteId === lote.id; });
+  var pesagens = pesagensValidasLote(lote.id);
   if(pesagens.length < 1) return null;
   // Sort by date
   pesagens.sort(function(a,b){ return a.data.localeCompare(b.data); });
