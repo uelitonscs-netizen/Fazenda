@@ -322,7 +322,17 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
 
 <!-- ===== APP ===== -->
 <div id="app-screen">
-  <div style="background:#C0392B;color:#fff;text-align:center;font-size:.72rem;font-weight:700;letter-spacing:.08em;padding:.3rem .5rem;font-family:'DM Mono',monospace">🧪 AMBIENTE DE TESTE — nada aqui afeta o app real</div>
+  <div style="background:#C0392B;color:#fff;text-align:center;font-size:.72rem;font-weight:700;letter-spacing:.08em;padding:.3rem .5rem;font-family:'DM Mono',monospace">🧪 AMBIENTE DE TESTE — nada aqui afeta o app real · <span id="sb-build">build 2026-11-08 tropas</span></div>
+  <div id="sb-erros" style="display:none;background:#7B1E1E;color:#fff;font-size:.72rem;padding:.4rem .6rem;font-family:'DM Mono',monospace;white-space:pre-wrap;word-break:break-word;max-height:30vh;overflow:auto"></div>
+  <script>
+  (function(){
+    var box=null, n=0;
+    function show(msg){ n++; box=box||document.getElementById('sb-erros'); if(!box) return; box.style.display=''; box.textContent='⚠️ ERRO '+n+': '+msg+'\n'+box.textContent; }
+    window.addEventListener('error',function(e){ show((e.message||'erro')+(e.filename?' @'+(e.lineno||'?'):'')); });
+    window.addEventListener('unhandledrejection',function(e){ var r=e.reason; show('Promise: '+(r&&r.message?r.message:String(r))); });
+    window.__sbShow=show;
+  })();
+  </script>
   <header>
     <div class="logo">
       <div class="logo-icon" style="background:none;padding:0;overflow:hidden"><img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCABAAEADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD688RJv0G/TcV3W7jIPI4Nebrc+KIEVJPFSWyAYUTKGbHvxXo/iV3j8P6g8biN1tpCrHop2nmvEAtyZGkfVLeUt13814Od548tUYQinJ667HrZZlSxt5TlZLsdSNQ8Q9/G9p/35/8ArUxUa4uRc6p4nt7yVRhN24BR7DFYVtHPIBiW2lx1K5FaFtZwuMzzLH7Dk182+NMVF/BH8f8AM9SfD2FitZy/r5GL4++H3hTxiY31O/sGkj+6/wAwI/HFcf8A8KE8DDpqdr+DvXoGpyabZyrF9r3uwzsVGZgPXCg8VVvpobfTpdRa7iW1iiaVnC7vlUEnHPPQ8Vp/rdjrKTpKz2dnr6a6kQyPAu6VR6b6rT8DjrP4CeD1nWWBoLvYclFkbP5HrX0z4Wt4rTw1ptrAoWKG1jjRR2AUACvDI7uMz2Ua6uY5buFp4MIASoCkjI6HDDj6+le7eHXZ9BsHd/MY26Et/eO0c19BkudyzHmhUjaS102a26+Z5mY5ZDCWnTnzJ6enUx/ixezab8MvE2oW5Amt9KuJUz6rGSK+XvhrrupeMdditbTW3MKqGuBJbqjJ3/unjhuRk8YxzkfVXxFsv7S8Ba9p4naA3GnzxCVQCUyhGQD6V8yfDnRj4R8ZWUSanPqcN1bt5kksIj8schQB15Ibr6VePeDnjKVGuk5NO11/wH180cNN4uEXOjJqK3s7fqvyZ7PBoHhlSlpFDdXErcee99Op3dgMMMc+1KngvTpxlb3WbR+pT7WsuPxdCf1rH1rxHFDIsVxPY25t3JhkluUiNzwPlQE/Mwyc49BWpYeJ4pV84XiEnk+YcH/D8q65YDCTVnSj9yKjjMRB3jUf3smm8E6bDZT+Uss82N/nzSbpjgdM8DGOwA/OvPvHCWkWlXsenw3dxdOGhuIN6hWJXBZiVJGVxkr1JB9TXqOg65HfadcXYSV1RpPmVc5VWKkj8s/nXFa3Zo+uXes3BSGytkErKQSHYAY47gcfU4Fayw1CdNU5xXKtlZWRiq1WM3UjJ8z3fc56/wDD0Wg/Dz+3LewuU1fR4Fk826uvPE0UhAkRgowuwNwwUdD1Ga95+H1y954G0O6kCq81hC7BegJQGvAZ7/Uri21HSdO8R3tlBJbGGSCUQz3MSsRuK4b5cD5RktwxBGMV758PLZLLwHoNnHI8iQafBGruBuYBAATjvXnYHF4HEYuX1ZpyS1sntfTXZ79DpqwxMKKVX4b/AI/mM+JdwbT4e+IboQNcGLTbhxEoyXIjJxXyb8K9TNx431rVteF0lvaWn2u3gcH5kjARUyepJkbg98V9YfE+9Gm/DrxFqBVmFtps8u1TgnahOP0r4mv/AIitLZamHtw/nxC3ikRQAhE0T5IPUHY36e9LHwl9chNU09Hq3s1ql96Rh7WMYWc7a7W36HU3FvJq8fiLVtVhEuqxywn7PyAiu6qNv+yMlflwBgHvUd7BbRRQ2s2o/ZZlGXW1kddg64JQ/Mfc46dzzVfT/EEMNt/a84ur+UQeQdlvJEskJHzJuYABujBucMqmmWHinTItMkk2x+c6mVz5m9ye4Y4645+tfP4zF410IODfNs0u+9/69D0Y0qFKTjUt3V+3+fzO10HVri0+F+t6XYaq8t1cajFFbicne4dA8gAPOMRsM/7RrD1/xxd694dW61G4u7E2t8tmbO2+bzv3Zk3M5HzEMoypAAyOtc5ceNII7Jnjje7Ed3DMs3AwgWRXBHbhsgj09653xB4m1GGwieyt2n8u7nuUlS2KeWZCApYY5YIqr2AA9STXpUauJrYdUpveNt9ebzdtNN/1OKfstZ0+jv8AL7+9z0DT7y3cmXWbD7JbxruMtyV3FSM7uOowRyK+sPh5JBL4E0OS1IMDWEJjIGBt2DFfCHhXStY8QXovNdlmeymV18w5WNDjIJB4xwPSvun4XWpsfhv4csyc+RplvHnGOkYFTw/g6WFxNSMZ3lZaLZa/maV8TUr0oycbLu92RfFyyl1L4XeKNPgeNJbnSbmJGkbChmjYDJ7DPevzrs7LU7TUXTUA9rNaNiSF0GUYdmB/rkGv0p8XxLP4V1WFyAj2kqtn0KmvkbxFp2nzy+RcQwX8Ufyp9otlk2j0BIzj2zivpq8IyjZyseVVxVDDVFOq0n0u7HjOratNqE4e5uppI1O1YlfamccfKOPUZArPtorq9Y29nDIiyygeYQc5zjHv16ep9wK9d/sHREwf7A0xfT/iXrWlo3heyu9/2HSdLVgdzKLNVOfWsYYeFuWnJXOF4mliq13UTb7HIeHdPu9Dtdlzp63LToG/ejLIAqn5ccHrjPt71c8S+I5WspkuNN2RQqEPluUCsf4eOpHOce9b3iZbTw75f9pR2aSOPkRbcFsfT0rnjrnh64XY2nwSgc4NgCB7/wA646fDOJqVPbT1v2ue5Rx8MPHkhovkcGmvazfXkVhp32yS5lYJFHEX8xz2GAeR+mPbNfoj8K4Li1+Gvhq2u3je4i0u3SVkbcpYRgHB7jPevj7w3rHhwXQiiMdgsvySPDaLGWHozDnHtnFfaPg6OOLwnpMcTBo1s4gpHQjaMV7Ecv8Aqi1jZs46b5pt3uf/2Q==" style="width:36px;height:36px;border-radius:8px;object-fit:cover"></div>
@@ -538,6 +548,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         </div>
         <div class="card" style="margin:0"><div class="card-title">📈 Visão Geral</div><div id="rebanho-stats"></div></div>
       </div>
+      <div class="card"><div class="card-title" style="justify-content:space-between"><span>🐂 Tropas · onde o gado está</span><button class="btn sm" onclick="abrirModalNovaTropa()">➕ Nova tropa</button></div><div id="tabela-tropas"></div></div>
       <div class="card"><div class="card-title">🗂️ Lotes Cadastrados</div><div id="tabela-rebanho"></div></div>
 
       <!-- PESAGENS -->
@@ -548,7 +559,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         </div>
         <div class="collapse-body" id="form-pesagem">
           <div class="form-grid">
-            <div class="field"><label>Lote</label><select id="ps-lote" onchange="renderPesagemLinhas()"></select></div>
+            <div class="field"><label>Tropa (grupo pesado)</label><select id="ps-tropa" onchange="renderPesagemLinhas()"></select></div><select id="ps-lote" style="display:none"></select>
             <div class="field"><label>Data da Pesagem</label><input type="date" id="ps-data" onchange="renderPesagemLinhas()"></div>
           </div>
           <div style="display:flex;gap:.5rem;margin:.7rem 0;flex-wrap:wrap;align-items:center">
@@ -563,9 +574,9 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
           </div>
           <div id="ps-linhas"></div>
           <div id="ps-resumo" style="margin-top:.6rem"></div>
-          <div class="field" style="margin-top:.6rem"><label>Ou só a média do lote (@) — modo antigo</label><input type="number" id="ps-media" placeholder="Ex: 11.5" step="0.1" oninput="renderPesagemResumo()"></div>
+          <div class="field" style="margin-top:.6rem"><label>Ou só a média da tropa (@) — modo antigo</label><input type="number" id="ps-media" placeholder="Ex: 11.5" step="0.1" oninput="renderPesagemResumo()"></div>
           <div class="field" style="margin-top:.5rem"><label>Observação</label><input type="text" id="ps-obs" placeholder="Ex: Pesagem pré-venda"></div>
-          <label style="display:flex;align-items:center;gap:.5rem;font-size:.8rem;margin-top:.6rem;cursor:pointer"><input type="checkbox" id="ps-atualiza-lote" checked> Atualizar o peso médio do lote com esta pesagem</label>
+          <label style="display:flex;align-items:center;gap:.5rem;font-size:.8rem;margin-top:.6rem;cursor:pointer"><input type="checkbox" id="ps-atualiza-lote" checked> Atualizar o peso médio dos lotes com esta pesagem</label>
           <div id="ps-aviso-parcial" style="display:none;font-size:.74rem;color:var(--gold);margin-top:.3rem"></div>
           <button class="btn" style="margin-top:1rem;width:100%;justify-content:center" onclick="salvarPesagem()">⚖️ Registrar Pesagem</button>
         </div>
@@ -580,7 +591,8 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         </div>
         <div class="collapse-body" id="form-venda">
           <div class="form-grid">
-            <div class="field"><label>Lote</label><select id="vd-lote"></select></div>
+            <div class="field"><label>Lote</label><select id="vd-lote" onchange="atualizarSelectTropaVenda()"></select></div>
+            <div class="field" id="vd-tropa-wrap" style="display:none"><label>De qual tropa saem?</label><select id="vd-tropa"></select></div>
             <div class="field"><label>Qtd Vendida (cab.)</label><input type="number" id="vd-qtd" placeholder="Ex: 20" min="1" oninput="calcularResumoVenda()"></div>
             <div class="field"><label>Peso de Venda (@)</label><input type="number" id="vd-peso" placeholder="Ex: 14.0" step="0.1" oninput="calcularResumoVenda()"></div>
             <div class="field"><label>Preço (R$/@)</label><input type="number" id="vd-preco" placeholder="Ex: 330" step="0.01" oninput="calcularResumoVenda()"></div>
@@ -1148,6 +1160,39 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-tropa-mover">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header"><div class="modal-title" id="tm-titulo">🔀 Separar / mover</div><button class="modal-close" onclick="fecharModalTropaMover()">✕</button></div>
+    <div class="modal-body">
+      <div style="font-size:.72rem;color:var(--clay);font-family:'DM Mono',monospace;margin-bottom:.4rem">QUAIS CABEÇAS</div>
+      <div id="tm-parcelas"></div>
+      <div class="field" style="margin-top:.6rem"><label>Brincos que vão (opcional, separados por vírgula)</label><input type="text" id="tm-brincos" placeholder="052, 014, 258"></div>
+      <div style="font-size:.72rem;color:var(--clay);font-family:'DM Mono',monospace;margin:.9rem 0 .4rem">PARA ONDE</div>
+      <div style="display:flex;gap:.5rem;margin-bottom:.6rem">
+        <label style="font-size:.82rem;display:flex;align-items:center;gap:.3rem"><input type="radio" name="tm-dest" value="nova" checked onchange="tmToggleDestino()"> Nova tropa</label>
+        <label style="font-size:.82rem;display:flex;align-items:center;gap:.3rem"><input type="radio" name="tm-dest" value="existente" onchange="tmToggleDestino()"> Tropa existente</label>
+      </div>
+      <div id="tm-nova">
+        <div class="form-grid"><div class="field"><label>Nome da tropa</label><input type="text" id="tm-nome"></div><div class="field"><label>Manga</label><select id="tm-manga"></select></div></div>
+        <div class="form-grid" style="margin-top:.5rem"><div class="field"><label>Data</label><input type="date" id="tm-data"></div><div class="field"><label>Dias planejados</label><input type="number" id="tm-dias" placeholder="45"></div></div>
+      </div>
+      <div id="tm-existente" style="display:none"><div class="field"><label>Tropa de destino</label><select id="tm-tropa-dest"></select></div></div>
+    </div>
+    <div class="modal-footer"><button class="btn outline sm" onclick="fecharModalTropaMover()">Cancelar</button><button class="btn sm" onclick="confirmarTropaMover()">🔀 Confirmar</button></div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-tropa-manga">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header"><div class="modal-title">🌿 Mudar de manga</div><button class="modal-close" onclick="fecharModalTropaManga()">✕</button></div>
+    <div class="modal-body">
+      <div id="tmg-info" style="font-size:.84rem;margin-bottom:.8rem"></div>
+      <div class="field"><label>Manga</label><select id="tmg-manga"></select></div>
+      <div class="form-grid" style="margin-top:.5rem"><div class="field"><label>Data</label><input type="date" id="tmg-data"></div><div class="field"><label>Dias planejados</label><input type="number" id="tmg-dias"></div></div>
+    </div>
+    <div class="modal-footer"><button class="btn outline sm" onclick="fecharModalTropaManga()">Cancelar</button><button class="btn sm" onclick="confirmarTropaManga()">🌿 Mover</button></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-brinco">
   <div class="modal" style="max-width:460px">
     <div class="modal-header"><div class="modal-title">🏷️ Trocar Brinco</div><button class="modal-close" onclick="fecharModalBrinco()">✕</button></div>
@@ -1311,7 +1356,7 @@ function salvarPrazoDashboard(){
 // Senha vaqueiro gerenciada pelo Firebase Authentication
 
 // Estado
-var state = { lotes:[], insumos:[], custos:[], animais:[], pagamentos:[] };
+var state = { lotes:[], insumos:[], custos:[], animais:[], pagamentos:[], tropas:[] };
 var MANGAS_NOMES = ['Manga da Chegada','Manga do Meio','Manga do Alto','Manga da Pedra','Manga da Bananeira','Atrás do Curral','Bambu','Quicui','Baixada'];
 var prazoDashboard = 10;
 var perfil = null; // 'dono' ou 'vaqueiro'
@@ -1542,7 +1587,7 @@ function importarBackupJSON(input){
       var payload = JSON.parse(ev.target.result);
       var dados = payload && payload.dados ? payload.dados : payload;
       if(!dados || !Array.isArray(dados.lotes)) throw new Error('Arquivo não parece um backup do Fazenda Gestão');
-      var chaves=['lotes','insumos','custos','animais','baixas','pesagens','vendas','trocas','pagamentos'];
+      var chaves=['lotes','insumos','custos','animais','baixas','pesagens','vendas','trocas','pagamentos','tropas'];
       confirmarModal('Importar '+dados.lotes.length+' lote(s), '+(dados.animais||[]).length+' animal(is), '+(dados.vendas||[]).length+' venda(s) para a fazenda de TESTE ativa? Os dados de teste atuais desta fazenda serão substituídos.','📥','Importar',function(){
         var novo={}; chaves.forEach(function(k){ novo[k]=Array.isArray(dados[k])?dados[k]:[]; });
         state = novo; dadosCarregados = true;
@@ -1668,16 +1713,19 @@ function startListening(){
       state.vendas=Array.isArray(data.vendas)?data.vendas:(data.vendas?Object.values(data.vendas):[]);
       state.trocas=Array.isArray(data.trocas)?data.trocas:(data.trocas?Object.values(data.trocas):[]);
       state.pagamentos=Array.isArray(data.pagamentos)?data.pagamentos:(data.pagamentos?Object.values(data.pagamentos):[]);
+      state.tropas=Array.isArray(data.tropas)?data.tropas:(data.tropas?Object.values(data.tropas):[]);
+      state.tropas.forEach(function(t){ if(t.parcelas&&!Array.isArray(t.parcelas)) t.parcelas=Object.values(t.parcelas); if(!t.parcelas) t.parcelas=[]; if(t.historico&&!Array.isArray(t.historico)) t.historico=Object.values(t.historico); });
       dadosCarregados = true;
+      if(migrarTropas()) saveToFirebase();
       renderAll();
     } else {
       // Fazenda vazia — começa do zero
-      state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[], trocas:[], pagamentos:[] };
+      state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[], trocas:[], pagamentos:[], tropas:[] };
       dadosCarregados = true;
       renderAll();
     }
     setSyncStatus('ok');
-  });
+  }, function(err){ setSyncStatus('off'); if(window.__sbShow) window.__sbShow('Firebase recusou ler '+getFirebasePrefix()+' (sandbox): '+err.message+' — ajuste as regras para permitir sandbox/'); });
 }
 
 // ===== LOGIN =====
@@ -1752,7 +1800,7 @@ function entrar(p){
   buildNav();
   applyPerfilUI();
   // Reset state before loading correct fazenda data
-  state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[], trocas:[], pagamentos:[] };
+  state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[], trocas:[], pagamentos:[], tropas:[] };
   stateNotas = { todos:[], notas:[], vacinas:[], lembretes:[] };
   stateAlertas = [];
   renderAll();
@@ -1837,6 +1885,7 @@ function showSectionById(id){
     popularSelectLotes('ps-lote', false);
     popularSelectLotes('vd-lote', true);
     if(document.getElementById('ps-data') && !document.getElementById('ps-data').value) document.getElementById('ps-data').value=new Date().toISOString().slice(0,10);
+    popularSelectTropas(); atualizarSelectTropaVenda();
     renderPesagemLinhas();
     renderHistoricoPesagens();
     renderHistoricoVendas();
@@ -2032,6 +2081,8 @@ function renderRebanho(){
     rows+='</div></div>';
     rows+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem .6rem;font-size:.78rem;color:var(--clay)">';
     rows+='<div>Cabeças: <strong style="color:var(--text)">'+l.qtd+'</strong></div>';
+    var tsL=tropasDoLote(l.id);
+    if(tsL.length) rows+='<div style="grid-column:1/-1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.35rem .6rem">🐂 Em tropas: '+tsL.map(function(x){ return '<strong style="color:var(--text)">'+x.tropa.nome+' ('+x.parcela.qtd+')</strong> · 🌿 '+(x.tropa.manga||'—'); }).join(' · ')+'</div>';
     if(l.data){
       var dEnt=new Date(l.data+'T00:00:00'); var mesesNaFaz=Math.max(0,(Date.now()-dEnt.getTime())/(30*24*60*60*1000));
       var tempoTxt=mesesNaFaz<1?Math.round(mesesNaFaz*30)+' dias':(Math.round(mesesNaFaz*10)/10)+' meses';
@@ -2115,6 +2166,7 @@ function renderRebanho(){
   if(!rows) rows='<div class="empty"><div class="icon">🐄</div><p>Nenhum lote ativo</p></div>';
   if(encerrados.length>0) rows+=htmlLotesEncerrados(encerrados);
   document.getElementById('tabela-rebanho').innerHTML=rows;
+  renderTropas(); popularSelectTropas();
 
   // Histórico de baixas
   var baixas=(state.baixas||[]).filter(function(b){return true;});
@@ -2492,6 +2544,8 @@ function salvarLote(){
   var eid=document.getElementById('r-nome').dataset.editId;
   if(eid){var idx=state.lotes.findIndex(function(l){return l.id==eid;});if(idx!==-1){lote.id=parseInt(eid);lote.historicoAluguel=state.lotes[idx].historicoAluguel||[];if(state.lotes[idx].tipoAnterior)lote.tipoAnterior=state.lotes[idx].tipoAnterior;if(_editandoEncerrado&&lote.qtd===0){lote.tipoAnterior=lote.tipo;lote.tipo='encerrado';}state.lotes[idx]=lote;}delete document.getElementById('r-nome').dataset.editId;}
   else state.lotes.push(lote);
+  if(!eid) migrarTropas();
+  else { var tsE=tropasDoLote(lote.id); if(tsE.length===1){ tsE[0].parcela.qtd=lote.qtd; tsE[0].tropa.manga=lote.manga||tsE[0].tropa.manga; tsE[0].tropa.mangaData=lote.mangaData||tsE[0].tropa.mangaData; tsE[0].tropa.mangaDias=lote.mangaDias||tsE[0].tropa.mangaDias; } else if(tsE.length>1){ var somaP=tsE.reduce(function(a,x){return a+x.parcela.qtd;},0); if(somaP!==lote.qtd){ tsE.sort(function(a,b){return b.parcela.qtd-a.parcela.qtd;}); tsE[0].parcela.qtd=Math.max(0,tsE[0].parcela.qtd+(lote.qtd-somaP)); removerTropasVazias(); } } }
   saveToFirebase();toast('✅ Lote salvo!');limparFormRebanho();renderRebanho();renderDashboard();
 }
 function editarLote(id){
@@ -2524,6 +2578,7 @@ function editarLote(id){
 function deletarLote(id){
   confirmarModal('Remover este lote?', '🗑️', 'Remover', function(){
     state.lotes=state.lotes.filter(function(l){return l.id!==id;});
+    (state.tropas||[]).forEach(function(t){ t.parcelas=(t.parcelas||[]).filter(function(p){ return String(p.loteId)!==String(id); }); }); removerTropasVazias();
     saveToFirebase();toast('🗑️ Lote removido.');renderRebanho();renderDashboard();
   });
 }
@@ -2860,6 +2915,7 @@ function confirmarBaixa(){
   // Atualiza quantidade do lote
   var idx = state.lotes.findIndex(function(l){ return l.id === loteIdBaixa; });
   state.lotes[idx].qtd = lote.qtd - qtd;
+  ajustarParcelasAposSaida(loteIdBaixa, qtd, null); removerTropasVazias();
 
   saveToFirebase();
   toast('📉 Baixa registrada — ' + qtd + ' cabeça(s) · Perda: ' + fmt(perda));
@@ -4074,6 +4130,123 @@ function popularSelectLotes(selectId, excluirTerceiro){
   });
 }
 
+// ===== TROPAS (grupos de manejo: quem anda junto numa manga) =====
+// Tropa = {id, nome, manga, mangaData, mangaDias, parcelas:[{loteId, qtd, pesoAtual}], historico:[{data,texto}]}
+function tropasAtivas(){ return (state.tropas||[]).filter(function(t){ return (t.parcelas||[]).some(function(p){ return p.qtd>0; }); }); }
+function tropaQtd(t){ return (t.parcelas||[]).reduce(function(a,p){ return a+(p.qtd||0); },0); }
+function tropasDoLote(loteId){ return tropasAtivas().map(function(t){ var p=(t.parcelas||[]).find(function(x){ return String(x.loteId)===String(loteId) && x.qtd>0; }); return p?{tropa:t,parcela:p}:null; }).filter(Boolean); }
+function tropaPrincipalDoLote(loteId){ var ts=tropasDoLote(loteId); if(!ts.length) return null; ts.sort(function(a,b){ return b.parcela.qtd-a.parcela.qtd; }); return ts[0].tropa; }
+function loteNome(id){ var l=state.lotes.find(function(x){ return x.id==id; }); return l?l.nome:'lote '+id; }
+function tropaPesoMedioArroba(t){ var s=0,q=0; (t.parcelas||[]).forEach(function(p){ var l=state.lotes.find(function(x){return x.id==p.loteId;}); var pa=p.pesoAtual||(l?(l.pesoAtual||l.pesoEntrada||0):0); if(pa>0){ s+=pa*p.qtd; q+=p.qtd; } }); return q>0?s/q:null; }
+function tropaGmdKg(t){ var gs=[],qs=[]; (t.parcelas||[]).forEach(function(p){ var l=state.lotes.find(function(x){return x.id==p.loteId;}); if(!l) return; var g=calcularGMD(l); if(g!==null){ gs.push(g*15*p.qtd); qs.push(p.qtd); } }); var q=qs.reduce(function(a,b){return a+b;},0); return q>0?gs.reduce(function(a,b){return a+b;},0)/q:null; }
+// Cria uma tropa por lote ativo que ainda não está em nenhuma tropa (primeira abertura e lotes novos)
+function migrarTropas(){
+  var mudou=false; if(!state.tropas) state.tropas=[];
+  state.lotes.forEach(function(l){
+    if(l.tipo==='encerrado' || !(l.qtd>0)) return;
+    if(tropasDoLote(l.id).length) return;
+    state.tropas.push({ id:Date.now()+Math.floor(Math.random()*100000), nome:l.nome, manga:l.manga||'', mangaData:l.mangaData||null, mangaDias:l.mangaDias||null, parcelas:[{loteId:l.id, qtd:l.qtd, pesoAtual:l.pesoAtual||l.pesoEntrada||null}], historico:[{data:new Date().toISOString().slice(0,10), texto:'Tropa criada a partir do lote '+l.nome}] });
+    mudou=true;
+  });
+  return mudou;
+}
+// Mantém os campos de manga do lote iguais aos da tropa onde está a maior parte dele (mapa, vaqueiro e notificações continuam funcionando)
+function sincronizarLotesComTropas(){
+  state.lotes.forEach(function(l){
+    var t=tropaPrincipalDoLote(l.id); if(!t) return;
+    l.manga=t.manga||''; l.mangaData=t.mangaData||null; l.mangaDias=t.mangaDias||null;
+    var ts=tropasDoLote(l.id); var s=0,q=0; ts.forEach(function(x){ var pa=x.parcela.pesoAtual||l.pesoAtual||l.pesoEntrada||0; if(pa>0){ s+=pa*x.parcela.qtd; q+=x.parcela.qtd; } });
+    if(q>0) l.pesoAtual=Math.round(s/q*10)/10;
+  });
+}
+function ajustarParcelasAposSaida(loteId, qtdSaida, tropaId){
+  // Tira cabeças das parcelas do lote: da tropa indicada, ou da maior parcela
+  var ts=tropasDoLote(loteId); if(!ts.length) return;
+  if(tropaId){ ts.sort(function(a,b){ return (String(a.tropa.id)===String(tropaId)?-1:0)-(String(b.tropa.id)===String(tropaId)?-1:0); }); }
+  else ts.sort(function(a,b){ return b.parcela.qtd-a.parcela.qtd; });
+  var resta=qtdSaida;
+  ts.forEach(function(x){ if(resta<=0) return; var tira=Math.min(x.parcela.qtd,resta); x.parcela.qtd-=tira; resta-=tira; if(x.parcela.qtd<=0) x.tropa.parcelas=x.tropa.parcelas.filter(function(p){ return p!==x.parcela; }); });
+}
+function registrarHistoricoTropa(t,texto){ if(!t.historico) t.historico=[]; t.historico.push({data:new Date().toISOString().slice(0,10), texto:texto}); }
+function removerTropasVazias(){ state.tropas=(state.tropas||[]).filter(function(t){ return tropaQtd(t)>0; }); }
+// ===== TROPAS: UI =====
+function mangaStatusTropa(t){
+  if(!t.mangaData||!t.mangaDias) return '';
+  var dias=Math.floor((Date.now()-new Date(t.mangaData+'T00:00:00'))/86400000); var rest=t.mangaDias-dias;
+  var cor=rest<0?'red':(rest<=3?'yellow':'green'); var txt=rest<0?'Mover há '+(-rest)+' dias':rest===0?'Mover hoje!':rest+' dias restantes';
+  return '<span class="badge '+cor+'">'+txt+'</span>';
+}
+function renderTropas(){
+  var el=document.getElementById('tabela-tropas'); if(!el) return;
+  var ts=tropasAtivas();
+  if(!ts.length){ el.innerHTML='<div class="empty"><div class="icon">🐂</div><p>Nenhuma tropa. Lotes novos criam a própria tropa.</p></div>'; return; }
+  var h='';
+  ts.forEach(function(t){
+    var q=tropaQtd(t), pm=tropaPesoMedioArroba(t), g=tropaGmdKg(t);
+    h+='<div style="border:1px solid var(--border);border-radius:12px;padding:.8rem .9rem;margin-bottom:.7rem">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem"><div><strong style="font-size:.95rem">🐂 '+t.nome+'</strong><br><span style="font-size:.78rem;color:var(--clay)">🌿 '+(t.manga||'sem manga')+(t.mangaData?' · desde '+fmtDataBR(t.mangaData):'')+' '+mangaStatusTropa(t)+'</span></div>';
+    h+='<div style="display:flex;gap:.3rem;flex-wrap:wrap;justify-content:flex-end"><button class="btn sm outline" title="Pesar" onclick="pesarTropa('+t.id+')">⚖️</button><button class="btn sm outline" style="color:var(--gold);border-color:var(--gold)" title="Separar/mover" onclick="abrirModalTropaMover('+t.id+')">🔀</button><button class="btn sm outline" title="Mudar manga" onclick="abrirModalTropaManga('+t.id+')">🌿</button><button class="btn sm outline" title="Renomear" onclick="renomearTropa('+t.id+')">✏️</button></div></div>';
+    h+='<div style="font-size:.82rem;color:var(--clay);margin-top:.5rem;line-height:1.7">Cabeças: <strong style="color:var(--text)">'+q+'</strong> · '+(t.parcelas||[]).filter(function(p){return p.qtd>0;}).map(function(p){ return '<strong style="color:var(--text)">'+p.qtd+'</strong> do '+loteNome(p.loteId); }).join(' + ');
+    h+='<br>Peso médio: <strong style="color:var(--text)">'+(pm!==null?fmtN(pm,1)+'@ ('+Math.round(pm*15)+' kg)':'—')+'</strong>'+(g!==null?' · GMD: <strong style="color:'+(g<0?'var(--red)':g<gmdMetaKg?'var(--gold)':'var(--green)')+'">'+fmtN(g,2)+' kg/dia</strong>':'')+'</div>';
+    if(t.historico&&t.historico.length) h+='<details style="margin-top:.3rem"><summary style="font-size:.72rem;color:var(--clay);cursor:pointer">histórico ('+t.historico.length+')</summary><div style="font-size:.72rem;color:var(--clay);line-height:1.6">'+t.historico.slice().reverse().map(function(x){ return fmtDataBR(x.data)+' · '+x.texto; }).join('<br>')+'</div></details>';
+    h+='</div>';
+  });
+  el.innerHTML=h;
+}
+function renomearTropa(id){ var t=state.tropas.find(function(x){return x.id===id;}); if(!t) return; var n=prompt('Nome da tropa:', t.nome); if(n&&n.trim()){ t.nome=n.trim(); saveToFirebase(); renderTropas(); } }
+function abrirModalNovaTropa(){ var ts=tropasAtivas(); if(!ts.length){ toast('Cadastre um lote primeiro','error'); return; } toast('Para criar uma tropa, use 🔀 em uma tropa existente e escolha "Nova tropa"'); }
+function optionsMangas(sel, atual){ var h='<option value="">— Selecionar manga —</option>'; MANGAS_NOMES.forEach(function(n){ h+='<option value="'+n+'"'+(n===atual?' selected':'')+'>'+n+'</option>'; }); sel.innerHTML=h; }
+var tropaIdMover=null;
+function abrirModalTropaMover(id){
+  var t=state.tropas.find(function(x){return x.id===id;}); if(!t) return; tropaIdMover=id;
+  document.getElementById('tm-titulo').textContent='🔀 Separar / mover de: '+t.nome;
+  document.getElementById('tm-parcelas').innerHTML=(t.parcelas||[]).filter(function(p){return p.qtd>0;}).map(function(p){ return '<div style="display:grid;grid-template-columns:1fr auto;gap:.4rem;align-items:center;font-size:.84rem;border-top:1px solid var(--border);padding:.4rem 0"><span>do '+loteNome(p.loteId)+' ('+p.qtd+' na tropa)</span><input type="number" id="tm-q-'+p.loteId+'" min="0" max="'+p.qtd+'" value="0" style="width:70px;padding:.3rem;text-align:center"></div>'; }).join('');
+  document.getElementById('tm-brincos').value=''; document.getElementById('tm-nome').value=''; document.getElementById('tm-data').value=new Date().toISOString().slice(0,10); document.getElementById('tm-dias').value=t.mangaDias||45;
+  optionsMangas(document.getElementById('tm-manga'), '');
+  var dest=document.getElementById('tm-tropa-dest'); dest.innerHTML=tropasAtivas().filter(function(x){return x.id!==id;}).map(function(x){ return '<option value="'+x.id+'">'+x.nome+' · '+tropaQtd(x)+' cab. · '+(x.manga||'sem manga')+'</option>'; }).join('')||'<option value="">— nenhuma outra tropa —</option>';
+  var rNova=document.querySelector('input[name="tm-dest"][value="nova"]'); if(rNova) rNova.checked=true; tmToggleDestino();
+  document.getElementById('modal-tropa-mover').classList.add('open');
+}
+function tmDestinoNova(){ var r=document.querySelector('input[name="tm-dest"]:checked'); return !r || r.value==='nova'; }
+function tmToggleDestino(){ var nova=tmDestinoNova(); document.getElementById('tm-nova').style.display=nova?'':'none'; document.getElementById('tm-existente').style.display=nova?'none':''; }
+function fecharModalTropaMover(){ document.getElementById('modal-tropa-mover').classList.remove('open'); tropaIdMover=null; }
+function confirmarTropaMover(){
+  var t=state.tropas.find(function(x){return x.id===tropaIdMover;}); if(!t) return;
+  var movs=[]; (t.parcelas||[]).forEach(function(p){ var el=document.getElementById('tm-q-'+p.loteId); var q=el?parseInt(el.value)||0:0; if(q>0){ if(q>p.qtd) q=p.qtd; movs.push({loteId:p.loteId,qtd:q}); } });
+  if(!movs.length) return toast('Informe quantas cabeças saem','error');
+  var nova=tmDestinoNova(); var dest;
+  if(nova){ var nome=document.getElementById('tm-nome').value.trim(); if(!nome) return toast('Dê um nome à nova tropa','error');
+    dest={ id:Date.now(), nome:nome, manga:document.getElementById('tm-manga').value||'', mangaData:document.getElementById('tm-data').value||new Date().toISOString().slice(0,10), mangaDias:parseInt(document.getElementById('tm-dias').value)||null, parcelas:[], historico:[] }; state.tropas.push(dest); }
+  else { var did=parseInt(document.getElementById('tm-tropa-dest').value); dest=state.tropas.find(function(x){return x.id===did;}); if(!dest) return toast('Escolha a tropa de destino','error'); }
+  movs.forEach(function(m){
+    var po=t.parcelas.find(function(p){return String(p.loteId)===String(m.loteId);}); po.qtd-=m.qtd;
+    var pd=dest.parcelas.find(function(p){return String(p.loteId)===String(m.loteId);}); if(pd) pd.qtd+=m.qtd; else dest.parcelas.push({loteId:m.loteId,qtd:m.qtd,pesoAtual:po.pesoAtual||null});
+    registrarHistoricoTropa(t, m.qtd+' do '+loteNome(m.loteId)+' → '+dest.nome); registrarHistoricoTropa(dest, m.qtd+' do '+loteNome(m.loteId)+' vindas de '+t.nome);
+  });
+  t.parcelas=t.parcelas.filter(function(p){return p.qtd>0;});
+  var brincos=document.getElementById('tm-brincos').value.split(/[,\s;]+/).map(function(s){return s.trim();}).filter(Boolean); var nMov=0;
+  brincos.forEach(function(b){ var a=animalPorBrinco(b); if(a){ a.tropaId=dest.id; nMov++; } });
+  removerTropasVazias(); sincronizarLotesComTropas();
+  saveToFirebase(); toast('🔀 '+movs.reduce(function(a,m){return a+m.qtd;},0)+' cabeça(s) → '+dest.nome+(nMov?' · '+nMov+' brinco(s) movido(s)':''));
+  fecharModalTropaMover(); renderRebanho(); renderDashboard(); if(typeof renderMapa==='function') renderMapa();
+}
+var tropaIdManga=null;
+function abrirModalTropaManga(id){ var t=state.tropas.find(function(x){return x.id===id;}); if(!t) return; tropaIdManga=id;
+  document.getElementById('tmg-info').innerHTML='<strong>'+t.nome+'</strong> · '+tropaQtd(t)+' cab. · hoje em <strong>'+(t.manga||'sem manga')+'</strong>';
+  optionsMangas(document.getElementById('tmg-manga'), t.manga||''); document.getElementById('tmg-data').value=new Date().toISOString().slice(0,10); document.getElementById('tmg-dias').value=t.mangaDias||45;
+  document.getElementById('modal-tropa-manga').classList.add('open'); }
+function fecharModalTropaManga(){ document.getElementById('modal-tropa-manga').classList.remove('open'); tropaIdManga=null; }
+function confirmarTropaManga(){ var t=state.tropas.find(function(x){return x.id===tropaIdManga;}); if(!t) return;
+  var m=document.getElementById('tmg-manga').value; if(!m) return toast('Escolha a manga','error');
+  registrarHistoricoTropa(t,'Manga: '+(t.manga||'—')+' → '+m); t.manga=m; t.mangaData=document.getElementById('tmg-data').value||new Date().toISOString().slice(0,10); t.mangaDias=parseInt(document.getElementById('tmg-dias').value)||null;
+  sincronizarLotesComTropas(); saveToFirebase(); toast('🌿 '+t.nome+' → '+m); fecharModalTropaManga(); renderRebanho(); renderDashboard(); if(typeof renderMapa==='function') renderMapa(); }
+function atualizarSelectTropaVenda(){ var wrap=document.getElementById('vd-tropa-wrap'), sel=document.getElementById('vd-tropa'); if(!wrap||!sel) return;
+  var loteId=parseInt(document.getElementById('vd-lote').value); var ts=tropasDoLote(loteId);
+  if(ts.length>1){ ts.sort(function(a,b){ return (b.parcela.pesoAtual||0)-(a.parcela.pesoAtual||0); }); sel.innerHTML=ts.map(function(x){ return '<option value="'+x.tropa.id+'">'+x.tropa.nome+' · '+x.parcela.qtd+' cab.'+(x.parcela.pesoAtual?' · '+fmtN(x.parcela.pesoAtual,1)+'@':'')+'</option>'; }).join(''); wrap.style.display=''; }
+  else { sel.innerHTML=''; wrap.style.display='none'; } }
+function pesarTropa(id){ var sel=document.getElementById('ps-tropa'); if(sel){ popularSelectTropas(); sel.value=String(id); } openCollapse('form-pesagem'); psLinhas=[]; renderPesagemLinhas(); var f=document.getElementById('form-pesagem'); if(f&&f.scrollIntoView) setTimeout(function(){ f.scrollIntoView({behavior:'smooth',block:'start'}); },150); }
+function popularSelectTropas(){ var sel=document.getElementById('ps-tropa'); if(!sel) return; var atual=sel.value; sel.innerHTML='<option value="">— Selecionar tropa —</option>'+tropasAtivas().map(function(t){ return '<option value="'+t.id+'">'+t.nome+' · '+tropaQtd(t)+' cab. ('+(t.parcelas||[]).map(function(p){return loteNome(p.loteId);}).join(' + ')+')</option>'; }).join(''); if(atual) sel.value=atual; }
+function pesagemContexto(){ var sel=document.getElementById('ps-tropa'); var t=sel&&sel.value?state.tropas.find(function(x){return String(x.id)===String(sel.value);}):null; if(!t) return null; return {tropa:t, loteIds:(t.parcelas||[]).map(function(p){return String(p.loteId);}), qtd:tropaQtd(t)}; }
 // ===== PESAGEM POR ANIMAL =====
 var psLinhas=[]; // {brinco, pesoKg, animalId, sugestoes}
 var KG_POR_ARROBA=15;
@@ -4120,8 +4293,9 @@ function badgeGmd(g){
 function sugestoesPorPeso(pesoKg, loteId, data, idxLinha){
   var usados={}; psLinhas.forEach(function(l,i){ if(i!==idxLinha && l.animalId) usados[l.animalId]=1; if(i!==idxLinha && l.brinco){ var a=animalPorBrinco(l.brinco); if(a) usados[a.id]=1; } });
   var cands=[];
+  var ctxS=pesagemContexto(); var loteIdsS=ctxS?ctxS.loteIds:[String(loteId)];
   state.animais.forEach(function(a){
-    if(String(a.loteId)!==String(loteId) || usados[a.id]) return;
+    if(loteIdsS.indexOf(String(a.loteId))<0 || usados[a.id]) return;
     if(a.status && a.status!=='ativo' && a.status!=='gestante' && a.status!=='lactacao') return;
     var u=ultimoPesoAnimal(a); if(!u) return;
     var g=gmdEntre(u.kg,u.data,pesoKg,data);
@@ -4138,7 +4312,7 @@ function onLinhaPesagem(i, campo, el){
 }
 function renderPesagemLinhas(){
   var wrap=document.getElementById('ps-linhas'); if(!wrap) return;
-  var loteId=parseInt(document.getElementById('ps-lote').value)||null;
+  var ctxL=pesagemContexto(); var loteId=ctxL?parseInt(ctxL.loteIds[0]):null;
   var data=document.getElementById('ps-data').value||new Date().toISOString().slice(0,10);
   if(!psLinhas.length){ wrap.innerHTML='<div style="font-size:.76rem;color:var(--clay);padding:.4rem 0">Nenhuma linha. Use "Colar lista" ou "➕ Linha". Para pesagem só pela média, use o campo abaixo.</div>'; renderPesagemResumo(); return; }
   var h='<div style="display:grid;grid-template-columns:78px 1fr auto 28px;gap:.4rem;font-size:.68rem;color:var(--clay);padding-bottom:.2rem"><div>Brinco</div><div>Peso (kg)</div><div>GMD</div><div></div></div>';
@@ -4147,7 +4321,7 @@ function renderPesagemLinhas(){
     var info='', gmdHtml='', aviso='';
     if(l.pesoKg>0){
       info=fmtN(l.pesoKg/KG_POR_ARROBA,1)+'@';
-      if(a){ var u=ultimoPesoAnimal(a); var g=u?gmdEntre(u.kg,u.data,l.pesoKg,data):null; gmdHtml=badgeGmd(g); if(a && String(a.loteId)!==String(loteId)) aviso='<span style="font-size:.68rem;color:var(--gold)"> · está em outro lote, será movido</span>'; }
+      if(a){ var u=ultimoPesoAnimal(a); var g=u?gmdEntre(u.kg,u.data,l.pesoKg,data):null; gmdHtml=badgeGmd(g); if(ctxL && ctxL.loteIds.indexOf(String(a.loteId))<0) aviso='<span style="font-size:.68rem;color:var(--gold)"> · de outro lote, entra nesta tropa</span>'; }
       else if(l.brinco){ gmdHtml='<span class="badge sky">novo</span>'; aviso='<span style="font-size:.68rem;color:var(--clay)"> · será cadastrado</span>'; }
       else gmdHtml='<span class="badge yellow">anônimo</span>';
     }
@@ -4171,61 +4345,59 @@ function renderPesagemLinhas(){
 }
 function renderPesagemResumo(){
   var el=document.getElementById('ps-resumo'); if(!el) return;
-  var loteId=parseInt(document.getElementById('ps-lote').value)||null; var lote=state.lotes.find(function(l){return l.id===loteId;});
-  var data=document.getElementById('ps-data').value||new Date().toISOString().slice(0,10);
+  var ctx=pesagemContexto(); var data=document.getElementById('ps-data').value||new Date().toISOString().slice(0,10);
   var pesados=psLinhas.filter(function(l){return l.pesoKg>0;});
   var chk=document.getElementById('ps-atualiza-lote'), av=document.getElementById('ps-aviso-parcial');
   if(!pesados.length){ el.innerHTML=''; if(av) av.style.display='none'; if(chk) chk.checked=true; return; }
   var media=pesados.reduce(function(a,l){return a+l.pesoKg;},0)/pesados.length;
-  var gs=[]; var fracos=0, perdendo=0, ident=0;
-  pesados.forEach(function(l){ var a=l.animalId?state.animais.find(function(x){return x.id===l.animalId;}):animalPorBrinco(l.brinco); if(!a && l.brinco) ident++; if(a){ ident++; var u=ultimoPesoAnimal(a); var g=u?gmdEntre(u.kg,u.data,l.pesoKg,data):null; if(g!==null){ gs.push(g); if(g<0) perdendo++; if(g<gmdMetaKg) fracos++; } } });
+  var gs=[]; var fracos=0, perdendo=0, ident=0; var porLote={};
+  pesados.forEach(function(l){ var a=l.animalId?state.animais.find(function(x){return x.id===l.animalId;}):animalPorBrinco(l.brinco); if(!a && l.brinco) ident++; if(a){ ident++; var k=String(a.loteId); (porLote[k]=porLote[k]||[]).push(l.pesoKg); var u=ultimoPesoAnimal(a); var g=u?gmdEntre(u.kg,u.data,l.pesoKg,data):null; if(g!==null){ gs.push(g); if(g<0) perdendo++; if(g<gmdMetaKg) fracos++; } } });
   var gmdLote=gs.length?gs.reduce(function(a,b){return a+b;},0)/gs.length:null;
   var h='<div style="font-size:.7rem;color:var(--clay);font-family:\'DM Mono\',monospace;margin-bottom:.3rem">RESUMO DESTA PESAGEM</div>';
-  h+='<div class="result-row"><span class="label">Animais pesados</span><span class="value">'+pesados.length+(lote?' de '+lote.qtd:'')+' · '+ident+' identificados</span></div>';
-  h+='<div class="result-row"><span class="label">Peso médio</span><span class="value">'+Math.round(media)+' kg · '+fmtN(media/KG_POR_ARROBA,1)+'@</span></div>';
+  h+='<div class="result-row"><span class="label">Animais pesados</span><span class="value">'+pesados.length+(ctx?' de '+ctx.qtd:'')+' · '+ident+' identificados</span></div>';
+  h+='<div class="result-row"><span class="label">Média da tropa</span><span class="value">'+Math.round(media)+' kg · '+fmtN(media/KG_POR_ARROBA,1)+'@</span></div>';
+  if(ctx && ctx.loteIds.length>1){ ctx.loteIds.forEach(function(lid){ var arr=porLote[lid]; var m=arr&&arr.length?arr.reduce(function(a,b){return a+b;},0)/arr.length:media; h+='<div class="result-row"><span class="label" style="font-size:.8rem">↳ '+loteNome(lid)+(arr&&arr.length?' ('+arr.length+' c/ brinco)':' (média da tropa)')+'</span><span class="value" style="font-size:.85rem">'+fmtN(m/KG_POR_ARROBA,1)+'@</span></div>'; }); }
   if(gmdLote!==null) h+='<div class="result-row"><span class="label">GMD dos identificados (meta '+gmdMetaKg+')</span><span class="value" style="color:'+(gmdLote<0?'var(--red)':gmdLote<gmdMetaKg?'var(--gold)':'var(--green)')+'">'+fmtN(gmdLote,2)+' kg/dia</span></div>';
   if(gs.length) h+='<div class="result-row"><span class="label">Abaixo da meta / perdendo peso</span><span class="value" style="color:var(--red)">'+fracos+' / '+perdendo+'</span></div>';
   el.innerHTML=h;
-  if(lote && chk && av){
-    var parcial=pesados.length<Math.ceil((lote.qtd||0)/2);
-    if(parcial){ chk.checked=false; av.style.display=''; av.textContent='⚠️ Só '+pesados.length+' de '+lote.qtd+' pesados. Usar essa média como peso do lote pode distorcer o prazo e o lucro. Marque acima se quiser atualizar mesmo assim.'; }
+  if(ctx && chk && av){
+    var parcial=pesados.length<Math.ceil((ctx.qtd||0)/2);
+    if(parcial){ chk.checked=false; av.style.display=''; av.textContent='⚠️ Só '+pesados.length+' de '+ctx.qtd+' pesados. Usar essa média como peso dos lotes pode distorcer o prazo e o lucro. Marque acima se quiser atualizar mesmo assim.'; }
     else { chk.checked=true; av.style.display='none'; }
   }
 }
 function tipoAnimalDoLote(lote){ var m={novilha:'novilha',vaca:'vaca',bezerro:'bezerro',cria_terra:'bezerro',touro:'touro'}; return m[lote.tipo]||'novilha'; }
 function salvarPesagem(){
-  var loteId = parseInt(document.getElementById('ps-lote').value);
-  var data   = document.getElementById('ps-data').value;
-  if(!loteId) return toast('Selecione um lote','error');
-  if(!data)   return toast('Informe a data','error');
-  var lote = state.lotes.find(function(l){ return l.id===loteId; }); if(!lote) return;
-  var obs=document.getElementById('ps-obs').value;
+  var ctx=pesagemContexto(); var data=document.getElementById('ps-data').value;
+  if(!ctx) return toast('Selecione uma tropa','error');
+  if(!data) return toast('Informe a data','error');
+  var t=ctx.tropa; var obs=document.getElementById('ps-obs').value;
   var pesados=psLinhas.filter(function(l){return l.pesoKg>0;});
   var mediaManual=parseFloat(document.getElementById('ps-media').value);
   var atualizar=document.getElementById('ps-atualiza-lote').checked;
-  var pesoArroba=null, nIdent=0, nNovos=0;
+  var nIdent=0, nNovos=0, porLote={}, mediaKg=null;
   if(pesados.length){
+    var lotePadrao=parseInt(ctx.loteIds[0]);
     pesados.forEach(function(l){
       var a=l.animalId?state.animais.find(function(x){return x.id===l.animalId;}):animalPorBrinco(l.brinco);
-      if(!a && l.brinco){
-        a={id:Date.now()+Math.floor(Math.random()*1000),brinco:l.brinco,loteId:loteId,tipo:tipoAnimalDoLote(lote),raca:'',peso:null,sexo:'femea',nascimento:null,entrada:data,status:'ativo',partoUltimo:null,partoProximo:null,obs:'Cadastrado na pesagem',marca:'',foto:null,eventos:[],pesagens:[],brincosAnteriores:[]};
-        state.animais.push(a); nNovos++;
-      }
-      if(a){
-        if(!a.pesagens) a.pesagens=[];
-        a.pesagens.push({id:Date.now()+Math.floor(Math.random()*1000),data:data,pesoKg:l.pesoKg,loteId:loteId});
-        a.peso=Math.round(l.pesoKg/KG_POR_ARROBA*10)/10; a.loteId=loteId; nIdent++;
-      }
+      if(!a && l.brinco){ var lp=state.lotes.find(function(x){return x.id===lotePadrao;}); a={id:Date.now()+Math.floor(Math.random()*1000),brinco:l.brinco,loteId:lotePadrao,tropaId:t.id,tipo:lp?tipoAnimalDoLote(lp):'novilha',raca:'',peso:null,sexo:'femea',nascimento:null,entrada:data,status:'ativo',partoUltimo:null,partoProximo:null,obs:'Cadastrado na pesagem',marca:'',foto:null,eventos:[],pesagens:[],brincosAnteriores:[]}; state.animais.push(a); nNovos++; }
+      if(a){ if(!a.pesagens) a.pesagens=[]; a.pesagens.push({id:Date.now()+Math.floor(Math.random()*1000),data:data,pesoKg:l.pesoKg,loteId:a.loteId,tropaId:t.id}); a.peso=Math.round(l.pesoKg/KG_POR_ARROBA*10)/10; a.tropaId=t.id; nIdent++; (porLote[String(a.loteId)]=porLote[String(a.loteId)]||[]).push(l.pesoKg); }
     });
-    pesoArroba=pesados.reduce(function(s,l){return s+l.pesoKg;},0)/pesados.length/KG_POR_ARROBA;
-  } else if(mediaManual>0){ pesoArroba=mediaManual; atualizar=true; }
-  else return toast('Informe os pesos ou a média do lote','error');
-  var pesoAnterior = lote.pesoAtual || lote.pesoEntrada || 0;
-  if(!state.pesagens) state.pesagens = [];
-  state.pesagens.push({ id: Date.now(), loteId: loteId, loteNome: lote.nome, peso: Math.round(pesoArroba*100)/100, pesoAnterior: pesoAnterior, ganho: Math.round((pesoArroba-pesoAnterior)*100)/100, data: data, obs: obs, animaisPesados: pesados.length||null, identificados: nIdent||null, atualizouLote: atualizar });
-  if(atualizar){ var idx = state.lotes.findIndex(function(l){ return l.id===loteId; }); state.lotes[idx].pesoAtual = Math.round(pesoArroba*10)/10; }
+    mediaKg=pesados.reduce(function(s,l){return s+l.pesoKg;},0)/pesados.length;
+  } else if(mediaManual>0){ mediaKg=mediaManual*KG_POR_ARROBA; atualizar=true; }
+  else return toast('Informe os pesos ou a média da tropa','error');
+  if(!state.pesagens) state.pesagens=[];
+  t.ultimaPesagem={data:data, mediaArroba:Math.round(mediaKg/KG_POR_ARROBA*100)/100, animais:pesados.length||null};
+  (t.parcelas||[]).forEach(function(p){
+    var lote=state.lotes.find(function(x){return x.id==p.loteId;}); if(!lote) return;
+    var arr=porLote[String(p.loteId)]; var mKg=arr&&arr.length?arr.reduce(function(a,b){return a+b;},0)/arr.length:mediaKg;
+    var pesoArroba=mKg/KG_POR_ARROBA; var pesoAnterior=p.pesoAtual||lote.pesoAtual||lote.pesoEntrada||0;
+    state.pesagens.push({ id:Date.now()+Math.floor(Math.random()*1000), loteId:lote.id, loteNome:lote.nome, tropaId:t.id, tropaNome:t.nome, peso:Math.round(pesoArroba*100)/100, pesoAnterior:pesoAnterior, ganho:Math.round((pesoArroba-pesoAnterior)*100)/100, data:data, obs:obs, animaisPesados:(arr?arr.length:null), identificados:(arr?arr.length:null), atualizouLote:atualizar, fonte:(arr&&arr.length?'brincos':'média da tropa') });
+    if(atualizar) p.pesoAtual=Math.round(pesoArroba*10)/10;
+  });
+  if(atualizar) sincronizarLotesComTropas();
   saveToFirebase();
-  toast('⚖️ Pesagem registrada'+(pesados.length?' · '+pesados.length+' animais'+(nNovos?' · '+nNovos+' cadastrados':''):'')+(atualizar?' · lote: '+fmtN(pesoArroba,1)+'@':' · média do lote não alterada'));
+  toast('⚖️ '+t.nome+': '+fmtN(mediaKg/KG_POR_ARROBA,1)+'@ média'+(pesados.length?' · '+pesados.length+' animais'+(nNovos?' · '+nNovos+' cadastrados':''):'')+(atualizar?'':' · lotes não alterados'));
   psLinhas=[]; document.getElementById('ps-media').value=''; document.getElementById('ps-obs').value='';
   renderPesagemLinhas(); renderHistoricoPesagens(); renderRebanho(); renderDashboard(); if(typeof renderAnimais==='function') renderAnimais();
 }
@@ -4331,6 +4503,7 @@ function salvarVenda(){
   // Update lote quantity
   var idx = state.lotes.findIndex(function(l){ return l.id===loteId; });
   state.lotes[idx].qtd = lote.qtd - qtd;
+  var vdTropaEl=document.getElementById('vd-tropa'); ajustarParcelasAposSaida(loteId, qtd, vdTropaEl&&vdTropaEl.value?vdTropaEl.value:null); removerTropasVazias();
   if(state.lotes[idx].qtd === 0){
     state.lotes[idx].tipoAnterior = state.lotes[idx].tipo;
     state.lotes[idx].tipo = 'encerrado';
@@ -5865,7 +6038,7 @@ function selecionarFazenda(qual){
   try { localStorage.removeItem('fazenda_perfil'); } catch(e){}
 
   // Reset state completely
-  state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[], trocas:[], pagamentos:[] };
+  state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[], trocas:[], pagamentos:[], tropas:[] };
   stateNotas = { todos:[], notas:[], vacinas:[], lembretes:[] };
   stateAlertas = [];
 
