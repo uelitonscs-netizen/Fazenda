@@ -326,7 +326,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
 
 <!-- ===== APP ===== -->
 <div id="app-screen">
-  <div style="background:#C0392B;color:#fff;text-align:center;font-size:.72rem;font-weight:700;letter-spacing:.08em;padding:.3rem .5rem;font-family:'DM Mono',monospace">🧪 AMBIENTE DE TESTE — nada aqui afeta o app real · <span id="sb-build">build 2026-11-10 simulador</span></div>
+  <div style="background:#C0392B;color:#fff;text-align:center;font-size:.72rem;font-weight:700;letter-spacing:.08em;padding:.3rem .5rem;font-family:'DM Mono',monospace">🧪 AMBIENTE DE TESTE — nada aqui afeta o app real · <span id="sb-build">build 2026-11-10b arroba-sanidade</span></div>
   <div id="sb-erros" style="display:none;background:#7B1E1E;color:#fff;font-size:.72rem;padding:.4rem .6rem;font-family:'DM Mono',monospace;white-space:pre-wrap;word-break:break-word;max-height:30vh;overflow:auto"></div>
   <script>
   (function(){
@@ -370,6 +370,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
           <div id="custos-resumo"></div>
         </div>
       </div>
+      <div class="card" id="card-custo-arroba"><div class="card-title">⚖️ Custo da arroba</div><div id="custo-arroba"></div></div>
       <div class="card" id="card-resumo-fin">
         <div class="card-title" style="justify-content:space-between">
           <span>📊 Resumo Financeiro da Operação</span>
@@ -640,6 +641,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
               <div class="field"><label>Valor (R$)</label><input type="number" id="c-valor" placeholder="1300" step="0.01"></div>
               <div class="field"><label>Frequência</label><select id="c-freq" onchange="toggleCampoDiasCusto()"><option value="mensal">Mensal</option><option value="bimestral">A cada 2 meses</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual</option><option value="dias">A cada X dias</option><option value="unico">Único</option></select></div>
               <div class="field" id="c-dias-wrap" style="display:none"><label>A cada quantos dias?</label><input type="number" id="c-dias" min="1" step="1" placeholder="45"></div>
+              <div class="field" style="grid-column:1/-1"><label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;text-transform:none;letter-spacing:0;font-size:.82rem"><input type="checkbox" id="c-por-cabeca"> Valor <strong>por cabeça</strong> (× animais próprios; terceiros não entram)</label><div id="c-por-cabeca-info" style="font-size:.72rem;color:var(--clay);margin-top:.2rem"></div></div>
               <div class="field"><label>Data</label><input type="date" id="c-data"></div>
             </div>
             <div class="field" style="margin-top:.75rem"><label>Observação</label><input type="text" id="c-obs" placeholder="Detalhes..."></div>
@@ -648,6 +650,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         </div>
         <div class="card" style="margin:0"><div class="card-title">📊 Custos Mensais</div><div id="custos-mensais"></div></div>
       </div>
+      <div class="card" id="card-sanidade-real"><div class="card-title">💉 Sanidade real (pelos pagamentos)</div><div id="sanidade-real"></div></div>
       <div class="card"><div class="card-title">🗂️ Custos Cadastrados</div><div style="font-size:.74rem;color:var(--clay);margin:-.3rem 0 .8rem">Base do custo mensal e da projeção. Toque em 💵 para registrar um pagamento feito.</div><div id="tabela-custos"></div></div>
       <div class="card"><div class="card-title">🧾 Pagamentos Realizados</div><div id="tabela-pagamentos"></div></div>
     </div>
@@ -669,6 +672,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         <div style="font-size:.7rem;color:var(--clay);font-family:'DM Mono',monospace;margin:.9rem 0 .3rem">CUSTOS (do seu cadastro — pode ajustar)</div>
         <div class="form-grid">
           <div class="field"><label>Suplementação por cabeça/mês (R$)</label><input type="number" id="sm-supl" step="0.01" oninput="calcularSimulador()"></div>
+          <div class="field"><label>Sanidade por cabeça/mês (R$)</label><input type="number" id="sm-san" step="0.01" oninput="calcularSimulador()"></div>
           <div class="field"><label>Custo fixo por cabeça/mês (R$)</label><input type="number" id="sm-fixo" step="0.01" oninput="calcularSimulador()"></div>
           <div class="field"><label>Custos extras do lote (R$) — frete, comissão…</label><input type="number" id="sm-extra" value="0" step="0.01" oninput="calcularSimulador()"></div>
         </div>
@@ -1406,7 +1410,11 @@ function fmtN(v,d){ d=d||1; return Number(v).toLocaleString('pt-BR',{minimumFrac
 function catLabel(c){ var m={mao_de_obra:'Mão de Obra',sanidade:'Sanidade',manutencao_terra:'Manut. Terra',manutencao_equipamento:'Manut. Equip.',infraestrutura:'Infraestrutura',combustivel:'Combustível',transporte:'Transporte',outro:'Outro'}; return m[c]||c; }
 function freqLabel(f, c){ if(f==='dias') return 'A cada '+((c&&c.intervaloDias)||'?')+' dias'; var m={mensal:'Mensal',bimestral:'Bimestral',trimestral:'Trimestral',semestral:'Semestral',anual:'Anual',unico:'Pontual'}; return m[f]||f; }
 // Mês comercial de 30 dias (mesma base usada no resto do app)
-function custoMensal(c){ if(c.freq==='unico') return 0; if(c.freq==='dias') return (c.intervaloDias>0) ? c.valor*30/c.intervaloDias : 0; var d={mensal:1,bimestral:2,trimestral:3,semestral:6,anual:12}; return c.valor/(d[c.freq]||1); }
+function custoMensalUnitario(c){ if(c.freq==='unico') return 0; if(c.freq==='dias') return (c.intervaloDias>0) ? c.valor*30/c.intervaloDias : 0; var d={mensal:1,bimestral:2,trimestral:3,semestral:6,anual:12}; return c.valor/(d[c.freq]||1); }
+// Custo mensal: se "por cabeça", multiplica pelas cabeças próprias (terceiros são responsabilidade do dono deles)
+function custoMensal(c){ var u=custoMensalUnitario(c); return c.porCabeca ? u*cabecasProprias() : u; }
+function custoPorCabecaMes(){ return state.custos.reduce(function(a,c){ return a+(c.porCabeca?custoMensalUnitario(c):0); },0); }
+function custoFixoMes(){ return state.custos.reduce(function(a,c){ return a+(c.porCabeca?0:custoMensalUnitario(c)); },0); }
 // Intervalo do custo em dias (para prever o próximo pagamento)
 function intervaloDiasCusto(c){ if(c.freq==='dias') return c.intervaloDias||0; var d={mensal:30,bimestral:60,trimestral:90,semestral:180,anual:365}; return d[c.freq]||0; }
 // ===== PAGAMENTOS REALIZADOS (o que de fato saiu do caixa) =====
@@ -1465,7 +1473,38 @@ function pagamentosPorMes(){
   });
 }
 function nomeMes(k){ if(k==='sem-data') return 'Sem data'; var p=k.split('-'); var n=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']; return n[parseInt(p[1],10)-1]+' de '+p[0]; }
+function sanidadeRealCalc(dias){
+  dias=dias||90; var desde=new Date(); desde.setDate(desde.getDate()-dias); var iso=desde.toISOString().slice(0,10);
+  var pgs=(state.pagamentos||[]).filter(function(p){ return p.cat==='sanidade' && p.data && p.data>=iso; });
+  var total=pgs.reduce(function(a,p){ return a+(p.valor||0); },0); var cab=cabecasProprias(); var meses=dias/30;
+  return { total:total, n:pgs.length, cab:cab, meses:meses, porCabMes:(cab>0?total/cab/meses:0) };
+}
+function renderSanidadeReal(){
+  var el=document.getElementById('sanidade-real'); if(!el) return;
+  var r=sanidadeRealCalc(90); var cad=custoPorCabecaMes();
+  var h='';
+  if(!r.n){ h='<div style="font-size:.8rem;color:var(--clay)">Nenhum pagamento de Sanidade nos últimos 90 dias. Registre os pagamentos (💵 no custo) e o app calcula a sua média real por cabeça.</div>'; }
+  else {
+    h+='<div class="result-row"><span class="label">Pago em Sanidade (90 dias)</span><span class="value">'+fmt(r.total)+' <span style="font-size:.72rem;color:var(--clay)">· '+r.n+' pagamento(s)</span></span></div>';
+    h+='<div class="result-row"><span class="label">Por cabeça própria por mês</span><span class="value" style="color:var(--green)">'+fmt(r.porCabMes)+' <span style="font-size:.72rem;color:var(--clay)">('+fmt(r.total)+' ÷ '+r.cab+' cab. ÷ 3 meses)</span></span></div>';
+    h+='<div class="result-row"><span class="label">No cadastro hoje (custos por cabeça)</span><span class="value">'+fmt(cad)+'/cab/mês</span></div>';
+    var dif=cad>0?((r.porCabMes-cad)/cad*100):null;
+    if(dif!==null && Math.abs(dif)>=15) h+='<div style="font-size:.76rem;color:var(--gold);margin:.3rem 0">⚠️ O real está '+(dif>0?'+':'')+fmtN(dif,0)+'% em relação ao cadastro.</div>';
+    h+='<button class="btn sm outline" style="margin-top:.4rem" onclick="usarSanidadeReal()">✔️ Usar '+fmt(r.porCabMes)+'/cab/mês no cadastro</button>';
+  }
+  el.innerHTML=h;
+}
+function usarSanidadeReal(){
+  var r=sanidadeRealCalc(90); if(!(r.porCabMes>0)) return;
+  var alvos=state.custos.filter(function(c){ return c.cat==='sanidade' && c.porCabeca && c.freq!=='unico'; });
+  confirmarModal(alvos.length?('Ajustar '+alvos.length+' custo(s) de Sanidade por cabeça para somar '+fmt(r.porCabMes)+'/cab/mês?'):('Criar o custo "Sanidade (média real)" de '+fmt(r.porCabMes)+' por cabeça/mês?'),'💉','Aplicar',function(){
+    if(alvos.length){ var atual=alvos.reduce(function(a,c){return a+custoMensalUnitario(c);},0); var fator=atual>0?r.porCabMes/atual:1; alvos.forEach(function(c){ c.valor=Math.round(c.valor*fator*100)/100; }); }
+    else state.custos.push({id:Date.now(),desc:'Sanidade (média real)',cat:'sanidade',valor:Math.round(r.porCabMes*100)/100,freq:'mensal',intervaloDias:null,porCabeca:true,data:new Date().toISOString().slice(0,10),obs:'Gerado a partir dos pagamentos dos últimos 90 dias'});
+    saveToFirebase(); toast('💉 Sanidade do cadastro ajustada para a média real'); renderCustos(); renderDashboard();
+  });
+}
 function renderPagamentos(){
+  renderSanidadeReal();
   var el=document.getElementById('tabela-pagamentos'); if(!el) return;
   var meses=pagamentosPorMes();
   if(meses.length===0){ el.innerHTML='<div class="empty"><div class="icon">🧾</div><p>Nenhum pagamento registrado. Use o 💵 em cada custo.</p></div>'; return; }
@@ -1530,31 +1569,74 @@ function htmlGastoComVendidos(vr){
   h+='</div></details>';
   return h;
 }
+// ===== CUSTO DA ARROBA (quanto custa produzir 1@ nas condições atuais) =====
+function custoArrobaCalc(){
+  var hz=horizonteOperacao(); var ls=lotesParaVenda(); var vr=vendasRealizadas();
+  // @ produzidas até hoje: ganho dos animais no pasto + ganho dos já vendidos
+  var arrPasto=ls.reduce(function(a,l){ var pa=parseFloat(l.pesoAtual)||0, pe=parseFloat(l.pesoEntrada)||0; return a+(pa>pe?l.qtd*(pa-pe):0); },0);
+  var arrVendidas=(state.vendas||[]).reduce(function(a,v){ var l=state.lotes.find(function(x){return x.id==v.loteId;}); var pe=l?(parseFloat(l.pesoEntrada)||0):0; return a+((v.peso>pe&&pe>0)?v.qtd*(v.peso-pe):0); },0);
+  var arrProduzidas=arrPasto+arrVendidas;
+  // custo operacional até hoje: fixos × meses decorridos desde o 1º lote + suplementação já consumida
+  var mesesDecorridos=hz.inicio?Math.max(0,(Date.now()-hz.inicio.getTime())/MS_MES):0;
+  var suplConsumida=Math.max(0, estoqueCompradoValor()-estoqueRestanteValor());
+  var opRealizado=totalCustoMensal()*mesesDecorridos + suplConsumida;
+  // projetado para o ciclo inteiro (mesma base do Dashboard)
+  var opProjetado=custoOperacionalProjetado(hz.meses);
+  var arrFuturas=ls.reduce(function(a,l){ var pm=parseFloat(l.pesoMeta)||0, pa=parseFloat(l.pesoAtual)||parseFloat(l.pesoEntrada)||0; return a+(pm>pa?l.qtd*(pm-pa):0); },0);
+  var arrCiclo=arrProduzidas+arrFuturas;
+  var arrVenda=ls.reduce(function(a,l){ return a+l.qtd*(parseFloat(l.pesoMeta)||0); },0)+(state.vendas||[]).reduce(function(a,v){return a+v.qtd*v.peso;},0);
+  var compra=ls.reduce(function(a,l){return a+l.qtd*(parseFloat(l.pesoEntrada)||0)*(parseFloat(l.precoCompra)||0);},0)+vr.custoCompra;
+  var pontuais=custoUnicoTotal();
+  return { arrProduzidas:arrProduzidas, arrPasto:arrPasto, arrVendidas:arrVendidas, mesesDecorridos:mesesDecorridos, opRealizado:opRealizado, suplConsumida:suplConsumida,
+    custoArrRealizado: arrProduzidas>0 ? opRealizado/arrProduzidas : null,
+    opProjetado:opProjetado, arrCiclo:arrCiclo, custoArrProjetado: arrCiclo>0 ? opProjetado/arrCiclo : null,
+    custoArrComPontuais: arrCiclo>0 ? (opProjetado+pontuais)/arrCiclo : null,
+    arrVenda:arrVenda, compra:compra, pontuais:pontuais, custoTotalPorArrVendida: arrVenda>0 ? (compra+opProjetado+pontuais)/arrVenda : null,
+    precoVenda:ultimoPrecoVendaArroba() };
+}
+function renderCustoArroba(){
+  var el=document.getElementById('custo-arroba'); if(!el) return;
+  if(perfil!=='dono'){ el.innerHTML=''; return; }
+  var k=custoArrobaCalc();
+  var row=function(l,v,cls){ return '<div class="result-row"><span class="label">'+l+'</span><span class="value '+(cls||'')+'">'+v+'</span></div>'; };
+  var big=function(t,v,sub,cor){ return '<div class="result-box" style="padding:.7rem .8rem"><div style="font-size:.7rem;color:var(--clay);font-family:\'DM Mono\',monospace">'+t+'</div><div style="font-size:1.3rem;font-weight:700;color:'+(cor||'var(--text)')+'">'+v+'</div><div style="font-size:.72rem;color:var(--clay);line-height:1.5">'+sub+'</div></div>'; };
+  var h='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.8rem">';
+  h+=big('REALIZADO ATÉ HOJE', k.custoArrRealizado!==null?fmt(k.custoArrRealizado)+'/@':'—', k.custoArrRealizado!==null ? fmt(k.opRealizado)+' de custo op. ÷ '+fmtN(k.arrProduzidas,1)+'@ produzidas' : 'Precisa de pesagem para medir as @ produzidas', 'var(--green)');
+  h+=big('PROJETADO P/ O CICLO', k.custoArrProjetado!==null?fmt(k.custoArrProjetado)+'/@':'—', k.custoArrProjetado!==null ? fmt(k.opProjetado)+' ÷ '+fmtN(k.arrCiclo,1)+'@ (até as metas)' : '—', 'var(--gold)');
+  h+='</div>';
+  h+=row('@ produzidas até hoje', fmtN(k.arrPasto,1)+'@ no pasto + '+fmtN(k.arrVendidas,1)+'@ vendidas');
+  h+=row('Custo operacional até hoje', fmt(k.opRealizado)+' <span style="font-size:.72rem;color:var(--clay)">('+fmtN(k.mesesDecorridos,1)+' meses de fixos + '+fmt(k.suplConsumida)+' de sal consumido)</span>');
+  if(k.custoArrComPontuais!==null) h+=row('Com custos pontuais (cercas, cocheiras)', fmt(k.custoArrComPontuais)+'/@');
+  if(k.custoTotalPorArrVendida!==null) h+=row('Custo total por @ vendida (compra + op. + pontuais)', fmt(k.custoTotalPorArrVendida)+'/@', k.custoTotalPorArrVendida>k.precoVenda?'neg':'');
+  h+=row('Último preço de venda', fmt(k.precoVenda)+'/@','pos');
+  if(k.custoTotalPorArrVendida!==null) h+='<div style="font-size:.74rem;color:var(--clay);margin-top:.5rem;line-height:1.6">💡 Cada @ que o gado ganha custa <strong>'+(k.custoArrProjetado!==null?fmt(k.custoArrProjetado):'—')+'</strong> para produzir e vende por <strong>'+fmt(k.precoVenda)+'</strong>. Contando a compra dos animais, a @ vendida sai por <strong>'+fmt(k.custoTotalPorArrVendida)+'</strong>: abaixo do preço de venda, a operação dá lucro.</div>';
+  el.innerHTML=h;
+}
 // ===== SIMULADOR DE COMPRA =====
 function cabecasProprias(){ return state.lotes.filter(function(l){ return l.tipo!=='terceiro' && l.tipo!=='encerrado'; }).reduce(function(a,l){ return a+(l.qtd||0); },0); }
 function cabecasTodas(){ return state.lotes.filter(function(l){ return l.tipo!=='encerrado'; }).reduce(function(a,l){ return a+(l.qtd||0); },0); }
-function suplPorCabecaMes(){ var n=cabecasTodas(); return n>0 ? totalSupMensal()/n : 0; }
-function fixoPorCabecaMes(){ var n=cabecasTodas(); return n>0 ? totalCustoMensal()/n : 0; }
+function suplPorCabecaMes(){ var n=cabecasProprias(); return n>0 ? totalSupMensal()/n : 0; }
+function fixoPorCabecaMes(){ var n=cabecasProprias(); return n>0 ? custoFixoMes()/n : 0; }
 function ultimoPrecoVendaArroba(){ var vs=(state.vendas||[]).slice().sort(function(a,b){ return (b.data||'').localeCompare(a.data||''); }); return vs.length?vs[0].preco:330; }
 function ultimoPrecoCompraArroba(){ var ls=lotesParaVenda().filter(function(l){ return l.precoCompra>0; }).sort(function(a,b){ return (b.data||'').localeCompare(a.data||''); }); return ls.length?ls[0].precoCompra:300; }
 function simuladorPadroes(){
   var g=function(id,v){ var el=document.getElementById(id); if(el) el.value=v; };
   g('sm-pc', Math.round(ultimoPrecoCompraArroba()*100)/100); g('sm-pv', ultimoPrecoVendaArroba()); g('sm-gmd', gmdPadraoKg);
-  g('sm-supl', Math.round(suplPorCabecaMes()*100)/100); g('sm-fixo', Math.round(fixoPorCabecaMes()*100)/100);
+  g('sm-supl', Math.round(suplPorCabecaMes()*100)/100); g('sm-san', Math.round(custoPorCabecaMes()*100)/100); g('sm-fixo', Math.round(fixoPorCabecaMes()*100)/100);
   calcularSimulador();
 }
 function abrirSimulador(){ var pc=document.getElementById('sm-pc'); if(pc && !pc.value) simuladorPadroes(); else calcularSimulador(); }
 function calcularSimulador(){
   var el=document.getElementById('sm-resultado'); if(!el) return;
   var n=function(id){ return parseFloat(String((document.getElementById(id)||{}).value||'').replace(',','.'))||0; };
-  var qtd=n('sm-qtd'), pe=n('sm-pe'), pc=n('sm-pc'), pm=n('sm-pm'), pv=n('sm-pv'), gmd=n('sm-gmd'), supl=n('sm-supl'), fixo=n('sm-fixo'), extra=n('sm-extra');
+  var qtd=n('sm-qtd'), pe=n('sm-pe'), pc=n('sm-pc'), pm=n('sm-pm'), pv=n('sm-pv'), gmd=n('sm-gmd'), supl=n('sm-supl'), san=n('sm-san'), fixo=n('sm-fixo'), extra=n('sm-extra');
   var org=document.getElementById('sm-origem');
-  if(org) org.innerHTML='Suplementação: '+fmt(totalSupMensal())+'/mês ÷ '+cabecasTodas()+' cabeças = '+fmt(suplPorCabecaMes())+' · Custos fixos (vaqueiro, remédio, vacina): '+fmt(totalCustoMensal())+'/mês ÷ '+cabecasTodas()+' = '+fmt(fixoPorCabecaMes())+' · Ganho padrão '+gmdPadraoKg+' kg/dia · Último preço de venda '+fmt(ultimoPrecoVendaArroba())+'/@';
+  if(org) org.innerHTML='Suplementação: '+fmt(totalSupMensal())+'/mês ÷ '+cabecasProprias()+' cabeças próprias = '+fmt(suplPorCabecaMes())+' · Sanidade por cabeça (cadastro): '+fmt(custoPorCabecaMes())+'/cab/mês · Custos fixos (salário, vacina por campanha): '+fmt(custoFixoMes())+'/mês ÷ '+cabecasProprias()+' = '+fmt(fixoPorCabecaMes())+' · Ganho padrão '+gmdPadraoKg+' kg/dia · Último preço de venda '+fmt(ultimoPrecoVendaArroba())+'/@';
   if(!(qtd>0&&pe>0&&pm>pe&&pv>0&&gmd>0)){ el.innerHTML='<div style="font-size:.8rem;color:var(--clay)">Preencha cabeças, pesos (meta maior que entrada), preço de venda e ganho.</div>'; return; }
   var dias=Math.ceil((pm-pe)*15/gmd), meses=dias/30;
   var compra=qtd*pe*pc, receita=qtd*pm*pv, arrobasProd=qtd*(pm-pe);
-  var custoSupl=qtd*supl*meses, custoFixo=qtd*fixo*meses;
-  var custoMarg=custoSupl+extra, custoRateio=custoSupl+custoFixo+extra;
+  var custoSupl=qtd*supl*meses, custoSan=qtd*san*meses, custoFixo=qtd*fixo*meses;
+  var custoMarg=custoSupl+custoSan+extra, custoRateio=custoSupl+custoSan+custoFixo+extra;
   var lucroMarg=receita-compra-custoMarg, lucroRateio=receita-compra-custoRateio;
   var invMarg=compra+custoMarg, invRateio=compra+custoRateio;
   var rentMesMarg=invMarg>0?(lucroMarg/invMarg)*100/meses:0, rentMesRateio=invRateio>0?(lucroRateio/invRateio)*100/meses:0;
@@ -1566,6 +1648,7 @@ function calcularSimulador(){
   h+=row('Compra do lote', fmt(compra)+' <span style="font-size:.72rem;color:var(--clay)">('+fmt(qtd>0?compra/qtd:0)+'/cab.)</span>','neg');
   h+=row('Venda projetada', fmt(receita)+' <span style="font-size:.72rem;color:var(--clay)">('+fmtN(arrobasProd,0)+'@ produzidas)</span>','pos');
   h+=row('Suplementação no período', fmt(custoSupl),'neg');
+  if(custoSan>0) h+=row('Sanidade no período', fmt(custoSan),'neg');
   h+=row('Custos fixos rateados', fmt(custoFixo)+' <span style="font-size:.72rem;color:var(--clay)">(só no cenário com rateio)</span>','neg');
   if(extra>0) h+=row('Custos extras', fmt(extra),'neg');
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.9rem">';
@@ -2129,6 +2212,7 @@ function renderDashboard(){
     rfHtml+='<div class="result-row total"><span class="label">Lucro Líquido Est.</span><span class="value '+(luc>=0?'pos':'neg')+' big">'+fmt(luc)+'</span></div>';
     rfHtml+='<div style="font-size:.72rem;color:var(--clay);margin-top:.4rem">Use a aba Projeção para simular</div></div></div>';
     document.getElementById('resumo-financeiro').innerHTML=rfHtml;
+    renderCustoArroba();
   }
 }
 
@@ -2377,7 +2461,7 @@ function renderCustos(){
     rows+='<div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:.9rem;margin-bottom:.75rem">';
     rows+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">';
     rows+='<div><strong style="font-size:.88rem">'+c.desc+'</strong><br>';
-    rows+='<span class="badge yellow">'+catLabel(c.cat)+'</span> <span class="badge sky">'+freqLabel(c.freq,c)+'</span></div>';
+    rows+='<span class="badge yellow">'+catLabel(c.cat)+'</span> <span class="badge sky">'+freqLabel(c.freq,c)+'</span>'+(c.porCabeca?' <span class="badge green">por cabeça</span>':'')+'</div>';
     rows+='<div style="display:flex;gap:.4rem"><button class="btn sm outline" style="color:var(--green);border-color:var(--green-mid)" onclick="abrirModalPagamento('+c.id+')">💵</button><button class="btn sm outline" onclick="editarCusto('+c.id+')">✏️</button><button class="btn sm danger" onclick="deletarCusto('+c.id+')">🗑️</button></div>';
     rows+='</div>';
     rows+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem;font-size:.78rem;color:var(--clay)">';
@@ -2385,7 +2469,7 @@ function renderCustos(){
     if(c.freq==='unico'){
       rows+='<div>Tipo: <strong style="color:var(--gold)">Custo Pontual</strong></div>';
     } else {
-      rows+='<div>Custo/mês: <strong style="color:var(--text)">'+fmt(custoMensal(c))+'</strong></div>';
+      rows+='<div>Custo/mês: <strong style="color:var(--text)">'+fmt(custoMensal(c))+'</strong>'+(c.porCabeca?' <span style="font-size:.7rem">('+fmt(custoMensalUnitario(c))+'/cab × '+cabecasProprias()+')</span>':'')+'</div>';
     }
     if(c.obs) rows+='<div style="grid-column:1/-1">Obs: <span style="color:var(--text)">'+c.obs+'</span></div>';
     var st=statusPagamentoCusto(c);
@@ -2713,20 +2797,20 @@ function salvarCusto(){
   var intervaloDias=parseInt(document.getElementById('c-dias').value)||0;
   if(freqSel==='dias' && intervaloDias<1){toast('Informe a cada quantos dias.','error');return;}
   var custo={id:Date.now(),desc:desc,cat:document.getElementById('c-cat').value,valor:valor,
-    freq:freqSel, intervaloDias: freqSel==='dias'?intervaloDias:null,
+    freq:freqSel, intervaloDias: freqSel==='dias'?intervaloDias:null, porCabeca: !!(document.getElementById('c-por-cabeca')&&document.getElementById('c-por-cabeca').checked),
     data:document.getElementById('c-data').value||new Date().toISOString().split('T')[0],
     obs:document.getElementById('c-obs').value};
   var eid=document.getElementById('c-desc').dataset.editId;
   if(eid){var idx=state.custos.findIndex(function(c){return c.id==eid;});if(idx!==-1){custo.id=parseInt(eid);state.custos[idx]=custo;}delete document.getElementById('c-desc').dataset.editId;}
   else state.custos.push(custo);
-  saveToFirebase();toast('✅ Custo salvo!');['c-desc','c-valor','c-data','c-obs','c-dias'].forEach(function(id){document.getElementById(id).value='';});document.getElementById('c-freq').value='mensal';toggleCampoDiasCusto();renderCustos();
+  saveToFirebase();toast('✅ Custo salvo!');['c-desc','c-valor','c-data','c-obs','c-dias'].forEach(function(id){document.getElementById(id).value='';});document.getElementById('c-freq').value='mensal';toggleCampoDiasCusto();if(document.getElementById('c-por-cabeca'))document.getElementById('c-por-cabeca').checked=false;renderCustos();
 }
 function editarCusto(id){
   openCollapse('form-custo');
   var c=state.custos.find(function(x){return x.id===id;});if(!c)return;
   document.getElementById('c-desc').value=c.desc;document.getElementById('c-desc').dataset.editId=id;
   document.getElementById('c-cat').value=c.cat;document.getElementById('c-valor').value=c.valor;
-  document.getElementById('c-freq').value=c.freq;document.getElementById('c-dias').value=c.intervaloDias||'';toggleCampoDiasCusto();document.getElementById('c-data').value=c.data;
+  document.getElementById('c-freq').value=c.freq;document.getElementById('c-dias').value=c.intervaloDias||'';toggleCampoDiasCusto();if(document.getElementById('c-por-cabeca'))document.getElementById('c-por-cabeca').checked=!!c.porCabeca;document.getElementById('c-data').value=c.data;
   document.getElementById('c-obs').value=c.obs||'';showSectionById('custos');window.scrollTo(0,0);
 }
 function deletarCusto(id){
