@@ -326,7 +326,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
 
 <!-- ===== APP ===== -->
 <div id="app-screen">
-  <div style="background:#C0392B;color:#fff;text-align:center;font-size:.72rem;font-weight:700;letter-spacing:.08em;padding:.3rem .5rem;font-family:'DM Mono',monospace">🧪 AMBIENTE DE TESTE — nada aqui afeta o app real · <span id="sb-build">build 2026-11-09d historico</span></div>
+  <div style="background:#C0392B;color:#fff;text-align:center;font-size:.72rem;font-weight:700;letter-spacing:.08em;padding:.3rem .5rem;font-family:'DM Mono',monospace">🧪 AMBIENTE DE TESTE — nada aqui afeta o app real · <span id="sb-build">build 2026-11-09e parcelas</span></div>
   <div id="sb-erros" style="display:none;background:#7B1E1E;color:#fff;font-size:.72rem;padding:.4rem .6rem;font-family:'DM Mono',monospace;white-space:pre-wrap;word-break:break-word;max-height:30vh;overflow:auto"></div>
   <script>
   (function(){
@@ -618,7 +618,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         </div>
         <div class="collapse-body" id="sec-ganhos">
           <div id="ganhos-kpis" style="margin-bottom:.75rem"></div>
-          <button class="btn outline" style="width:100%;justify-content:center;margin-bottom:.75rem;font-size:.85rem" id="btn-abrir-troca">💱 Registrar Troca</button>
+          <div style="font-size:.74rem;color:var(--clay);margin-bottom:.75rem">💡 Troca de animais: registre como <strong>venda</strong> dos que saíram e <strong>lote novo</strong> dos que entraram, com o valor combinado de cada parte.</div>
           <div id="ganhos-cards"></div>
         </div>
       </div>
@@ -1259,7 +1259,6 @@ document.addEventListener('DOMContentLoaded', function() {
   on('btn-vaqueiro','click', function() { if (window.entrarVaqueiro) window.entrarVaqueiro(); });
   on('btn-confirmar','click', function() { if (window.confirmarSenha) window.confirmarSenha(); });
   on('btn-sair',    'click', function() { if (window.sair) window.sair(); });
-  on('btn-abrir-troca', 'click', abrirModalTroca);
   on('senha-input', 'keydown', function(e) { if (e.key === 'Enter' && window.confirmarSenha) window.confirmarSenha(); });
 });
 </script>
@@ -3104,32 +3103,28 @@ function confirmarAlteracaoAluguel(){
 }
 // Reconstrói os períodos de valor (contratoInicio -> mudanças registradas -> valor atual)
 // e soma a receita real de cada trecho, em vez de aplicar o valor atual a todo o prazo.
+// Parcelas do contrato: a 1ª vence 30 dias após o início e as seguintes a cada 30 dias.
+// Cada parcela vale o aluguel em vigor na data dela (histórico de alterações).
+function parcelasAluguelLote(lote, maxParcelas){
+  var n = Math.min(lote.contratoMeses||0, maxParcelas||lote.contratoMeses||0); if(!(n>0)) return [];
+  var ini = lote.contratoInicio ? new Date(lote.contratoInicio+'T00:00:00') : null; if(!ini || isNaN(ini.getTime())) return [];
+  var histRaw = lote.historicoAluguel ? (Array.isArray(lote.historicoAluguel)?lote.historicoAluguel:Object.values(lote.historicoAluguel)) : [];
+  var hist = histRaw.filter(function(h){ return h && h.data; }).sort(function(a,b){ return a.data.localeCompare(b.data); });
+  var valorInicial = hist.length ? (hist[0].valorAnterior!=null?hist[0].valorAnterior:(lote.aluguel||0)) : (lote.aluguel||0);
+  var hoje = new Date(); hoje.setHours(0,0,0,0);
+  var out=[];
+  for(var i=1;i<=n;i++){
+    var dt = new Date(ini.getTime() + i*30*86400000); var iso = dt.toISOString().slice(0,10);
+    var v = valorInicial; hist.forEach(function(h){ if(h.data <= iso) v = (h.valorNovo||0); });
+    out.push({ n:i, data:dt, iso:iso, valor:v, paga: dt<=hoje });
+  }
+  return out;
+}
 function calcularReceitaAluguelLote(lote, prazoLimiteMeses){
-  var valorAtual = lote.aluguel||0;
-  var contratoMeses = lote.contratoMeses || prazoLimiteMeses;
-  var mesesLimite = Math.min(contratoMeses, prazoLimiteMeses);
-  var histRaw = lote.historicoAluguel ? (Array.isArray(lote.historicoAluguel) ? lote.historicoAluguel : Object.values(lote.historicoAluguel)) : [];
-  var hist = histRaw.filter(function(h){ return h && h.data && !isNaN(new Date(h.data+'T00:00:00').getTime()); })
-    .sort(function(a,b){ return a.data.localeCompare(b.data); });
-  var dtInicio = lote.contratoInicio ? new Date(lote.contratoInicio+'T00:00:00') : null;
-  if(hist.length===0 || !dtInicio || isNaN(dtInicio.getTime())){
-    return valorAtual * mesesLimite;
-  }
-  var pontos = [{data: dtInicio, valor: (hist[0].valorAnterior!=null?hist[0].valorAnterior:valorAtual)}];
-  hist.forEach(function(h){ pontos.push({data: new Date(h.data+'T00:00:00'), valor: h.valorNovo||0}); });
-  var msPorMes = 30*24*60*60*1000;
-  var dtFimProjecao = new Date(dtInicio.getTime() + mesesLimite*msPorMes);
-  var total = 0;
-  for(var i=0;i<pontos.length;i++){
-    var ini = pontos[i].data < dtInicio ? dtInicio : pontos[i].data;
-    var fim = (i+1<pontos.length) ? pontos[i+1].data : dtFimProjecao;
-    if(fim < dtInicio) fim = dtInicio;
-    if(fim > dtFimProjecao) fim = dtFimProjecao;
-    if(fim <= ini) continue;
-    var mesesPeriodo = (fim.getTime()-ini.getTime())/msPorMes;
-    total += pontos[i].valor * mesesPeriodo;
-  }
-  return total;
+  var lim = Math.max(1, Math.ceil(prazoLimiteMeses||0));
+  var ps = parcelasAluguelLote(lote, lote.contratoMeses ? Math.min(lote.contratoMeses, lim) : lim);
+  if(!ps.length) return (lote.aluguel||0) * Math.min(lote.contratoMeses||lim, lim);
+  return ps.reduce(function(a,p){ return a+p.valor; },0);
 }
 
 // Atualiza impacto ao mudar campos
@@ -4042,67 +4037,7 @@ function abrirModalMover(loteId){
   });
 }
 
-function abrirModalDividir(loteId){
-  var l = state.lotes.find(function(x){ return x.id===loteId; });
-  if(!l) return;
-  var existing = document.getElementById('modal-dividir-dyn');
-  if(existing) existing.parentNode.removeChild(existing);
-  window.scrollTo(0,0);
-  var overlay = document.createElement('div');
-  overlay.id = 'modal-dividir-dyn';
-  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:1rem;box-sizing:border-box';
-  var box = document.createElement('div');
-  box.style.cssText = 'background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1.5rem;width:100%;max-width:340px;box-sizing:border-box';
-  var optsHtml = '<option value="">— Selecionar manga —</option>';
-  MANGAS_NOMES.forEach(function(n){ optsHtml += '<option value="'+n+'">'+n+'</option>'; });
-  var hoje = new Date().toISOString().split('T')[0];
-  box.innerHTML = '<div style="font-weight:700;font-size:1rem;color:var(--text);margin-bottom:.25rem">✂️ Dividir Lote</div>'+
-    '<div style="font-size:.82rem;color:var(--clay);margin-bottom:1rem">'+l.nome+' · <strong style="color:var(--text)">'+l.qtd+' cabeças</strong></div>'+
-    '<div style="background:var(--bg);border-radius:10px;padding:.9rem;margin-bottom:1rem">'+
-    '<div style="font-size:.72rem;font-weight:700;color:var(--clay);text-transform:uppercase;margin-bottom:.6rem">Novo Lote (cabeças a separar)</div>'+
-    '<input type="text" id="div-nome" placeholder="Nome do novo lote" style="width:100%;padding:.6rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.85rem;outline:none;margin-bottom:.5rem">'+
-    '<input type="number" id="div-qtd" placeholder="Qtd de cabeças" min="1" max="'+(l.qtd-1)+'" style="width:100%;padding:.6rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.85rem;outline:none;margin-bottom:.5rem">'+
-    '<select id="div-manga" style="width:100%;padding:.6rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.85rem;outline:none;margin-bottom:.5rem">'+optsHtml+'</select>'+
-    '<input type="date" id="div-data" value="'+hoje+'" style="width:100%;padding:.6rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.85rem;outline:none">'+
-    '</div>'+
-    '<div style="display:flex;gap:.5rem">'+
-    '<button id="div-cancel" style="flex:1;padding:.75rem;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:.9rem;cursor:pointer">Cancelar</button>'+
-    '<button id="div-ok" style="flex:1;padding:.75rem;background:var(--sky);border:none;border-radius:10px;color:#fff;font-size:.9rem;font-weight:700;cursor:pointer">✂️ Dividir</button>'+
-    '</div>';
-  overlay.appendChild(box);
-  document.body.appendChild(overlay);
-  document.body.style.overflow='hidden';
-  document.getElementById('div-cancel').addEventListener('click',function(){
-    overlay.parentNode.removeChild(overlay); document.body.style.overflow='';
-  });
-  document.getElementById('div-ok').addEventListener('click',function(){
-    var nome = document.getElementById('div-nome').value.trim();
-    var qtd  = parseInt(document.getElementById('div-qtd').value);
-    var manga = document.getElementById('div-manga').value;
-    var data  = document.getElementById('div-data').value;
-    if(!nome) return toast('Informe o nome do novo lote','error');
-    if(!qtd || qtd<1 || qtd>=l.qtd) return toast('Quantidade inválida (1 a '+(l.qtd-1)+')','error');
-    // Update original lote
-    var idx = state.lotes.findIndex(function(x){ return x.id===loteId; });
-    state.lotes[idx].qtd = l.qtd - qtd;
-    // Create new lote
-    var novoLote = JSON.parse(JSON.stringify(l));
-    novoLote.id = Date.now();
-    novoLote.nome = nome;
-    novoLote.qtd = qtd;
-    novoLote.manga = manga||'';
-    novoLote.mangaData = data;
-    novoLote.mangaDias = l.mangaDias||30;
-    novoLote.eventos = [];
-    state.lotes.push(novoLote);
-    saveToFirebase();
-    toast('✅ Lote dividido! '+l.nome+': '+(l.qtd-qtd)+' cab. · '+nome+': '+qtd+' cab.');
-    overlay.parentNode.removeChild(overlay);
-    document.body.style.overflow='';
-    renderDashboardVaqueiro();
-    renderRebanho();
-  });
-}
+// (Dividir Lote removido: substituído pelas tropas — 🔀 no Mapa)
 
 
 // ===== LOTES TERCEIRO =====
@@ -5096,15 +5031,22 @@ function gerarRelatorioPDF(opts){
     var terceiros = state.lotes.filter(function(l){ return l.tipo==='terceiro' && (l.qtd||0)>0; });
     if(terceiros.length > 0){
       html += '<h2>💱 Contratos de Aluguel (terceiros)</h2>';
-      html += '<table><tr><th>Lote</th><th>Cabeças</th><th>Valor atual</th><th>Início</th><th>Meses</th><th>Situação</th><th>Vence</th><th>Total previsto</th></tr>';
+      html += '<table><tr><th>Lote</th><th>Cabeças</th><th>Valor atual</th><th>Início</th><th>Parcelas</th><th>Situação</th><th>Vence</th><th>Já recebido</th><th>Total previsto</th></tr>';
       var totalContratos=0;
       terceiros.forEach(function(l){
         var st = (l.contratoInicio && l.contratoMeses) ? getContratoStatus(l) : null;
         var sit = st ? (st.diasRestantes<0?'<span class="neg">'+st.txt+'</span>':st.txt) : '—';
         var tot = st ? st.total : (l.aluguel||0)*(l.contratoMeses||0); totalContratos+=tot;
-        html += '<tr><td><strong>'+l.nome+'</strong></td><td>'+l.qtd+'</td><td>'+fmt(l.aluguel||0)+'/mês</td><td>'+(l.contratoInicio?fmtDataBR(l.contratoInicio):'—')+'</td><td>'+(l.contratoMeses||'—')+'</td><td>'+sit+'</td><td>'+(st&&st.dtFim?st.dtFim.toLocaleDateString('pt-BR'):'—')+'</td><td class="pos">'+fmt(tot)+'</td></tr>';
+        html += '<tr><td><strong>'+l.nome+'</strong></td><td>'+l.qtd+'</td><td>'+fmt(l.aluguel||0)+'/mês</td><td>'+(l.contratoInicio?fmtDataBR(l.contratoInicio):'—')+'</td><td>'+(st?st.pagas+' de ':'')+(l.contratoMeses||'—')+'</td><td>'+sit+'</td><td>'+(st&&st.dtFim?st.dtFim.toLocaleDateString('pt-BR'):'—')+'</td><td>'+(st?fmt(st.recebido):'—')+'</td><td class="pos">'+fmt(tot)+'</td></tr>';
       });
-      html += '<tr><td colspan="7"><strong>TOTAL dos contratos</strong></td><td class="pos"><strong>'+fmt(totalContratos)+'</strong></td></tr></table>';
+      html += '<tr><td colspan="8"><strong>TOTAL dos contratos</strong></td><td class="pos"><strong>'+fmt(totalContratos)+'</strong></td></tr></table>';
+      // Cronograma de parcelas de cada contrato
+      terceiros.forEach(function(l){
+        var st2=(l.contratoInicio&&l.contratoMeses)?getContratoStatus(l):null; if(!st2||!st2.parcelas.length) return;
+        html += '<h3>'+l.nome+' — parcelas</h3><div style="font-size:11px;line-height:1.9">';
+        html += st2.parcelas.map(function(p){ return '<span style="display:inline-block;margin:0 10px 4px 0;padding:2px 6px;border:1px solid '+(p.paga?'#2E7D4F':'#ccc')+';border-radius:6px;color:'+(p.paga?'#1B4D2E':'#666')+'">'+p.n+'ª '+p.data.toLocaleDateString('pt-BR')+' · '+fmt(p.valor)+(p.paga?' ✓':'')+'</span>'; }).join('');
+        html += '</div>';
+      });
       terceiros.forEach(function(l){
         var hs=(l.historicoAluguel||[]).slice().sort(function(a,b){ return (a.data||'').localeCompare(b.data||''); });
         if(!hs.length) return;
@@ -5738,9 +5680,12 @@ function getContratoStatus(lote){
     ? 'Contrato vencido há '+Math.abs(diasRestantes)+' dias'
     : diasRestantes === 0
     ? 'Vence hoje!'
-    : 'Mês '+mesAtual+' de '+lote.contratoMeses+' · vence em '+diasRestantes+' dias';
+    : 'Parcela '+mesAtual+' de '+lote.contratoMeses+' · vence em '+diasRestantes+' dias';
   var subTxt = '1º pagamento: '+dtPrimeiro.toLocaleDateString('pt-BR')+' · Vence: '+dtFim.toLocaleDateString('pt-BR');
-  return { cor: cor, txt: txt, subTxt: subTxt, dtFim: dtFim, diasRestantes: diasRestantes, total: calcularReceitaAluguelLote(lote, lote.contratoMeses) };
+  var ps = parcelasAluguelLote(lote, lote.contratoMeses); var pagas = ps.filter(function(p){ return p.paga; }); var prox = ps.find(function(p){ return !p.paga; });
+  var recebido = pagas.reduce(function(a,p){ return a+p.valor; },0);
+  if(prox) subTxt += ' · Próx. parcela: '+prox.data.toLocaleDateString('pt-BR')+' ('+fmt(prox.valor)+')';
+  return { cor: cor, txt: txt, subTxt: subTxt, dtFim: dtFim, diasRestantes: diasRestantes, total: calcularReceitaAluguelLote(lote, lote.contratoMeses), parcelas: ps, pagas: pagas.length, recebido: recebido, proxima: prox||null };
 }
 
 
