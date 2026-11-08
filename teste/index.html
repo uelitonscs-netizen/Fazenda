@@ -326,7 +326,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
 
 <!-- ===== APP ===== -->
 <div id="app-screen">
-  <div style="background:#C0392B;color:#fff;text-align:center;font-size:.72rem;font-weight:700;letter-spacing:.08em;padding:.3rem .5rem;font-family:'DM Mono',monospace">🧪 AMBIENTE DE TESTE — nada aqui afeta o app real · <span id="sb-build">build 2026-11-09c aluguel</span></div>
+  <div style="background:#C0392B;color:#fff;text-align:center;font-size:.72rem;font-weight:700;letter-spacing:.08em;padding:.3rem .5rem;font-family:'DM Mono',monospace">🧪 AMBIENTE DE TESTE — nada aqui afeta o app real · <span id="sb-build">build 2026-11-09d historico</span></div>
   <div id="sb-erros" style="display:none;background:#7B1E1E;color:#fff;font-size:.72rem;padding:.4rem .6rem;font-family:'DM Mono',monospace;white-space:pre-wrap;word-break:break-word;max-height:30vh;overflow:auto"></div>
   <script>
   (function(){
@@ -1164,6 +1164,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         <textarea id="aluguel-obs" rows="2" placeholder="Ex: dono retirou 5 cabeças do arrendamento"></textarea>
       </div>
       <div style="font-size:.72rem;color:var(--clay);margin-top:.5rem">Para registrar uma mudança que já aconteceu, coloque a <strong>data real</strong> e, se preciso, corrija o valor anterior. Se o novo valor for o que já está no lote, só o histórico é gravado.</div>
+      <div id="aluguel-hist-lista" style="margin-top:.9rem"></div>
     </div>
     <div class="modal-footer">
       <button class="btn outline sm" onclick="fecharModalAluguel()">Cancelar</button>
@@ -3051,7 +3052,24 @@ function abrirModalAluguel(loteId){
   document.getElementById('aluguel-obs').value = '';
   document.getElementById('modal-aluguel-info').innerHTML =
     '<strong>' + lote.nome + '</strong> — Valor atual: ' + fmt(lote.aluguel||0) + '/mês';
+  renderHistAluguelModal(lote);
   document.getElementById('modal-aluguel').classList.add('open');
+}
+function renderHistAluguelModal(lote){
+  var el=document.getElementById('aluguel-hist-lista'); if(!el) return;
+  var hs=(lote.historicoAluguel||[]).slice().sort(function(a,b){ return (a.data||'').localeCompare(b.data||''); });
+  if(!hs.length){ el.innerHTML='<div style="font-size:.74rem;color:var(--clay)">Nenhuma alteração registrada ainda.</div>'; return; }
+  var h='<div style="font-size:.7rem;color:var(--clay);font-family:\'DM Mono\',monospace;margin-bottom:.3rem">ALTERAÇÕES JÁ REGISTRADAS</div>';
+  hs.forEach(function(x){ h+='<div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;border-top:1px solid var(--border);padding:.4rem 0;font-size:.8rem"><div>'+fmtDataBR(x.data)+' · '+fmt(x.valorAnterior||0)+' → <strong>'+fmt(x.valorNovo||0)+'</strong>'+(x.obs?'<br><span style="font-size:.7rem;color:var(--clay)">'+x.obs+'</span>':'')+'</div><button class="btn sm outline" onclick="excluirHistAluguel('+lote.id+','+x.id+')">🗑️</button></div>'; });
+  el.innerHTML=h;
+}
+function excluirHistAluguel(loteId, histId){
+  var lote=state.lotes.find(function(l){ return l.id===loteId; }); if(!lote) return;
+  var x=(lote.historicoAluguel||[]).find(function(h){ return h.id===histId; }); if(!x) return;
+  confirmarModal('Apagar a alteração '+fmt(x.valorAnterior||0)+' → '+fmt(x.valorNovo||0)+' de '+fmtDataBR(x.data)+'? O valor atual do lote ('+fmt(lote.aluguel||0)+') não muda.','🗑️','Apagar',function(){
+    lote.historicoAluguel=lote.historicoAluguel.filter(function(h){ return h.id!==histId; });
+    saveToFirebase(); toast('🗑️ Alteração apagada'); renderHistAluguelModal(lote); renderRebanho(); renderDashboard();
+  });
 }
 function fecharModalAluguel(){
   document.getElementById('modal-aluguel').classList.remove('open');
