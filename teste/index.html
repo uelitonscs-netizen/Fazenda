@@ -326,7 +326,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
 
 <!-- ===== APP ===== -->
 <div id="app-screen">
-  <div style="background:#C0392B;color:#fff;text-align:center;font-size:.72rem;font-weight:700;letter-spacing:.08em;padding:.3rem .5rem;font-family:'DM Mono',monospace">🧪 AMBIENTE DE TESTE — nada aqui afeta o app real · <span id="sb-build">build 2026-11-09b relatorio</span></div>
+  <div style="background:#C0392B;color:#fff;text-align:center;font-size:.72rem;font-weight:700;letter-spacing:.08em;padding:.3rem .5rem;font-family:'DM Mono',monospace">🧪 AMBIENTE DE TESTE — nada aqui afeta o app real · <span id="sb-build">build 2026-11-09c aluguel</span></div>
   <div id="sb-erros" style="display:none;background:#7B1E1E;color:#fff;font-size:.72rem;padding:.4rem .6rem;font-family:'DM Mono',monospace;white-space:pre-wrap;word-break:break-word;max-height:30vh;overflow:auto"></div>
   <script>
   (function(){
@@ -1147,6 +1147,10 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
       <div id="modal-aluguel-info" style="background:rgba(212,168,83,.08);border:1px solid rgba(212,168,83,.2);border-radius:10px;padding:.9rem 1rem;margin-bottom:1rem;font-size:.85rem;color:var(--gold)"></div>
       <div class="form-grid">
         <div class="field">
+          <label>Valor anterior (R$)</label>
+          <input type="number" id="aluguel-valor-anterior" step="0.01">
+        </div>
+        <div class="field">
           <label>Novo valor mensal (R$) *</label>
           <input type="number" id="aluguel-novo-valor" placeholder="800.00" step="0.01">
         </div>
@@ -1159,6 +1163,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         <label>Motivo / Observação</label>
         <textarea id="aluguel-obs" rows="2" placeholder="Ex: dono retirou 5 cabeças do arrendamento"></textarea>
       </div>
+      <div style="font-size:.72rem;color:var(--clay);margin-top:.5rem">Para registrar uma mudança que já aconteceu, coloque a <strong>data real</strong> e, se preciso, corrija o valor anterior. Se o novo valor for o que já está no lote, só o histórico é gravado.</div>
     </div>
     <div class="modal-footer">
       <button class="btn outline sm" onclick="fecharModalAluguel()">Cancelar</button>
@@ -2553,7 +2558,7 @@ function salvarLote(){
     mangaData:document.getElementById('r-manga-data').value||'',
     mangaDias:parseInt(document.getElementById('r-manga-dias').value)||0};
   var eid=document.getElementById('r-nome').dataset.editId;
-  if(eid){var idx=state.lotes.findIndex(function(l){return l.id==eid;});if(idx!==-1){lote.id=parseInt(eid);lote.historicoAluguel=state.lotes[idx].historicoAluguel||[];if(state.lotes[idx].tipoAnterior)lote.tipoAnterior=state.lotes[idx].tipoAnterior;if(_editandoEncerrado&&lote.qtd===0){lote.tipoAnterior=lote.tipo;lote.tipo='encerrado';}state.lotes[idx]=lote;}delete document.getElementById('r-nome').dataset.editId;}
+  if(eid){var idx=state.lotes.findIndex(function(l){return l.id==eid;});if(idx!==-1){lote.id=parseInt(eid);lote.historicoAluguel=state.lotes[idx].historicoAluguel||[];if(lote.tipo==='terceiro'&&state.lotes[idx].tipo==='terceiro'&&Math.abs((lote.aluguel||0)-(state.lotes[idx].aluguel||0))>=0.005){lote.historicoAluguel.push({id:Date.now(),data:new Date().toISOString().slice(0,10),valorAnterior:state.lotes[idx].aluguel||0,valorNovo:lote.aluguel||0,obs:'Alterado na edição do lote'});toast('💱 Mudança de aluguel registrada no histórico');}if(state.lotes[idx].tipoAnterior)lote.tipoAnterior=state.lotes[idx].tipoAnterior;if(_editandoEncerrado&&lote.qtd===0){lote.tipoAnterior=lote.tipo;lote.tipo='encerrado';}state.lotes[idx]=lote;}delete document.getElementById('r-nome').dataset.editId;}
   else state.lotes.push(lote);
   if(!eid) migrarTropas();
   else { var tsE=tropasDoLote(lote.id); if(tsE.length===1){ tsE[0].parcela.qtd=lote.qtd; tsE[0].tropa.manga=lote.manga||tsE[0].tropa.manga; tsE[0].tropa.mangaData=lote.mangaData||tsE[0].tropa.mangaData; tsE[0].tropa.mangaDias=lote.mangaDias||tsE[0].tropa.mangaDias; } else if(tsE.length>1){ var somaP=tsE.reduce(function(a,x){return a+x.parcela.qtd;},0); if(somaP!==lote.qtd){ tsE.sort(function(a,b){return b.parcela.qtd-a.parcela.qtd;}); tsE[0].parcela.qtd=Math.max(0,tsE[0].parcela.qtd+(lote.qtd-somaP)); removerTropasVazias(); } } }
@@ -2930,9 +2935,10 @@ function confirmarBaixa(){
   ajustarParcelasAposSaida(loteIdBaixa, qtd, null); removerTropasVazias();
 
   saveToFirebase();
-  toast('📉 Baixa registrada — ' + qtd + ' cabeça(s) · Perda: ' + fmt(perda));
+  toast('📉 Baixa registrada — ' + qtd + ' cabeça(s)' + (lote.tipo==='terceiro'?'':' · Perda: ' + fmt(perda)));
   fecharModalBaixa();
   renderRebanho();renderDashboard();atualizarSelectsLotes();
+  if(lote.tipo==='terceiro'){ var lid=lote.id; confirmarModal('Saíram '+qtd+' cabeça(s) do '+lote.nome+'. O valor do aluguel mudou?','💱','Sim, registrar',function(){ abrirModalAluguel(lid); document.getElementById('aluguel-obs').value='Saída de '+qtd+' cabeça(s)'; }); }
 }
 
 // ===== LOTES ENCERRADOS (arquivo) =====
@@ -3040,6 +3046,7 @@ function abrirModalAluguel(loteId){
   var lote = state.lotes.find(function(l){ return l.id === loteId; });
   if(!lote) return;
   document.getElementById('aluguel-novo-valor').value = '';
+  document.getElementById('aluguel-valor-anterior').value = lote.aluguel||0;
   document.getElementById('aluguel-data').value = new Date().toISOString().split('T')[0];
   document.getElementById('aluguel-obs').value = '';
   document.getElementById('modal-aluguel-info').innerHTML =
@@ -3056,10 +3063,13 @@ function confirmarAlteracaoAluguel(){
   var novoValorStr = document.getElementById('aluguel-novo-valor').value;
   if(novoValorStr===''){ toast('Informe o novo valor','error'); return; }
   var novoValor = parseFloat(novoValorStr)||0;
-  if(Math.abs(novoValor-(lote.aluguel||0))<0.005){ toast('O valor informado é igual ao atual','error'); return; }
+  var vaStr = document.getElementById('aluguel-valor-anterior').value;
+  var valorAnterior = (vaStr===''?(lote.aluguel||0):(parseFloat(vaStr)||0));
+  if(Math.abs(novoValor-valorAnterior)<0.005){ toast('Novo valor igual ao anterior — nada a registrar','error'); return; }
   var data = document.getElementById('aluguel-data').value || new Date().toISOString().split('T')[0];
   var obs = document.getElementById('aluguel-obs').value.trim();
-  var valorAnterior = lote.aluguel||0;
+  var ultData=(lote.historicoAluguel||[]).reduce(function(m,h){ return (h.data&&h.data>m)?h.data:m; },'');
+  var retroativo = Math.abs(novoValor-(lote.aluguel||0))<0.005 || (ultData && data<ultData);
   if(!lote.historicoAluguel) lote.historicoAluguel = [];
   lote.historicoAluguel.push({
     id: Date.now(),
@@ -3068,9 +3078,9 @@ function confirmarAlteracaoAluguel(){
     valorNovo: novoValor,
     obs: obs
   });
-  lote.aluguel = novoValor;
+  if(!retroativo) lote.aluguel = novoValor;
   saveToFirebase();
-  toast('💱 Aluguel atualizado: ' + fmt(valorAnterior) + ' → ' + fmt(novoValor));
+  toast(retroativo ? '📜 Histórico registrado: ' + fmt(valorAnterior) + ' → ' + fmt(novoValor) + ' em ' + fmtDataBR(data) : '💱 Aluguel atualizado: ' + fmt(valorAnterior) + ' → ' + fmt(novoValor));
   fecharModalAluguel();
   renderRebanho();renderDashboard();
 }
