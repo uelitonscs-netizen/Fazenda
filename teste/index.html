@@ -326,7 +326,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
 
 <!-- ===== APP ===== -->
 <div id="app-screen">
-  <div style="background:#C0392B;color:#fff;text-align:center;font-size:.72rem;font-weight:700;letter-spacing:.08em;padding:.3rem .5rem;font-family:'DM Mono',monospace">🧪 AMBIENTE DE TESTE — nada aqui afeta o app real · <span id="sb-build">build 2026-11-09e parcelas</span></div>
+  <div style="background:#C0392B;color:#fff;text-align:center;font-size:.72rem;font-weight:700;letter-spacing:.08em;padding:.3rem .5rem;font-family:'DM Mono',monospace">🧪 AMBIENTE DE TESTE — nada aqui afeta o app real · <span id="sb-build">build 2026-11-10 simulador</span></div>
   <div id="sb-erros" style="display:none;background:#7B1E1E;color:#fff;font-size:.72rem;padding:.4rem .6rem;font-family:'DM Mono',monospace;white-space:pre-wrap;word-break:break-word;max-height:30vh;overflow:auto"></div>
   <script>
   (function(){
@@ -653,6 +653,30 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
     </div>
 
     <!-- PROJEÇÃO (dono only) -->
+    <div id="simulador" class="section">
+      <div class="card">
+        <div class="card-title">🧮 Simular uma compra</div>
+        <div style="font-size:.76rem;color:var(--clay);margin:-.3rem 0 .8rem">Teste um lote antes de comprar. Os custos vêm do seu cadastro (suplementação e custos fixos por cabeça); você pode ajustar qualquer número só na simulação.</div>
+        <div style="font-size:.7rem;color:var(--clay);font-family:'DM Mono',monospace;margin:.6rem 0 .3rem">O LOTE</div>
+        <div class="form-grid">
+          <div class="field"><label>Cabeças</label><input type="number" id="sm-qtd" value="20" min="1" oninput="calcularSimulador()"></div>
+          <div class="field"><label>Peso de entrada (@)</label><input type="number" id="sm-pe" value="8" step="0.1" oninput="calcularSimulador()"></div>
+          <div class="field"><label>Preço de compra (R$/@)</label><input type="number" id="sm-pc" step="0.01" oninput="calcularSimulador()"></div>
+          <div class="field"><label>Peso meta (@)</label><input type="number" id="sm-pm" value="14" step="0.1" oninput="calcularSimulador()"></div>
+          <div class="field"><label>Preço de venda (R$/@)</label><input type="number" id="sm-pv" step="0.01" oninput="calcularSimulador()"></div>
+          <div class="field"><label>Ganho (kg/dia)</label><input type="number" id="sm-gmd" step="0.01" oninput="calcularSimulador()"></div>
+        </div>
+        <div style="font-size:.7rem;color:var(--clay);font-family:'DM Mono',monospace;margin:.9rem 0 .3rem">CUSTOS (do seu cadastro — pode ajustar)</div>
+        <div class="form-grid">
+          <div class="field"><label>Suplementação por cabeça/mês (R$)</label><input type="number" id="sm-supl" step="0.01" oninput="calcularSimulador()"></div>
+          <div class="field"><label>Custo fixo por cabeça/mês (R$)</label><input type="number" id="sm-fixo" step="0.01" oninput="calcularSimulador()"></div>
+          <div class="field"><label>Custos extras do lote (R$) — frete, comissão…</label><input type="number" id="sm-extra" value="0" step="0.01" oninput="calcularSimulador()"></div>
+        </div>
+        <div id="sm-origem" style="font-size:.72rem;color:var(--clay);margin-top:.5rem;line-height:1.6"></div>
+        <div style="display:flex;gap:.5rem;margin-top:.8rem;flex-wrap:wrap"><button class="btn sm outline" onclick="simuladorPadroes()">↺ Voltar aos valores do cadastro</button></div>
+      </div>
+      <div class="card"><div class="card-title">📊 Resultado</div><div id="sm-resultado"></div></div>
+    </div>
     <div id="projecao" class="section">
       <div class="card">
         <div class="card-title">🎯 Simulador de Resultado</div>
@@ -1506,6 +1530,52 @@ function htmlGastoComVendidos(vr){
   h+='</div></details>';
   return h;
 }
+// ===== SIMULADOR DE COMPRA =====
+function cabecasProprias(){ return state.lotes.filter(function(l){ return l.tipo!=='terceiro' && l.tipo!=='encerrado'; }).reduce(function(a,l){ return a+(l.qtd||0); },0); }
+function cabecasTodas(){ return state.lotes.filter(function(l){ return l.tipo!=='encerrado'; }).reduce(function(a,l){ return a+(l.qtd||0); },0); }
+function suplPorCabecaMes(){ var n=cabecasTodas(); return n>0 ? totalSupMensal()/n : 0; }
+function fixoPorCabecaMes(){ var n=cabecasTodas(); return n>0 ? totalCustoMensal()/n : 0; }
+function ultimoPrecoVendaArroba(){ var vs=(state.vendas||[]).slice().sort(function(a,b){ return (b.data||'').localeCompare(a.data||''); }); return vs.length?vs[0].preco:330; }
+function ultimoPrecoCompraArroba(){ var ls=lotesParaVenda().filter(function(l){ return l.precoCompra>0; }).sort(function(a,b){ return (b.data||'').localeCompare(a.data||''); }); return ls.length?ls[0].precoCompra:300; }
+function simuladorPadroes(){
+  var g=function(id,v){ var el=document.getElementById(id); if(el) el.value=v; };
+  g('sm-pc', Math.round(ultimoPrecoCompraArroba()*100)/100); g('sm-pv', ultimoPrecoVendaArroba()); g('sm-gmd', gmdPadraoKg);
+  g('sm-supl', Math.round(suplPorCabecaMes()*100)/100); g('sm-fixo', Math.round(fixoPorCabecaMes()*100)/100);
+  calcularSimulador();
+}
+function abrirSimulador(){ var pc=document.getElementById('sm-pc'); if(pc && !pc.value) simuladorPadroes(); else calcularSimulador(); }
+function calcularSimulador(){
+  var el=document.getElementById('sm-resultado'); if(!el) return;
+  var n=function(id){ return parseFloat(String((document.getElementById(id)||{}).value||'').replace(',','.'))||0; };
+  var qtd=n('sm-qtd'), pe=n('sm-pe'), pc=n('sm-pc'), pm=n('sm-pm'), pv=n('sm-pv'), gmd=n('sm-gmd'), supl=n('sm-supl'), fixo=n('sm-fixo'), extra=n('sm-extra');
+  var org=document.getElementById('sm-origem');
+  if(org) org.innerHTML='Suplementação: '+fmt(totalSupMensal())+'/mês ÷ '+cabecasTodas()+' cabeças = '+fmt(suplPorCabecaMes())+' · Custos fixos (vaqueiro, remédio, vacina): '+fmt(totalCustoMensal())+'/mês ÷ '+cabecasTodas()+' = '+fmt(fixoPorCabecaMes())+' · Ganho padrão '+gmdPadraoKg+' kg/dia · Último preço de venda '+fmt(ultimoPrecoVendaArroba())+'/@';
+  if(!(qtd>0&&pe>0&&pm>pe&&pv>0&&gmd>0)){ el.innerHTML='<div style="font-size:.8rem;color:var(--clay)">Preencha cabeças, pesos (meta maior que entrada), preço de venda e ganho.</div>'; return; }
+  var dias=Math.ceil((pm-pe)*15/gmd), meses=dias/30;
+  var compra=qtd*pe*pc, receita=qtd*pm*pv, arrobasProd=qtd*(pm-pe);
+  var custoSupl=qtd*supl*meses, custoFixo=qtd*fixo*meses;
+  var custoMarg=custoSupl+extra, custoRateio=custoSupl+custoFixo+extra;
+  var lucroMarg=receita-compra-custoMarg, lucroRateio=receita-compra-custoRateio;
+  var invMarg=compra+custoMarg, invRateio=compra+custoRateio;
+  var rentMesMarg=invMarg>0?(lucroMarg/invMarg)*100/meses:0, rentMesRateio=invRateio>0?(lucroRateio/invRateio)*100/meses:0;
+  var custoArrobaMarg=arrobasProd>0?custoMarg/arrobasProd:0, custoArrobaRateio=arrobasProd>0?custoRateio/arrobasProd:0;
+  var pvEquilibrio=qtd*pm>0?(compra+custoRateio)/(qtd*pm):0;
+  var row=function(l,v,cls){ return '<div class="result-row"><span class="label">'+l+'</span><span class="value '+(cls||'')+'">'+v+'</span></div>'; };
+  var h='<div style="font-size:.7rem;color:var(--clay);font-family:\'DM Mono\',monospace;margin-bottom:.4rem">O CICLO</div>';
+  h+=row('Tempo até a meta', dias+' dias · '+fmtN(meses,1)+' meses');
+  h+=row('Compra do lote', fmt(compra)+' <span style="font-size:.72rem;color:var(--clay)">('+fmt(qtd>0?compra/qtd:0)+'/cab.)</span>','neg');
+  h+=row('Venda projetada', fmt(receita)+' <span style="font-size:.72rem;color:var(--clay)">('+fmtN(arrobasProd,0)+'@ produzidas)</span>','pos');
+  h+=row('Suplementação no período', fmt(custoSupl),'neg');
+  h+=row('Custos fixos rateados', fmt(custoFixo)+' <span style="font-size:.72rem;color:var(--clay)">(só no cenário com rateio)</span>','neg');
+  if(extra>0) h+=row('Custos extras', fmt(extra),'neg');
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.9rem">';
+  var box=function(titulo,sub,lucro,rent,custoArr,cor){ return '<div class="result-box'+(lucro<0?' loss':'')+'" style="padding:.7rem .8rem"><div style="font-size:.7rem;color:var(--clay);font-family:\'DM Mono\',monospace">'+titulo+'</div><div style="font-size:.68rem;color:var(--clay);margin-bottom:.4rem">'+sub+'</div><div style="font-size:1.25rem;font-weight:700;color:'+(lucro>=0?'var(--green)':'var(--red)')+'">'+fmt(lucro)+'</div><div style="font-size:.74rem;line-height:1.7">'+fmt(qtd>0?lucro/qtd:0)+' por animal<br>'+fmt(meses>0?lucro/meses:0)+' por mês<br>Rentabilidade: <strong>'+fmtN(rent,2)+'% a.m.</strong><br>Custo da @ produzida: <strong>'+fmt(custoArr)+'</strong></div></div>'; };
+  h+=box('LUCRO MARGINAL','só o que aumenta de verdade',lucroMarg,rentMesMarg,custoArrobaMarg);
+  h+=box('LUCRO COM RATEIO','pagando a parte dos custos fixos',lucroRateio,rentMesRateio,custoArrobaRateio);
+  h+='</div>';
+  h+='<div style="font-size:.74rem;color:var(--clay);margin-top:.7rem;line-height:1.6">💡 <strong>Marginal</strong> responde "vale colocar mais gado na estrutura que já tenho?" (o vaqueiro ganha o mesmo com ou sem esse lote). <strong>Com rateio</strong> responde "esse lote paga a sua parte da fazenda?". Preço de venda de equilíbrio (lucro zero com rateio): <strong>'+fmt(pvEquilibrio)+'/@</strong>.</div>';
+  el.innerHTML=h;
+}
 // ===== CICLO POR LOTE (entrada + prazo = venda prevista) =====
 var MS_MES = 30*24*60*60*1000;
 // Ciclo de cada lote. Ordem: prazo manual > GMD real (pesagens) > ganho padrão (kg/dia) > prazo padrão (sem pesos)
@@ -1866,7 +1936,7 @@ function alterarSenhaVaqueiro(){
 }
 
 // NAV
-var NAV_DONO=[{id:'dashboard',label:'Dashboard'},{id:'animais',label:'🐮 Animais'},{id:'suplementacao',label:'Suplementação'},{id:'rebanho',label:'Rebanho'},{id:'custos',label:'Custos'},{id:'projecao',label:'Projeção'},{id:'notas',label:'📋 Notas'},{id:'alertas',label:'🔔 Alertas'},{id:'mapa',label:'🗺️ Mapa'},{id:'config',label:'⚙️ Config'}];
+var NAV_DONO=[{id:'dashboard',label:'Dashboard'},{id:'animais',label:'🐮 Animais'},{id:'suplementacao',label:'Suplementação'},{id:'rebanho',label:'Rebanho'},{id:'custos',label:'Custos'},{id:'projecao',label:'Projeção'},{id:'simulador',label:'🧮 Simular'},{id:'notas',label:'📋 Notas'},{id:'alertas',label:'🔔 Alertas'},{id:'mapa',label:'🗺️ Mapa'},{id:'config',label:'⚙️ Config'}];
 var NAV_VAQUEIRO=[{id:'dashboard-vaqueiro',label:'🏠 Início'},{id:'animais',label:'🐮 Animais'},{id:'suplementacao',label:'📦 Estoque'},{id:'notas',label:'📋 Notas'},{id:'mapa',label:'🗺️ Mapa'}];
 function buildNav(){
   var items=perfil==='dono'?NAV_DONO:NAV_VAQUEIRO;
@@ -1914,6 +1984,7 @@ function showSectionById(id){
   else if(id==='mapa'){ renderMapa(); }
   else if(id==='config'){ initConfigTab(); }
   else if(id==='projecao') calcularProjecao();
+  else if(id==='simulador') abrirSimulador();
   else if(id==='notas'){
     loadNotas();
     setTimeout(function(){ initChips(); renderCalendario(); }, 50);
@@ -2524,6 +2595,7 @@ function renderAll(){
   else if(id==='suplementacao') renderSuplementacao();
   else if(id==='custos') renderCustos();
   else if(id==='projecao') calcularProjecao();
+  else if(id==='simulador') abrirSimulador();
   else if(id==='animais') renderAnimais();
   // Mantém o Dashboard sempre atualizado em segundo plano, mesmo fora dele,
   // para que os números já estejam corretos ao voltar pra essa aba.
