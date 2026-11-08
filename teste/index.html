@@ -232,6 +232,10 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
 .svg-manga-ocupada{fill:#FFF4D6;stroke:#F0B429;stroke-width:2.5}
 .svg-manga-alerta{fill:#FDECEA;stroke:#C0392B;stroke-width:2.5}
 .svg-manga-terceiro{fill:#E3F0FF;stroke:#1565C0;stroke-width:2}
+.svg-manga-vencida{fill:#F9D9D4;stroke:#C0392B;stroke-width:3}
+/* Texto do mapa: sempre escuro com halo claro, legível sobre qualquer manga e em qualquer tema */
+#mapa svg text{paint-order:stroke fill;stroke:#FFFFFF;stroke-width:2.5px;stroke-linejoin:round}
+#mapa svg polygon{opacity:1}
 
 /* CONFIG TAB */
 .config-group{background:var(--card);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:1rem}
@@ -322,7 +326,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
 
 <!-- ===== APP ===== -->
 <div id="app-screen">
-  <div style="background:#C0392B;color:#fff;text-align:center;font-size:.72rem;font-weight:700;letter-spacing:.08em;padding:.3rem .5rem;font-family:'DM Mono',monospace">🧪 AMBIENTE DE TESTE — nada aqui afeta o app real · <span id="sb-build">build 2026-11-08 tropas</span></div>
+  <div style="background:#C0392B;color:#fff;text-align:center;font-size:.72rem;font-weight:700;letter-spacing:.08em;padding:.3rem .5rem;font-family:'DM Mono',monospace">🧪 AMBIENTE DE TESTE — nada aqui afeta o app real · <span id="sb-build">build 2026-11-09 mapa</span></div>
   <div id="sb-erros" style="display:none;background:#7B1E1E;color:#fff;font-size:.72rem;padding:.4rem .6rem;font-family:'DM Mono',monospace;white-space:pre-wrap;word-break:break-word;max-height:30vh;overflow:auto"></div>
   <script>
   (function(){
@@ -548,7 +552,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         </div>
         <div class="card" style="margin:0"><div class="card-title">📈 Visão Geral</div><div id="rebanho-stats"></div></div>
       </div>
-      <div class="card"><div class="card-title" style="justify-content:space-between"><span>🐂 Tropas · onde o gado está</span><button class="btn sm" onclick="abrirModalNovaTropa()">➕ Nova tropa</button></div><div id="tabela-tropas"></div></div>
+      <div class="card" style="padding:.7rem .9rem;font-size:.8rem;color:var(--clay)">🐂 As <strong style="color:var(--text)">tropas</strong> (quem está em qual manga, separar, juntar, pesar) ficam na aba <a href="#" onclick="showSectionById('mapa');return false;" style="color:var(--green);font-weight:600">🗺️ Mapa</a>.</div>
       <div class="card"><div class="card-title">🗂️ Lotes Cadastrados</div><div id="tabela-rebanho"></div></div>
 
       <!-- PESAGENS -->
@@ -897,6 +901,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
 
     <!-- MAPA -->
     <div id="mapa" class="section">
+      <div id="mapa-resumo-tropas"></div>
       <div class="mapa-block-label">🌿 Área A — 14 alqueires</div>
       <div class="card" style="padding:.75rem;overflow:hidden">
         <svg id="mapa-bloco-a" viewBox="0 0 340 300" width="100%" height="auto"></svg>
@@ -918,6 +923,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
           <div style="display:flex;align-items:center;gap:.3rem;font-size:.72rem;color:var(--clay)"><div style="width:12px;height:12px;border-radius:3px;background:var(--green-light);border:1.5px solid var(--green-mid)"></div>Vazia</div>
         </div>
       </div>
+      <div class="card"><div class="card-title">🐂 Tropas · onde o gado está</div><div id="tabela-tropas-mapa"></div></div>
     </div>
 
     <!-- CONFIG -->
@@ -3776,39 +3782,32 @@ function renderDashboardVaqueiro(){
       lotesEl.innerHTML='<div style="color:var(--clay);font-size:.85rem">Nenhum lote cadastrado.</div>';
     } else {
       var lhtml='';
-      for(var li=0; li<state.lotes.length; li++){ var l=state.lotes[li];
-        if(l.tipo==='encerrado') continue;
-        var hoje = new Date(); hoje.setHours(0,0,0,0);
-        var mangaBadge='', diasInfo='';
-        if(l.manga){
-          if(l.mangaData && l.mangaDias){
-            var entrada = new Date(l.mangaData+'T00:00:00');
-            var diasPassados = Math.floor((hoje-entrada)/(1000*60*60*24));
-            var diasRestantes = l.mangaDias - diasPassados;
-            var cor = diasRestantes<0?'red':diasRestantes<=3?'yellow':'green';
-            var txt = diasRestantes<0?'Mover há '+Math.abs(diasRestantes)+' dias':diasRestantes===0?'Mover hoje!':diasRestantes+' dias';
-            mangaBadge='<span class="badge '+cor+'" style="margin-left:.5rem">'+txt+'</span>';
-          }
-        }
+      var tsV=tropasAtivas();
+      for(var ti=0; ti<tsV.length; ti++){ var t=tsV[ti];
+        var mangaBadge=mangaStatusTropa(t); var qV=tropaQtd(t);
+        var lotesTxt=(t.parcelas||[]).filter(function(p){return p.qtd>0;}).map(function(p){ return p.qtd+' do '+loteNome(p.loteId); }).join(' + ');
+        var lidPrincipal=(t.parcelas&&t.parcelas.length)?t.parcelas[0].loteId:'';
         lhtml+='<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.9rem;margin-bottom:.6rem">';
         lhtml+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">';
-        lhtml+='<div><strong style="font-size:.88rem;color:var(--text)">'+l.nome+'</strong>';
-        lhtml+='<div style="font-size:.75rem;color:var(--clay);margin-top:.2rem">'+l.qtd+' cabeças · '+l.tipo+'</div></div>';
+        lhtml+='<div><strong style="font-size:.88rem;color:var(--text)">🐂 '+t.nome+'</strong>';
+        lhtml+='<div style="font-size:.75rem;color:var(--clay);margin-top:.2rem">'+qV+' cabeças · '+lotesTxt+'</div></div>';
         lhtml+='<div style="display:flex;gap:.35rem">';
-        lhtml+='<button class="btn-solicitar-lote" data-lid="'+l.id+'" style="padding:.35rem .7rem;background:var(--gold-light);border:1.5px solid var(--gold-mid);border-radius:8px;color:var(--gold);font-size:.75rem;cursor:pointer;font-weight:600">✏️ Editar</button>';
+        lhtml+='<button class="btn-mover-tropa" data-tid="'+t.id+'" style="padding:.35rem .7rem;background:var(--green-light);border:1.5px solid var(--green-mid);border-radius:8px;color:var(--green);font-size:.75rem;font-weight:600;cursor:pointer">🌿 Mover</button>';
+        lhtml+='<button class="btn-solicitar-lote" data-lid="'+lidPrincipal+'" style="padding:.35rem .7rem;background:var(--gold-light);border:1.5px solid var(--gold-mid);border-radius:8px;color:var(--gold);font-size:.75rem;font-weight:600;cursor:pointer">📝 Solicitar</button>';
         lhtml+='</div></div>';
         lhtml+='<div style="font-size:.8rem;color:var(--text2)">';
-        lhtml += l.manga ? '🌿 <strong>'+l.manga+'</strong>'+mangaBadge : '<span style="color:var(--clay)">Sem manga definida</span>';
-        if(l.mangaData) lhtml+='<span style="color:var(--clay);font-size:.72rem;margin-left:.5rem">desde '+new Date(l.mangaData+'T00:00:00').toLocaleDateString('pt-BR')+'</span>';
+        lhtml += t.manga ? '🌿 <strong>'+t.manga+'</strong> '+mangaBadge : '<span style="color:var(--clay)">Sem manga definida</span>';
+        if(t.mangaData) lhtml+='<span style="color:var(--clay);font-size:.72rem;margin-left:.5rem">desde '+new Date(t.mangaData+'T00:00:00').toLocaleDateString('pt-BR')+'</span>';
         lhtml+='</div></div>';
       }
-      lotesEl.innerHTML=lhtml||'<div style="color:var(--clay);font-size:.85rem">Nenhum lote ativo.</div>';
+      var mvT=null;
+      lotesEl.innerHTML=lhtml||'<div style="color:var(--clay);font-size:.85rem">Nenhuma tropa ativa.</div>';
       // Wire buttons directly after innerHTML (Samsung fix)
-      var moverBtns = lotesEl.querySelectorAll('.btn-mover-lote');
+      var moverBtns = lotesEl.querySelectorAll('.btn-mover-tropa');
       for(var mi=0; mi<moverBtns.length; mi++){
         (function(btn){
           btn.addEventListener('click', function(){
-            abrirModalMover(parseInt(btn.getAttribute('data-lid')));
+            abrirModalTropaManga(parseInt(btn.getAttribute('data-tid')));
           });
         })(moverBtns[mi]);
       }
@@ -4176,18 +4175,21 @@ function mangaStatusTropa(t){
   var cor=rest<0?'red':(rest<=3?'yellow':'green'); var txt=rest<0?'Mover há '+(-rest)+' dias':rest===0?'Mover hoje!':rest+' dias restantes';
   return '<span class="badge '+cor+'">'+txt+'</span>';
 }
-function renderTropas(){
-  var el=document.getElementById('tabela-tropas'); if(!el) return;
+function renderTropas(){ renderTropasEm(document.getElementById('tabela-tropas')); renderTropasEm(document.getElementById('tabela-tropas-mapa')); }
+function renderTropasEm(el){ if(!el) return;
   var ts=tropasAtivas();
   if(!ts.length){ el.innerHTML='<div class="empty"><div class="icon">🐂</div><p>Nenhuma tropa. Lotes novos criam a própria tropa.</p></div>'; return; }
   var h='';
   ts.forEach(function(t){
     var q=tropaQtd(t), pm=tropaPesoMedioArroba(t), g=tropaGmdKg(t);
-    h+='<div style="border:1px solid var(--border);border-radius:12px;padding:.8rem .9rem;margin-bottom:.7rem">';
+    h+='<div id="tropa-card-'+t.id+'" style="border:1px solid var(--border);border-radius:12px;padding:.8rem .9rem;margin-bottom:.7rem;transition:outline .3s">';
     h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem"><div><strong style="font-size:.95rem">🐂 '+t.nome+'</strong><br><span style="font-size:.78rem;color:var(--clay)">🌿 '+(t.manga||'sem manga')+(t.mangaData?' · desde '+fmtDataBR(t.mangaData):'')+' '+mangaStatusTropa(t)+'</span></div>';
-    h+='<div style="display:flex;gap:.3rem;flex-wrap:wrap;justify-content:flex-end"><button class="btn sm outline" title="Pesar" onclick="pesarTropa('+t.id+')">⚖️</button><button class="btn sm outline" style="color:var(--gold);border-color:var(--gold)" title="Separar/mover" onclick="abrirModalTropaMover('+t.id+')">🔀</button><button class="btn sm outline" title="Mudar manga" onclick="abrirModalTropaManga('+t.id+')">🌿</button><button class="btn sm outline" title="Renomear" onclick="renomearTropa('+t.id+')">✏️</button></div></div>';
+    var dono=(typeof perfil==='undefined')||perfil==='dono';
+    if(dono) h+='<div style="display:flex;gap:.3rem;flex-wrap:wrap;justify-content:flex-end"><button class="btn sm outline" title="Pesar" onclick="pesarTropa('+t.id+')">⚖️</button><button class="btn sm outline" style="color:var(--gold);border-color:var(--gold)" title="Separar/mover" onclick="abrirModalTropaMover('+t.id+')">🔀</button><button class="btn sm outline" title="Mudar manga" onclick="abrirModalTropaManga('+t.id+')">🌿</button><button class="btn sm outline" title="Renomear" onclick="renomearTropa('+t.id+')">✏️</button></div></div>';
+    else h+='<div><button class="btn sm outline" title="Mudar manga" onclick="abrirModalTropaManga('+t.id+')">🌿 Mover</button></div></div>';
     h+='<div style="font-size:.82rem;color:var(--clay);margin-top:.5rem;line-height:1.7">Cabeças: <strong style="color:var(--text)">'+q+'</strong> · '+(t.parcelas||[]).filter(function(p){return p.qtd>0;}).map(function(p){ return '<strong style="color:var(--text)">'+p.qtd+'</strong> do '+loteNome(p.loteId); }).join(' + ');
-    h+='<br>Peso médio: <strong style="color:var(--text)">'+(pm!==null?fmtN(pm,1)+'@ ('+Math.round(pm*15)+' kg)':'—')+'</strong>'+(g!==null?' · GMD: <strong style="color:'+(g<0?'var(--red)':g<gmdMetaKg?'var(--gold)':'var(--green)')+'">'+fmtN(g,2)+' kg/dia</strong>':'')+'</div>';
+    if(dono) h+='<br>Peso médio: <strong style="color:var(--text)">'+(pm!==null?fmtN(pm,1)+'@ ('+Math.round(pm*15)+' kg)':'—')+'</strong>'+(g!==null?' · GMD: <strong style="color:'+(g<0?'var(--red)':g<gmdMetaKg?'var(--gold)':'var(--green)')+'">'+fmtN(g,2)+' kg/dia</strong>':'');
+    h+='</div>';
     if(t.historico&&t.historico.length) h+='<details style="margin-top:.3rem"><summary style="font-size:.72rem;color:var(--clay);cursor:pointer">histórico ('+t.historico.length+')</summary><div style="font-size:.72rem;color:var(--clay);line-height:1.6">'+t.historico.slice().reverse().map(function(x){ return fmtDataBR(x.data)+' · '+x.texto; }).join('<br>')+'</div></details>';
     h+='</div>';
   });
@@ -4244,7 +4246,7 @@ function atualizarSelectTropaVenda(){ var wrap=document.getElementById('vd-tropa
   var loteId=parseInt(document.getElementById('vd-lote').value); var ts=tropasDoLote(loteId);
   if(ts.length>1){ ts.sort(function(a,b){ return (b.parcela.pesoAtual||0)-(a.parcela.pesoAtual||0); }); sel.innerHTML=ts.map(function(x){ return '<option value="'+x.tropa.id+'">'+x.tropa.nome+' · '+x.parcela.qtd+' cab.'+(x.parcela.pesoAtual?' · '+fmtN(x.parcela.pesoAtual,1)+'@':'')+'</option>'; }).join(''); wrap.style.display=''; }
   else { sel.innerHTML=''; wrap.style.display='none'; } }
-function pesarTropa(id){ var sel=document.getElementById('ps-tropa'); if(sel){ popularSelectTropas(); sel.value=String(id); } openCollapse('form-pesagem'); psLinhas=[]; renderPesagemLinhas(); var f=document.getElementById('form-pesagem'); if(f&&f.scrollIntoView) setTimeout(function(){ f.scrollIntoView({behavior:'smooth',block:'start'}); },150); }
+function pesarTropa(id){ showSectionById('rebanho'); var sel=document.getElementById('ps-tropa'); if(sel){ popularSelectTropas(); sel.value=String(id); } openCollapse('form-pesagem'); psLinhas=[]; renderPesagemLinhas(); var f=document.getElementById('form-pesagem'); if(f&&f.scrollIntoView) setTimeout(function(){ f.scrollIntoView({behavior:'smooth',block:'start'}); },150); }
 function popularSelectTropas(){ var sel=document.getElementById('ps-tropa'); if(!sel) return; var atual=sel.value; sel.innerHTML='<option value="">— Selecionar tropa —</option>'+tropasAtivas().map(function(t){ return '<option value="'+t.id+'">'+t.nome+' · '+tropaQtd(t)+' cab. ('+(t.parcelas||[]).map(function(p){return loteNome(p.loteId);}).join(' + ')+')</option>'; }).join(''); if(atual) sel.value=atual; }
 function pesagemContexto(){ var sel=document.getElementById('ps-tropa'); var t=sel&&sel.value?state.tropas.find(function(x){return String(x.id)===String(sel.value);}):null; if(!t) return null; return {tropa:t, loteIds:(t.parcelas||[]).map(function(p){return String(p.loteId);}), qtd:tropaQtd(t)}; }
 // ===== PESAGEM POR ANIMAL =====
@@ -5678,7 +5680,7 @@ var MAPA_CONFIG = {
     { id:'manga-chegada',  nome:'Manga da Chegada', alq:'3,5',  points:'10,10 120,10 120,170 85,210 10,210',   cx:60,  cy:100, wr:102, wt:12 },
     { id:'manga-meio',     nome:'Manga do Meio',    alq:'3,5',  points:'120,10 235,10 235,170 120,170',         cx:177, cy:90,  wr:217, wt:12 },
     { id:'manga-alto',     nome:'Manga do Alto',    alq:'3,5',  points:'235,10 330,10 330,170 235,170',         cx:282, cy:90,  wr:312, wt:12 },
-    { id:'manga-pedra',    nome:'Manga da Pedra',   alq:'3,0',  points:'85,210 120,170 330,170 330,240 200,290 85,260', cx:210, cy:215, wr:312, wt:172 }
+    { id:'manga-pedra',    nome:'Manga da Pedra',   alq:'3,5',  points:'85,210 120,170 330,170 330,240 200,290 85,260', cx:210, cy:215, wr:312, wt:172 }
   ],
   // Block B - 4.25 alqueires
   b: [
@@ -5763,10 +5765,9 @@ function getMangaId(mangaNome){
 }
 
 function getMangaStatus(mangaId){
-  // Find lotes in this manga
-  var lotes = state.lotes.filter(function(l){
-    return l.tipo !== 'encerrado' && getMangaId(l.manga||'') === mangaId;
-  });
+  // Tropas nesta manga (cada tropa vira uma "linha" do mapa)
+  var tropas = tropasAtivas().filter(function(t){ return getMangaId(t.manga||'') === mangaId; });
+  var lotes = tropas.map(function(t){ return { nome:t.nome, qtd:tropaQtd(t), mangaData:t.mangaData, mangaDias:t.mangaDias, tipo:(t.parcelas||[]).every(function(p){ var l=state.lotes.find(function(x){return x.id==p.loteId;}); return l && l.tipo==='terceiro'; })?'terceiro':'proprio', tropaId:t.id }; });
   if(lotes.length === 0) return { classe:'svg-manga-vazia', lotes:[] };
   var hasAlerta = lotes.some(function(l){
     if(!l.mangaData || !l.mangaDias) return false;
@@ -5787,7 +5788,8 @@ function renderSVGBloco(svgId, mangas, viewH){
 
   mangas.forEach(function(m){
     var status = getMangaStatus(m.id);
-    html += '<polygon points="'+m.points+'" class="'+status.classe+'"/>';
+    var vencida = status.lotes.some(function(l){ if(!l.mangaData||!l.mangaDias) return false; var dr=l.mangaDias-Math.floor((Date.now()-new Date(l.mangaData+'T00:00:00'))/86400000); return dr<0; });
+    html += '<polygon points="'+m.points+'" class="'+(vencida?'svg-manga-vencida':status.classe)+'"'+(status.lotes.length?' onclick="irParaTropa('+status.lotes[0].tropaId+')" style="cursor:pointer"':'')+'/>';
 
         // Watermark for own lotes
     var temProprioLote = status.lotes.some(function(l){ return l.tipo !== 'terceiro'; });
@@ -5812,13 +5814,15 @@ function renderSVGBloco(svgId, mangas, viewH){
           var dr = l.mangaDias - Math.floor((hoje-entrada)/(1000*60*60*24));
           diasBadge = ' · '+dr+'d';
         }
-        html += '<text font-size="8" fill="#333" text-anchor="middle" x="'+m.cx+'" y="'+y+'">'+l.nome+'</text>';
+        html += '<text font-size="8" fill="#333" text-anchor="middle" x="'+m.cx+'" y="'+y+'">🐂 '+l.nome+'</text>';
         y += 11;
         html += '<text font-size="7.5" fill="#666" text-anchor="middle" x="'+m.cx+'" y="'+y+'">'+l.qtd+' cab.'+diasBadge+'</text>';
         y += 12;
       });
     }
-    html += '<text font-size="7.5" fill="#aaa" text-anchor="middle" font-style="italic" x="'+m.cx+'" y="'+(viewH-8)+'">≈'+m.alq+' alq.</text>';
+    // Medida no pé da própria manga (maior Y do polígono), e não no pé da imagem
+    var ysPol=m.points.split(' ').map(function(pt){ return parseFloat(pt.split(',')[1]); }); var yBase=Math.max.apply(null,ysPol)-6;
+    html += '<text font-size="7.5" fill="#6B6B6B" text-anchor="middle" font-style="italic" x="'+m.cx+'" y="'+yBase+'">≈'+m.alq+' alq.</text>';
   });
 
   // Dividers
@@ -5837,10 +5841,18 @@ function renderSVGBloco(svgId, mangas, viewH){
 }
 
 function renderMapa(){
+  var ts=tropasAtivas(); var cab=ts.reduce(function(a,t){return a+tropaQtd(t);},0);
+  var mover=ts.filter(function(t){ if(!t.mangaData||!t.mangaDias) return false; return t.mangaDias-Math.floor((Date.now()-new Date(t.mangaData+'T00:00:00'))/86400000)<=0; }).length;
+  var todasMangas=[].concat(MAPA_CONFIG.a,MAPA_CONFIG.b,MAPA_CONFIG.c); var ocupadas=todasMangas.filter(function(m){ return getMangaStatus(m.id).lotes.length>0; }).length;
+  var foraMapa=ts.filter(function(t){ return !t.manga || !todasMangas.some(function(m){ return getMangaId(t.manga)===m.id; }); });
+  var r=document.getElementById('mapa-resumo-tropas');
+  if(r) r.innerHTML='<div class="card" style="padding:.7rem .9rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:center;font-size:.82rem"><span>🐂 <strong>'+ts.length+'</strong> tropas</span><span>🐄 <strong>'+cab+'</strong> cabeças</span><span>🌿 <strong>'+ocupadas+'</strong> de '+todasMangas.length+' mangas ocupadas</span>'+(mover?'<span class="badge red">'+mover+' para mover</span>':'<span class="badge green">tudo no prazo</span>')+(foraMapa.length?'<span class="badge yellow">'+foraMapa.length+' fora do mapa</span>':'')+'</div>';
   renderSVGBloco('mapa-bloco-a', MAPA_CONFIG.a, 290);
   renderSVGBloco('mapa-bloco-b', MAPA_CONFIG.b, 170);
   renderSVGBloco('mapa-bloco-c', MAPA_CONFIG.c, 290);
+  var el=document.getElementById('tabela-tropas-mapa'); if(el){ var tmp=document.getElementById('tabela-tropas'); renderTropasEm(el); }
 }
+function irParaTropa(id){ var el=document.getElementById('tropa-card-'+id); if(el){ el.scrollIntoView({behavior:'smooth',block:'center'}); el.style.outline='3px solid var(--gold)'; setTimeout(function(){ el.style.outline=''; },1800); } }
 
 
 // ===== MONITORAMENTO DE SESSÕES =====
