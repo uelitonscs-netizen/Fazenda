@@ -232,6 +232,10 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
 .svg-manga-ocupada{fill:#FFF4D6;stroke:#F0B429;stroke-width:2.5}
 .svg-manga-alerta{fill:#FDECEA;stroke:#C0392B;stroke-width:2.5}
 .svg-manga-terceiro{fill:#E3F0FF;stroke:#1565C0;stroke-width:2}
+.svg-manga-vencida{fill:#F9D9D4;stroke:#C0392B;stroke-width:3}
+/* Texto do mapa: sempre escuro com halo claro, legível sobre qualquer manga e em qualquer tema */
+#mapa svg text{paint-order:stroke fill;stroke:#FFFFFF;stroke-width:2.5px;stroke-linejoin:round}
+#mapa svg polygon{opacity:1}
 
 /* CONFIG TAB */
 .config-group{background:var(--card);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:1rem}
@@ -355,6 +359,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
           <div id="custos-resumo"></div>
         </div>
       </div>
+      <div class="card" id="card-custo-arroba"><div class="card-title">⚖️ Custo da arroba</div><div id="custo-arroba"></div></div>
       <div class="card" id="card-resumo-fin">
         <div class="card-title" style="justify-content:space-between">
           <span>📊 Resumo Financeiro da Operação</span>
@@ -422,6 +427,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
           <select id="an-filtro-tipo" onchange="renderAnimais()"><option value="">Todos os tipos</option><option value="novilha">Novilha</option><option value="vaca">Vaca</option><option value="bezerro">Bezerra/o</option><option value="cria_terra">Cria da Terra</option><option value="touro">Touro</option></select>
           <select id="an-filtro-status" onchange="renderAnimais()"><option value="">Todos os status</option><option value="ativo">Ativo</option><option value="gestante">Gestante</option><option value="lactacao">Em Lactação</option><option value="seca">Seca</option><option value="vendido">Vendido</option><option value="morto">Descartado</option></select>
           <select id="an-filtro-lote" onchange="renderAnimais()"><option value="">Todos os lotes</option></select>
+          <select id="an-filtro-tropa" onchange="renderAnimais()"><option value="">Todas as tropas</option></select>
         </div>
         <div class="animal-cards" id="animal-cards"></div>
       </div>
@@ -537,6 +543,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         </div>
         <div class="card" style="margin:0"><div class="card-title">📈 Visão Geral</div><div id="rebanho-stats"></div></div>
       </div>
+      <div class="card" style="padding:.7rem .9rem;font-size:.8rem;color:var(--clay)">🐂 As <strong style="color:var(--text)">tropas</strong> (quem está em qual manga, separar, juntar, pesar) ficam na aba <a href="#" onclick="showSectionById('mapa');return false;" style="color:var(--green);font-weight:600">🗺️ Mapa</a>.</div>
       <div class="card"><div class="card-title">🗂️ Lotes Cadastrados</div><div id="tabela-rebanho"></div></div>
 
       <!-- PESAGENS -->
@@ -547,7 +554,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         </div>
         <div class="collapse-body" id="form-pesagem">
           <div class="form-grid">
-            <div class="field"><label>Lote</label><select id="ps-lote" onchange="renderPesagemLinhas()"></select></div>
+            <div class="field"><label>Tropa (grupo pesado)</label><select id="ps-tropa" onchange="renderPesagemLinhas()"></select></div><select id="ps-lote" style="display:none"></select>
             <div class="field"><label>Data da Pesagem</label><input type="date" id="ps-data" onchange="renderPesagemLinhas()"></div>
           </div>
           <div style="display:flex;gap:.5rem;margin:.7rem 0;flex-wrap:wrap;align-items:center">
@@ -562,9 +569,9 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
           </div>
           <div id="ps-linhas"></div>
           <div id="ps-resumo" style="margin-top:.6rem"></div>
-          <div class="field" style="margin-top:.6rem"><label>Ou só a média do lote (@) — modo antigo</label><input type="number" id="ps-media" placeholder="Ex: 11.5" step="0.1" oninput="renderPesagemResumo()"></div>
+          <div class="field" style="margin-top:.6rem"><label>Ou só a média da tropa (@) — modo antigo</label><input type="number" id="ps-media" placeholder="Ex: 11.5" step="0.1" oninput="renderPesagemResumo()"></div>
           <div class="field" style="margin-top:.5rem"><label>Observação</label><input type="text" id="ps-obs" placeholder="Ex: Pesagem pré-venda"></div>
-          <label style="display:flex;align-items:center;gap:.5rem;font-size:.8rem;margin-top:.6rem;cursor:pointer"><input type="checkbox" id="ps-atualiza-lote" checked> Atualizar o peso médio do lote com esta pesagem</label>
+          <label style="display:flex;align-items:center;gap:.5rem;font-size:.8rem;margin-top:.6rem;cursor:pointer"><input type="checkbox" id="ps-atualiza-lote" checked> Atualizar o peso médio dos lotes com esta pesagem</label>
           <div id="ps-aviso-parcial" style="display:none;font-size:.74rem;color:var(--gold);margin-top:.3rem"></div>
           <button class="btn" style="margin-top:1rem;width:100%;justify-content:center" onclick="salvarPesagem()">⚖️ Registrar Pesagem</button>
         </div>
@@ -579,7 +586,8 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         </div>
         <div class="collapse-body" id="form-venda">
           <div class="form-grid">
-            <div class="field"><label>Lote</label><select id="vd-lote"></select></div>
+            <div class="field"><label>Lote</label><select id="vd-lote" onchange="atualizarSelectTropaVenda()"></select></div>
+            <div class="field" id="vd-tropa-wrap" style="display:none"><label>De qual tropa saem?</label><select id="vd-tropa"></select></div>
             <div class="field"><label>Qtd Vendida (cab.)</label><input type="number" id="vd-qtd" placeholder="Ex: 20" min="1" oninput="calcularResumoVenda()"></div>
             <div class="field"><label>Peso de Venda (@)</label><input type="number" id="vd-peso" placeholder="Ex: 14.0" step="0.1" oninput="calcularResumoVenda()"></div>
             <div class="field"><label>Preço (R$/@)</label><input type="number" id="vd-preco" placeholder="Ex: 330" step="0.01" oninput="calcularResumoVenda()"></div>
@@ -600,7 +608,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         </div>
         <div class="collapse-body" id="sec-ganhos">
           <div id="ganhos-kpis" style="margin-bottom:.75rem"></div>
-          <button class="btn outline" style="width:100%;justify-content:center;margin-bottom:.75rem;font-size:.85rem" id="btn-abrir-troca">💱 Registrar Troca</button>
+          <div style="font-size:.74rem;color:var(--clay);margin-bottom:.75rem">💡 Troca de animais: registre como <strong>venda</strong> dos que saíram e <strong>lote novo</strong> dos que entraram, com o valor combinado de cada parte.</div>
           <div id="ganhos-cards"></div>
         </div>
       </div>
@@ -622,6 +630,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
               <div class="field"><label>Valor (R$)</label><input type="number" id="c-valor" placeholder="1300" step="0.01"></div>
               <div class="field"><label>Frequência</label><select id="c-freq" onchange="toggleCampoDiasCusto()"><option value="mensal">Mensal</option><option value="bimestral">A cada 2 meses</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual</option><option value="dias">A cada X dias</option><option value="unico">Único</option></select></div>
               <div class="field" id="c-dias-wrap" style="display:none"><label>A cada quantos dias?</label><input type="number" id="c-dias" min="1" step="1" placeholder="45"></div>
+              <div class="field" style="grid-column:1/-1"><label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;text-transform:none;letter-spacing:0;font-size:.82rem"><input type="checkbox" id="c-por-cabeca"> Valor <strong>por cabeça</strong> (× animais próprios; terceiros não entram)</label><div id="c-por-cabeca-info" style="font-size:.72rem;color:var(--clay);margin-top:.2rem"></div></div>
               <div class="field"><label>Data</label><input type="date" id="c-data"></div>
             </div>
             <div class="field" style="margin-top:.75rem"><label>Observação</label><input type="text" id="c-obs" placeholder="Detalhes..."></div>
@@ -630,11 +639,37 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         </div>
         <div class="card" style="margin:0"><div class="card-title">📊 Custos Mensais</div><div id="custos-mensais"></div></div>
       </div>
+      <div class="card" id="card-sanidade-real"><div class="card-title">💉 Sanidade real (pelos pagamentos)</div><div id="sanidade-real"></div></div>
       <div class="card"><div class="card-title">🗂️ Custos Cadastrados</div><div style="font-size:.74rem;color:var(--clay);margin:-.3rem 0 .8rem">Base do custo mensal e da projeção. Toque em 💵 para registrar um pagamento feito.</div><div id="tabela-custos"></div></div>
       <div class="card"><div class="card-title">🧾 Pagamentos Realizados</div><div id="tabela-pagamentos"></div></div>
     </div>
 
     <!-- PROJEÇÃO (dono only) -->
+    <div id="simulador" class="section">
+      <div class="card">
+        <div class="card-title">🧮 Simular uma compra</div>
+        <div style="font-size:.76rem;color:var(--clay);margin:-.3rem 0 .8rem">Teste um lote antes de comprar. Os custos vêm do seu cadastro (suplementação e custos fixos por cabeça); você pode ajustar qualquer número só na simulação.</div>
+        <div style="font-size:.7rem;color:var(--clay);font-family:'DM Mono',monospace;margin:.6rem 0 .3rem">O LOTE</div>
+        <div class="form-grid">
+          <div class="field"><label>Cabeças</label><input type="number" id="sm-qtd" value="20" min="1" oninput="calcularSimulador()"></div>
+          <div class="field"><label>Peso de entrada (@)</label><input type="number" id="sm-pe" value="8" step="0.1" oninput="calcularSimulador()"></div>
+          <div class="field"><label>Preço de compra (R$/@)</label><input type="number" id="sm-pc" step="0.01" oninput="calcularSimulador()"></div>
+          <div class="field"><label>Peso meta (@)</label><input type="number" id="sm-pm" value="14" step="0.1" oninput="calcularSimulador()"></div>
+          <div class="field"><label>Preço de venda (R$/@)</label><input type="number" id="sm-pv" step="0.01" oninput="calcularSimulador()"></div>
+          <div class="field"><label>Ganho (kg/dia)</label><input type="number" id="sm-gmd" step="0.01" oninput="calcularSimulador()"></div>
+        </div>
+        <div style="font-size:.7rem;color:var(--clay);font-family:'DM Mono',monospace;margin:.9rem 0 .3rem">CUSTOS (do seu cadastro — pode ajustar)</div>
+        <div class="form-grid">
+          <div class="field"><label>Suplementação por cabeça/mês (R$)</label><input type="number" id="sm-supl" step="0.01" oninput="calcularSimulador()"></div>
+          <div class="field"><label>Sanidade por cabeça/mês (R$)</label><input type="number" id="sm-san" step="0.01" oninput="calcularSimulador()"></div>
+          <div class="field"><label>Custo fixo por cabeça/mês (R$)</label><input type="number" id="sm-fixo" step="0.01" oninput="calcularSimulador()"></div>
+          <div class="field"><label>Custos extras do lote (R$) — frete, comissão…</label><input type="number" id="sm-extra" value="0" step="0.01" oninput="calcularSimulador()"></div>
+        </div>
+        <div id="sm-origem" style="font-size:.72rem;color:var(--clay);margin-top:.5rem;line-height:1.6"></div>
+        <div style="display:flex;gap:.5rem;margin-top:.8rem;flex-wrap:wrap"><button class="btn sm outline" onclick="simuladorPadroes()">↺ Voltar aos valores do cadastro</button></div>
+      </div>
+      <div class="card"><div class="card-title">📊 Resultado</div><div id="sm-resultado"></div></div>
+    </div>
     <div id="projecao" class="section">
       <div class="card">
         <div class="card-title">🎯 Simulador de Resultado</div>
@@ -884,6 +919,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
 
     <!-- MAPA -->
     <div id="mapa" class="section">
+      <div id="mapa-resumo-tropas"></div>
       <div class="mapa-block-label">🌿 Área A — 14 alqueires</div>
       <div class="card" style="padding:.75rem;overflow:hidden">
         <svg id="mapa-bloco-a" viewBox="0 0 340 300" width="100%" height="auto"></svg>
@@ -905,6 +941,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
           <div style="display:flex;align-items:center;gap:.3rem;font-size:.72rem;color:var(--clay)"><div style="width:12px;height:12px;border-radius:3px;background:var(--green-light);border:1.5px solid var(--green-mid)"></div>Vazia</div>
         </div>
       </div>
+      <div class="card"><div class="card-title">🐂 Tropas · onde o gado está</div><div id="tabela-tropas-mapa"></div></div>
     </div>
 
     <!-- CONFIG -->
@@ -947,6 +984,14 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
             <div><div class="config-label">Gerar Relatório PDF</div><div class="config-sub">Exportar dados completos da fazenda</div></div>
           </div>
           <span class="config-arrow">›</span>
+        </div>
+        <div class="config-item" id="cfg-importar" onclick="document.getElementById('import-backup-file').click()">
+          <div class="config-item-left">
+            <div class="config-icon gold">📥</div>
+            <div><div class="config-label">Restaurar backup (JSON)</div><div class="config-sub">Substitui os dados desta fazenda pelos de um backup</div></div>
+          </div>
+          <span class="config-arrow">›</span>
+          <input type="file" id="import-backup-file" accept=".json,application/json" style="display:none" onchange="importarBackupJSON(this)">
         </div>
         <div class="config-item" id="cfg-backup" onclick="exportarBackupJSON()">
           <div class="config-item-left">
@@ -1119,6 +1164,10 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
       <div id="modal-aluguel-info" style="background:rgba(212,168,83,.08);border:1px solid rgba(212,168,83,.2);border-radius:10px;padding:.9rem 1rem;margin-bottom:1rem;font-size:.85rem;color:var(--gold)"></div>
       <div class="form-grid">
         <div class="field">
+          <label>Valor anterior (R$)</label>
+          <input type="number" id="aluguel-valor-anterior" step="0.01">
+        </div>
+        <div class="field">
           <label>Novo valor mensal (R$) *</label>
           <input type="number" id="aluguel-novo-valor" placeholder="800.00" step="0.01">
         </div>
@@ -1131,11 +1180,46 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
         <label>Motivo / Observação</label>
         <textarea id="aluguel-obs" rows="2" placeholder="Ex: dono retirou 5 cabeças do arrendamento"></textarea>
       </div>
+      <div style="font-size:.72rem;color:var(--clay);margin-top:.5rem">Para registrar uma mudança que já aconteceu, coloque a <strong>data real</strong> e, se preciso, corrija o valor anterior. Se o novo valor for o que já está no lote, só o histórico é gravado.</div>
+      <div id="aluguel-hist-lista" style="margin-top:.9rem"></div>
     </div>
     <div class="modal-footer">
       <button class="btn outline sm" onclick="fecharModalAluguel()">Cancelar</button>
       <button class="btn sm" style="background:var(--gold);color:#1A0F08" onclick="confirmarAlteracaoAluguel()">💱 Registrar Alteração</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-tropa-mover">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header"><div class="modal-title" id="tm-titulo">🔀 Separar / mover</div><button class="modal-close" onclick="fecharModalTropaMover()">✕</button></div>
+    <div class="modal-body">
+      <div style="font-size:.72rem;color:var(--clay);font-family:'DM Mono',monospace;margin-bottom:.4rem">QUAIS CABEÇAS</div>
+      <div id="tm-parcelas"></div>
+      <div class="field" style="margin-top:.6rem"><label>Brincos que vão (opcional, separados por vírgula)</label><input type="text" id="tm-brincos" placeholder="052, 014, 258"></div>
+      <div style="font-size:.72rem;color:var(--clay);font-family:'DM Mono',monospace;margin:.9rem 0 .4rem">PARA ONDE</div>
+      <div style="display:flex;gap:.5rem;margin-bottom:.6rem">
+        <label style="font-size:.82rem;display:flex;align-items:center;gap:.3rem"><input type="radio" name="tm-dest" value="nova" checked onchange="tmToggleDestino()"> Nova tropa</label>
+        <label style="font-size:.82rem;display:flex;align-items:center;gap:.3rem"><input type="radio" name="tm-dest" value="existente" onchange="tmToggleDestino()"> Tropa existente</label>
+      </div>
+      <div id="tm-nova">
+        <div class="form-grid"><div class="field"><label>Nome da tropa</label><input type="text" id="tm-nome"></div><div class="field"><label>Manga</label><select id="tm-manga"></select></div></div>
+        <div class="form-grid" style="margin-top:.5rem"><div class="field"><label>Data</label><input type="date" id="tm-data"></div><div class="field"><label>Dias planejados</label><input type="number" id="tm-dias" placeholder="45"></div></div>
+      </div>
+      <div id="tm-existente" style="display:none"><div class="field"><label>Tropa de destino</label><select id="tm-tropa-dest"></select></div></div>
+    </div>
+    <div class="modal-footer"><button class="btn outline sm" onclick="fecharModalTropaMover()">Cancelar</button><button class="btn sm" onclick="confirmarTropaMover()">🔀 Confirmar</button></div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-tropa-manga">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header"><div class="modal-title">🌿 Mudar de manga</div><button class="modal-close" onclick="fecharModalTropaManga()">✕</button></div>
+    <div class="modal-body">
+      <div id="tmg-info" style="font-size:.84rem;margin-bottom:.8rem"></div>
+      <div class="field"><label>Manga</label><select id="tmg-manga"></select></div>
+      <div class="form-grid" style="margin-top:.5rem"><div class="field"><label>Data</label><input type="date" id="tmg-data"></div><div class="field"><label>Dias planejados</label><input type="number" id="tmg-dias"></div></div>
+    </div>
+    <div class="modal-footer"><button class="btn outline sm" onclick="fecharModalTropaManga()">Cancelar</button><button class="btn sm" onclick="confirmarTropaManga()">🌿 Mover</button></div>
   </div>
 </div>
 
@@ -1192,7 +1276,6 @@ document.addEventListener('DOMContentLoaded', function() {
   on('btn-vaqueiro','click', function() { if (window.entrarVaqueiro) window.entrarVaqueiro(); });
   on('btn-confirmar','click', function() { if (window.confirmarSenha) window.confirmarSenha(); });
   on('btn-sair',    'click', function() { if (window.sair) window.sair(); });
-  on('btn-abrir-troca', 'click', abrirModalTroca);
   on('senha-input', 'keydown', function(e) { if (e.key === 'Enter' && window.confirmarSenha) window.confirmarSenha(); });
 });
 </script>
@@ -1298,7 +1381,7 @@ function salvarPrazoDashboard(){
 // Senha vaqueiro gerenciada pelo Firebase Authentication
 
 // Estado
-var state = { lotes:[], insumos:[], custos:[], animais:[], pagamentos:[] };
+var state = { lotes:[], insumos:[], custos:[], animais:[], pagamentos:[], tropas:[] };
 var MANGAS_NOMES = ['Manga da Chegada','Manga do Meio','Manga do Alto','Manga da Pedra','Manga da Bananeira','Atrás do Curral','Bambu','Quicui','Baixada'];
 var prazoDashboard = 10;
 var perfil = null; // 'dono' ou 'vaqueiro'
@@ -1312,7 +1395,11 @@ function fmtN(v,d){ d=d||1; return Number(v).toLocaleString('pt-BR',{minimumFrac
 function catLabel(c){ var m={mao_de_obra:'Mão de Obra',sanidade:'Sanidade',manutencao_terra:'Manut. Terra',manutencao_equipamento:'Manut. Equip.',infraestrutura:'Infraestrutura',combustivel:'Combustível',transporte:'Transporte',outro:'Outro'}; return m[c]||c; }
 function freqLabel(f, c){ if(f==='dias') return 'A cada '+((c&&c.intervaloDias)||'?')+' dias'; var m={mensal:'Mensal',bimestral:'Bimestral',trimestral:'Trimestral',semestral:'Semestral',anual:'Anual',unico:'Pontual'}; return m[f]||f; }
 // Mês comercial de 30 dias (mesma base usada no resto do app)
-function custoMensal(c){ if(c.freq==='unico') return 0; if(c.freq==='dias') return (c.intervaloDias>0) ? c.valor*30/c.intervaloDias : 0; var d={mensal:1,bimestral:2,trimestral:3,semestral:6,anual:12}; return c.valor/(d[c.freq]||1); }
+function custoMensalUnitario(c){ if(c.freq==='unico') return 0; if(c.freq==='dias') return (c.intervaloDias>0) ? c.valor*30/c.intervaloDias : 0; var d={mensal:1,bimestral:2,trimestral:3,semestral:6,anual:12}; return c.valor/(d[c.freq]||1); }
+// Custo mensal: se "por cabeça", multiplica pelas cabeças próprias (terceiros são responsabilidade do dono deles)
+function custoMensal(c){ var u=custoMensalUnitario(c); return c.porCabeca ? u*cabecasProprias() : u; }
+function custoPorCabecaMes(){ return state.custos.reduce(function(a,c){ return a+(c.porCabeca?custoMensalUnitario(c):0); },0); }
+function custoFixoMes(){ return state.custos.reduce(function(a,c){ return a+(c.porCabeca?0:custoMensalUnitario(c)); },0); }
 // Intervalo do custo em dias (para prever o próximo pagamento)
 function intervaloDiasCusto(c){ if(c.freq==='dias') return c.intervaloDias||0; var d={mensal:30,bimestral:60,trimestral:90,semestral:180,anual:365}; return d[c.freq]||0; }
 // ===== PAGAMENTOS REALIZADOS (o que de fato saiu do caixa) =====
@@ -1371,7 +1458,38 @@ function pagamentosPorMes(){
   });
 }
 function nomeMes(k){ if(k==='sem-data') return 'Sem data'; var p=k.split('-'); var n=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']; return n[parseInt(p[1],10)-1]+' de '+p[0]; }
+function sanidadeRealCalc(dias){
+  dias=dias||90; var desde=new Date(); desde.setDate(desde.getDate()-dias); var iso=desde.toISOString().slice(0,10);
+  var pgs=(state.pagamentos||[]).filter(function(p){ return p.cat==='sanidade' && p.data && p.data>=iso; });
+  var total=pgs.reduce(function(a,p){ return a+(p.valor||0); },0); var cab=cabecasProprias(); var meses=dias/30;
+  return { total:total, n:pgs.length, cab:cab, meses:meses, porCabMes:(cab>0?total/cab/meses:0) };
+}
+function renderSanidadeReal(){
+  var el=document.getElementById('sanidade-real'); if(!el) return;
+  var r=sanidadeRealCalc(90); var cad=custoPorCabecaMes();
+  var h='';
+  if(!r.n){ h='<div style="font-size:.8rem;color:var(--clay)">Nenhum pagamento de Sanidade nos últimos 90 dias. Registre os pagamentos (💵 no custo) e o app calcula a sua média real por cabeça.</div>'; }
+  else {
+    h+='<div class="result-row"><span class="label">Pago em Sanidade (90 dias)</span><span class="value">'+fmt(r.total)+' <span style="font-size:.72rem;color:var(--clay)">· '+r.n+' pagamento(s)</span></span></div>';
+    h+='<div class="result-row"><span class="label">Por cabeça própria por mês</span><span class="value" style="color:var(--green)">'+fmt(r.porCabMes)+' <span style="font-size:.72rem;color:var(--clay)">('+fmt(r.total)+' ÷ '+r.cab+' cab. ÷ 3 meses)</span></span></div>';
+    h+='<div class="result-row"><span class="label">No cadastro hoje (custos por cabeça)</span><span class="value">'+fmt(cad)+'/cab/mês</span></div>';
+    var dif=cad>0?((r.porCabMes-cad)/cad*100):null;
+    if(dif!==null && Math.abs(dif)>=15) h+='<div style="font-size:.76rem;color:var(--gold);margin:.3rem 0">⚠️ O real está '+(dif>0?'+':'')+fmtN(dif,0)+'% em relação ao cadastro.</div>';
+    h+='<button class="btn sm outline" style="margin-top:.4rem" onclick="usarSanidadeReal()">✔️ Usar '+fmt(r.porCabMes)+'/cab/mês no cadastro</button>';
+  }
+  el.innerHTML=h;
+}
+function usarSanidadeReal(){
+  var r=sanidadeRealCalc(90); if(!(r.porCabMes>0)) return;
+  var alvos=state.custos.filter(function(c){ return c.cat==='sanidade' && c.porCabeca && c.freq!=='unico'; });
+  confirmarModal(alvos.length?('Ajustar '+alvos.length+' custo(s) de Sanidade por cabeça para somar '+fmt(r.porCabMes)+'/cab/mês?'):('Criar o custo "Sanidade (média real)" de '+fmt(r.porCabMes)+' por cabeça/mês?'),'💉','Aplicar',function(){
+    if(alvos.length){ var atual=alvos.reduce(function(a,c){return a+custoMensalUnitario(c);},0); var fator=atual>0?r.porCabMes/atual:1; alvos.forEach(function(c){ c.valor=Math.round(c.valor*fator*100)/100; }); }
+    else state.custos.push({id:Date.now(),desc:'Sanidade (média real)',cat:'sanidade',valor:Math.round(r.porCabMes*100)/100,freq:'mensal',intervaloDias:null,porCabeca:true,data:new Date().toISOString().slice(0,10),obs:'Gerado a partir dos pagamentos dos últimos 90 dias'});
+    saveToFirebase(); toast('💉 Sanidade do cadastro ajustada para a média real'); renderCustos(); renderDashboard();
+  });
+}
 function renderPagamentos(){
+  renderSanidadeReal();
   var el=document.getElementById('tabela-pagamentos'); if(!el) return;
   var meses=pagamentosPorMes();
   if(meses.length===0){ el.innerHTML='<div class="empty"><div class="icon">🧾</div><p>Nenhum pagamento registrado. Use o 💵 em cada custo.</p></div>'; return; }
@@ -1435,6 +1553,96 @@ function htmlGastoComVendidos(vr){
   h+='<div style="font-size:.66rem;color:var(--clay);margin-top:.3rem;opacity:.8">Já incluído no custo op. acima — não soma no total.</div>';
   h+='</div></details>';
   return h;
+}
+// ===== CUSTO DA ARROBA (quanto custa produzir 1@ nas condições atuais) =====
+function custoArrobaCalc(){
+  var hz=horizonteOperacao(); var ls=lotesParaVenda(); var vr=vendasRealizadas();
+  // @ produzidas até hoje: ganho dos animais no pasto + ganho dos já vendidos
+  var arrPasto=ls.reduce(function(a,l){ var pa=parseFloat(l.pesoAtual)||0, pe=parseFloat(l.pesoEntrada)||0; return a+(pa>pe?l.qtd*(pa-pe):0); },0);
+  var arrVendidas=(state.vendas||[]).reduce(function(a,v){ var l=state.lotes.find(function(x){return x.id==v.loteId;}); var pe=l?(parseFloat(l.pesoEntrada)||0):0; return a+((v.peso>pe&&pe>0)?v.qtd*(v.peso-pe):0); },0);
+  var arrProduzidas=arrPasto+arrVendidas;
+  // custo operacional até hoje: fixos × meses decorridos desde o 1º lote + suplementação já consumida
+  var mesesDecorridos=hz.inicio?Math.max(0,(Date.now()-hz.inicio.getTime())/MS_MES):0;
+  var suplConsumida=Math.max(0, estoqueCompradoValor()-estoqueRestanteValor());
+  var opRealizado=totalCustoMensal()*mesesDecorridos + suplConsumida;
+  // projetado para o ciclo inteiro (mesma base do Dashboard)
+  var opProjetado=custoOperacionalProjetado(hz.meses);
+  var arrFuturas=ls.reduce(function(a,l){ var pm=parseFloat(l.pesoMeta)||0, pa=parseFloat(l.pesoAtual)||parseFloat(l.pesoEntrada)||0; return a+(pm>pa?l.qtd*(pm-pa):0); },0);
+  var arrCiclo=arrProduzidas+arrFuturas;
+  var arrVenda=ls.reduce(function(a,l){ return a+l.qtd*(parseFloat(l.pesoMeta)||0); },0)+(state.vendas||[]).reduce(function(a,v){return a+v.qtd*v.peso;},0);
+  var compra=ls.reduce(function(a,l){return a+l.qtd*(parseFloat(l.pesoEntrada)||0)*(parseFloat(l.precoCompra)||0);},0)+vr.custoCompra;
+  var pontuais=custoUnicoTotal();
+  return { arrProduzidas:arrProduzidas, arrPasto:arrPasto, arrVendidas:arrVendidas, mesesDecorridos:mesesDecorridos, opRealizado:opRealizado, suplConsumida:suplConsumida,
+    custoArrRealizado: arrProduzidas>0 ? opRealizado/arrProduzidas : null,
+    opProjetado:opProjetado, arrCiclo:arrCiclo, custoArrProjetado: arrCiclo>0 ? opProjetado/arrCiclo : null,
+    custoArrComPontuais: arrCiclo>0 ? (opProjetado+pontuais)/arrCiclo : null,
+    arrVenda:arrVenda, compra:compra, pontuais:pontuais, custoTotalPorArrVendida: arrVenda>0 ? (compra+opProjetado+pontuais)/arrVenda : null,
+    precoVenda:ultimoPrecoVendaArroba() };
+}
+function renderCustoArroba(){
+  var el=document.getElementById('custo-arroba'); if(!el) return;
+  if(perfil!=='dono'){ el.innerHTML=''; return; }
+  var k=custoArrobaCalc();
+  var row=function(l,v,cls){ return '<div class="result-row"><span class="label">'+l+'</span><span class="value '+(cls||'')+'">'+v+'</span></div>'; };
+  var big=function(t,v,sub,cor){ return '<div class="result-box" style="padding:.7rem .8rem"><div style="font-size:.7rem;color:var(--clay);font-family:\'DM Mono\',monospace">'+t+'</div><div style="font-size:1.3rem;font-weight:700;color:'+(cor||'var(--text)')+'">'+v+'</div><div style="font-size:.72rem;color:var(--clay);line-height:1.5">'+sub+'</div></div>'; };
+  var h='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.8rem">';
+  h+=big('REALIZADO ATÉ HOJE', k.custoArrRealizado!==null?fmt(k.custoArrRealizado)+'/@':'—', k.custoArrRealizado!==null ? fmt(k.opRealizado)+' de custo op. ÷ '+fmtN(k.arrProduzidas,1)+'@ produzidas' : 'Precisa de pesagem para medir as @ produzidas', 'var(--green)');
+  h+=big('PROJETADO P/ O CICLO', k.custoArrProjetado!==null?fmt(k.custoArrProjetado)+'/@':'—', k.custoArrProjetado!==null ? fmt(k.opProjetado)+' ÷ '+fmtN(k.arrCiclo,1)+'@ (até as metas)' : '—', 'var(--gold)');
+  h+='</div>';
+  h+=row('@ produzidas até hoje', fmtN(k.arrPasto,1)+'@ no pasto + '+fmtN(k.arrVendidas,1)+'@ vendidas');
+  h+=row('Custo operacional até hoje', fmt(k.opRealizado)+' <span style="font-size:.72rem;color:var(--clay)">('+fmtN(k.mesesDecorridos,1)+' meses de fixos + '+fmt(k.suplConsumida)+' de sal consumido)</span>');
+  if(k.custoArrComPontuais!==null) h+=row('Com custos pontuais (cercas, cocheiras)', fmt(k.custoArrComPontuais)+'/@');
+  if(k.custoTotalPorArrVendida!==null) h+=row('Custo total por @ vendida (compra + op. + pontuais)', fmt(k.custoTotalPorArrVendida)+'/@', k.custoTotalPorArrVendida>k.precoVenda?'neg':'');
+  h+=row('Último preço de venda', fmt(k.precoVenda)+'/@','pos');
+  if(k.custoTotalPorArrVendida!==null) h+='<div style="font-size:.74rem;color:var(--clay);margin-top:.5rem;line-height:1.6">💡 Cada @ que o gado ganha custa <strong>'+(k.custoArrProjetado!==null?fmt(k.custoArrProjetado):'—')+'</strong> para produzir e vende por <strong>'+fmt(k.precoVenda)+'</strong>. Contando a compra dos animais, a @ vendida sai por <strong>'+fmt(k.custoTotalPorArrVendida)+'</strong>: abaixo do preço de venda, a operação dá lucro.</div>';
+  el.innerHTML=h;
+}
+// ===== SIMULADOR DE COMPRA =====
+function cabecasProprias(){ return state.lotes.filter(function(l){ return l.tipo!=='terceiro' && l.tipo!=='encerrado'; }).reduce(function(a,l){ return a+(l.qtd||0); },0); }
+function cabecasTodas(){ return state.lotes.filter(function(l){ return l.tipo!=='encerrado'; }).reduce(function(a,l){ return a+(l.qtd||0); },0); }
+function suplPorCabecaMes(){ var n=cabecasProprias(); return n>0 ? totalSupMensal()/n : 0; }
+function fixoPorCabecaMes(){ var n=cabecasProprias(); return n>0 ? custoFixoMes()/n : 0; }
+function ultimoPrecoVendaArroba(){ var vs=(state.vendas||[]).slice().sort(function(a,b){ return (b.data||'').localeCompare(a.data||''); }); return vs.length?vs[0].preco:330; }
+function ultimoPrecoCompraArroba(){ var ls=lotesParaVenda().filter(function(l){ return l.precoCompra>0; }).sort(function(a,b){ return (b.data||'').localeCompare(a.data||''); }); return ls.length?ls[0].precoCompra:300; }
+function simuladorPadroes(){
+  var g=function(id,v){ var el=document.getElementById(id); if(el) el.value=v; };
+  g('sm-pc', Math.round(ultimoPrecoCompraArroba()*100)/100); g('sm-pv', ultimoPrecoVendaArroba()); g('sm-gmd', gmdPadraoKg);
+  g('sm-supl', Math.round(suplPorCabecaMes()*100)/100); g('sm-san', Math.round(custoPorCabecaMes()*100)/100); g('sm-fixo', Math.round(fixoPorCabecaMes()*100)/100);
+  calcularSimulador();
+}
+function abrirSimulador(){ var pc=document.getElementById('sm-pc'); if(pc && !pc.value) simuladorPadroes(); else calcularSimulador(); }
+function calcularSimulador(){
+  var el=document.getElementById('sm-resultado'); if(!el) return;
+  var n=function(id){ return parseFloat(String((document.getElementById(id)||{}).value||'').replace(',','.'))||0; };
+  var qtd=n('sm-qtd'), pe=n('sm-pe'), pc=n('sm-pc'), pm=n('sm-pm'), pv=n('sm-pv'), gmd=n('sm-gmd'), supl=n('sm-supl'), san=n('sm-san'), fixo=n('sm-fixo'), extra=n('sm-extra');
+  var org=document.getElementById('sm-origem');
+  if(org) org.innerHTML='Suplementação: '+fmt(totalSupMensal())+'/mês ÷ '+cabecasProprias()+' cabeças próprias = '+fmt(suplPorCabecaMes())+' · Sanidade por cabeça (cadastro): '+fmt(custoPorCabecaMes())+'/cab/mês · Custos fixos (salário, vacina por campanha): '+fmt(custoFixoMes())+'/mês ÷ '+cabecasProprias()+' = '+fmt(fixoPorCabecaMes())+' · Ganho padrão '+gmdPadraoKg+' kg/dia · Último preço de venda '+fmt(ultimoPrecoVendaArroba())+'/@';
+  if(!(qtd>0&&pe>0&&pm>pe&&pv>0&&gmd>0)){ el.innerHTML='<div style="font-size:.8rem;color:var(--clay)">Preencha cabeças, pesos (meta maior que entrada), preço de venda e ganho.</div>'; return; }
+  var dias=Math.ceil((pm-pe)*15/gmd), meses=dias/30;
+  var compra=qtd*pe*pc, receita=qtd*pm*pv, arrobasProd=qtd*(pm-pe);
+  var custoSupl=qtd*supl*meses, custoSan=qtd*san*meses, custoFixo=qtd*fixo*meses;
+  var custoMarg=custoSupl+custoSan+extra, custoRateio=custoSupl+custoSan+custoFixo+extra;
+  var lucroMarg=receita-compra-custoMarg, lucroRateio=receita-compra-custoRateio;
+  var invMarg=compra+custoMarg, invRateio=compra+custoRateio;
+  var rentMesMarg=invMarg>0?(lucroMarg/invMarg)*100/meses:0, rentMesRateio=invRateio>0?(lucroRateio/invRateio)*100/meses:0;
+  var custoArrobaMarg=arrobasProd>0?custoMarg/arrobasProd:0, custoArrobaRateio=arrobasProd>0?custoRateio/arrobasProd:0;
+  var pvEquilibrio=qtd*pm>0?(compra+custoRateio)/(qtd*pm):0;
+  var row=function(l,v,cls){ return '<div class="result-row"><span class="label">'+l+'</span><span class="value '+(cls||'')+'">'+v+'</span></div>'; };
+  var h='<div style="font-size:.7rem;color:var(--clay);font-family:\'DM Mono\',monospace;margin-bottom:.4rem">O CICLO</div>';
+  h+=row('Tempo até a meta', dias+' dias · '+fmtN(meses,1)+' meses');
+  h+=row('Compra do lote', fmt(compra)+' <span style="font-size:.72rem;color:var(--clay)">('+fmt(qtd>0?compra/qtd:0)+'/cab.)</span>','neg');
+  h+=row('Venda projetada', fmt(receita)+' <span style="font-size:.72rem;color:var(--clay)">('+fmtN(arrobasProd,0)+'@ produzidas)</span>','pos');
+  h+=row('Suplementação no período', fmt(custoSupl),'neg');
+  if(custoSan>0) h+=row('Sanidade no período', fmt(custoSan),'neg');
+  h+=row('Custos fixos rateados', fmt(custoFixo)+' <span style="font-size:.72rem;color:var(--clay)">(só no cenário com rateio)</span>','neg');
+  if(extra>0) h+=row('Custos extras', fmt(extra),'neg');
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.9rem">';
+  var box=function(titulo,sub,lucro,rent,custoArr,cor){ return '<div class="result-box'+(lucro<0?' loss':'')+'" style="padding:.7rem .8rem"><div style="font-size:.7rem;color:var(--clay);font-family:\'DM Mono\',monospace">'+titulo+'</div><div style="font-size:.68rem;color:var(--clay);margin-bottom:.4rem">'+sub+'</div><div style="font-size:1.25rem;font-weight:700;color:'+(lucro>=0?'var(--green)':'var(--red)')+'">'+fmt(lucro)+'</div><div style="font-size:.74rem;line-height:1.7">'+fmt(qtd>0?lucro/qtd:0)+' por animal<br>'+fmt(meses>0?lucro/meses:0)+' por mês<br>Rentabilidade: <strong>'+fmtN(rent,2)+'% a.m.</strong><br>Custo da @ produzida: <strong>'+fmt(custoArr)+'</strong></div></div>'; };
+  h+=box('LUCRO MARGINAL','só o que aumenta de verdade',lucroMarg,rentMesMarg,custoArrobaMarg);
+  h+=box('LUCRO COM RATEIO','pagando a parte dos custos fixos',lucroRateio,rentMesRateio,custoArrobaRateio);
+  h+='</div>';
+  h+='<div style="font-size:.74rem;color:var(--clay);margin-top:.7rem;line-height:1.6">💡 <strong>Marginal</strong> responde "vale colocar mais gado na estrutura que já tenho?" (o vaqueiro ganha o mesmo com ou sem esse lote). <strong>Com rateio</strong> responde "esse lote paga a sua parte da fazenda?". Preço de venda de equilíbrio (lucro zero com rateio): <strong>'+fmt(pvEquilibrio)+'/@</strong>.</div>';
+  el.innerHTML=h;
 }
 // ===== CICLO POR LOTE (entrada + prazo = venda prevista) =====
 var MS_MES = 30*24*60*60*1000;
@@ -1521,6 +1729,28 @@ function setSyncStatus(s){
 var _saveTimer = null;
 var dadosCarregados = false;
 // Baixa uma cópia completa dos dados da fazenda ativa (lotes, insumos, custos, animais, baixas, pesagens, vendas, trocas)
+function importarBackupJSON(input){
+  var f = input.files && input.files[0]; if(!f) return;
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      var payload = JSON.parse(ev.target.result);
+      var dados = payload && payload.dados ? payload.dados : payload;
+      if(!dados || !Array.isArray(dados.lotes)) throw new Error('Arquivo não parece um backup do Fazenda Gestão');
+      var chaves=['lotes','insumos','custos','animais','baixas','pesagens','vendas','trocas','pagamentos','tropas'];
+      confirmarModal('Importar '+dados.lotes.length+' lote(s), '+(dados.animais||[]).length+' animal(is), '+(dados.vendas||[]).length+' venda(s) para a fazenda ativa? TODOS os dados atuais desta fazenda serão substituídos pelos do backup.','📥','Importar',function(){
+        var novo={}; chaves.forEach(function(k){ novo[k]=Array.isArray(dados[k])?dados[k]:[]; });
+        state = novo; dadosCarregados = true;
+        if(payload.prazoDashboard) { prazoDashboard = parseInt(payload.prazoDashboard)||10; db.ref(prazoDashboardPath()).set(prazoDashboard).catch(function(){}); }
+        saveToFirebase();
+        toast('📥 Backup restaurado');
+        renderAll(); renderDashboard();
+      });
+    }catch(e){ toast('Erro ao importar: '+e.message,'error'); }
+    input.value='';
+  };
+  reader.readAsText(f);
+}
 function exportarBackupJSON(){
   if(!dadosCarregados){ toast('Dados ainda não carregaram','error'); return; }
   var payload = { app:'Fazenda Gestão', fazenda:getFirebasePrefix(), geradoEm:new Date().toISOString(), prazoDashboard:prazoDashboard, dados:state };
@@ -1551,6 +1781,8 @@ function saveToFirebase(){
 
 // FIREBASE LISTEN — só escuta mudanças remotas quando não está salvando
 function startListening(){
+  if(typeof _saveTimer!=='undefined' && _saveTimer){ clearTimeout(_saveTimer); _saveTimer=null; }
+  salvandoFirebase=false;
   carregarPrazoDashboard();
   carregarGmdPadrao();
   carregarGmdMeta();
@@ -1633,16 +1865,19 @@ function startListening(){
       state.vendas=Array.isArray(data.vendas)?data.vendas:(data.vendas?Object.values(data.vendas):[]);
       state.trocas=Array.isArray(data.trocas)?data.trocas:(data.trocas?Object.values(data.trocas):[]);
       state.pagamentos=Array.isArray(data.pagamentos)?data.pagamentos:(data.pagamentos?Object.values(data.pagamentos):[]);
+      state.tropas=Array.isArray(data.tropas)?data.tropas:(data.tropas?Object.values(data.tropas):[]);
+      state.tropas.forEach(function(t){ if(t.parcelas&&!Array.isArray(t.parcelas)) t.parcelas=Object.values(t.parcelas); if(!t.parcelas) t.parcelas=[]; if(t.historico&&!Array.isArray(t.historico)) t.historico=Object.values(t.historico); });
       dadosCarregados = true;
+      if(migrarTropas()) saveToFirebase();
       renderAll();
     } else {
       // Fazenda vazia — começa do zero
-      state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[], trocas:[], pagamentos:[] };
+      state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[], trocas:[], pagamentos:[], tropas:[] };
       dadosCarregados = true;
       renderAll();
     }
     setSyncStatus('ok');
-  });
+  }, function(err){ setSyncStatus('off'); console.warn('Firebase: '+err.message); });
 }
 
 // ===== LOGIN =====
@@ -1717,7 +1952,7 @@ function entrar(p){
   buildNav();
   applyPerfilUI();
   // Reset state before loading correct fazenda data
-  state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[], trocas:[], pagamentos:[] };
+  state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[], trocas:[], pagamentos:[], tropas:[] };
   stateNotas = { todos:[], notas:[], vacinas:[], lembretes:[] };
   stateAlertas = [];
   renderAll();
@@ -1771,7 +2006,7 @@ function alterarSenhaVaqueiro(){
 }
 
 // NAV
-var NAV_DONO=[{id:'dashboard',label:'Dashboard'},{id:'animais',label:'🐮 Animais'},{id:'suplementacao',label:'Suplementação'},{id:'rebanho',label:'Rebanho'},{id:'custos',label:'Custos'},{id:'projecao',label:'Projeção'},{id:'notas',label:'📋 Notas'},{id:'alertas',label:'🔔 Alertas'},{id:'mapa',label:'🗺️ Mapa'},{id:'config',label:'⚙️ Config'}];
+var NAV_DONO=[{id:'dashboard',label:'Dashboard'},{id:'animais',label:'🐮 Animais'},{id:'suplementacao',label:'Suplementação'},{id:'rebanho',label:'Rebanho'},{id:'custos',label:'Custos'},{id:'projecao',label:'Projeção'},{id:'simulador',label:'🧮 Simular'},{id:'notas',label:'📋 Notas'},{id:'alertas',label:'🔔 Alertas'},{id:'mapa',label:'🗺️ Mapa'},{id:'config',label:'⚙️ Config'}];
 var NAV_VAQUEIRO=[{id:'dashboard-vaqueiro',label:'🏠 Início'},{id:'animais',label:'🐮 Animais'},{id:'suplementacao',label:'📦 Estoque'},{id:'notas',label:'📋 Notas'},{id:'mapa',label:'🗺️ Mapa'}];
 function buildNav(){
   var items=perfil==='dono'?NAV_DONO:NAV_VAQUEIRO;
@@ -1802,6 +2037,7 @@ function showSectionById(id){
     popularSelectLotes('ps-lote', false);
     popularSelectLotes('vd-lote', true);
     if(document.getElementById('ps-data') && !document.getElementById('ps-data').value) document.getElementById('ps-data').value=new Date().toISOString().slice(0,10);
+    popularSelectTropas(); atualizarSelectTropaVenda();
     renderPesagemLinhas();
     renderHistoricoPesagens();
     renderHistoricoVendas();
@@ -1818,6 +2054,7 @@ function showSectionById(id){
   else if(id==='mapa'){ renderMapa(); }
   else if(id==='config'){ initConfigTab(); }
   else if(id==='projecao') calcularProjecao();
+  else if(id==='simulador') abrirSimulador();
   else if(id==='notas'){
     loadNotas();
     setTimeout(function(){ initChips(); renderCalendario(); }, 50);
@@ -1962,6 +2199,7 @@ function renderDashboard(){
     rfHtml+='<div class="result-row total"><span class="label">Lucro Líquido Est.</span><span class="value '+(luc>=0?'pos':'neg')+' big">'+fmt(luc)+'</span></div>';
     rfHtml+='<div style="font-size:.72rem;color:var(--clay);margin-top:.4rem">Use a aba Projeção para simular</div></div></div>';
     document.getElementById('resumo-financeiro').innerHTML=rfHtml;
+    renderCustoArroba();
   }
 }
 
@@ -1997,6 +2235,8 @@ function renderRebanho(){
     rows+='</div></div>';
     rows+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem .6rem;font-size:.78rem;color:var(--clay)">';
     rows+='<div>Cabeças: <strong style="color:var(--text)">'+l.qtd+'</strong></div>';
+    var tsL=tropasDoLote(l.id);
+    if(tsL.length) rows+='<div style="grid-column:1/-1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.35rem .6rem">🐂 Em tropas: '+tsL.map(function(x){ return '<strong style="color:var(--text)">'+x.tropa.nome+' ('+x.parcela.qtd+')</strong> · 🌿 '+(x.tropa.manga||'—'); }).join(' · ')+'</div>';
     if(l.data){
       var dEnt=new Date(l.data+'T00:00:00'); var mesesNaFaz=Math.max(0,(Date.now()-dEnt.getTime())/(30*24*60*60*1000));
       var tempoTxt=mesesNaFaz<1?Math.round(mesesNaFaz*30)+' dias':(Math.round(mesesNaFaz*10)/10)+' meses';
@@ -2080,6 +2320,7 @@ function renderRebanho(){
   if(!rows) rows='<div class="empty"><div class="icon">🐄</div><p>Nenhum lote ativo</p></div>';
   if(encerrados.length>0) rows+=htmlLotesEncerrados(encerrados);
   document.getElementById('tabela-rebanho').innerHTML=rows;
+  renderTropas(); popularSelectTropas();
 
   // Histórico de baixas
   var baixas=(state.baixas||[]).filter(function(b){return true;});
@@ -2207,7 +2448,7 @@ function renderCustos(){
     rows+='<div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:.9rem;margin-bottom:.75rem">';
     rows+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">';
     rows+='<div><strong style="font-size:.88rem">'+c.desc+'</strong><br>';
-    rows+='<span class="badge yellow">'+catLabel(c.cat)+'</span> <span class="badge sky">'+freqLabel(c.freq,c)+'</span></div>';
+    rows+='<span class="badge yellow">'+catLabel(c.cat)+'</span> <span class="badge sky">'+freqLabel(c.freq,c)+'</span>'+(c.porCabeca?' <span class="badge green">por cabeça</span>':'')+'</div>';
     rows+='<div style="display:flex;gap:.4rem"><button class="btn sm outline" style="color:var(--green);border-color:var(--green-mid)" onclick="abrirModalPagamento('+c.id+')">💵</button><button class="btn sm outline" onclick="editarCusto('+c.id+')">✏️</button><button class="btn sm danger" onclick="deletarCusto('+c.id+')">🗑️</button></div>';
     rows+='</div>';
     rows+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem;font-size:.78rem;color:var(--clay)">';
@@ -2215,7 +2456,7 @@ function renderCustos(){
     if(c.freq==='unico'){
       rows+='<div>Tipo: <strong style="color:var(--gold)">Custo Pontual</strong></div>';
     } else {
-      rows+='<div>Custo/mês: <strong style="color:var(--text)">'+fmt(custoMensal(c))+'</strong></div>';
+      rows+='<div>Custo/mês: <strong style="color:var(--text)">'+fmt(custoMensal(c))+'</strong>'+(c.porCabeca?' <span style="font-size:.7rem">('+fmt(custoMensalUnitario(c))+'/cab × '+cabecasProprias()+')</span>':'')+'</div>';
     }
     if(c.obs) rows+='<div style="grid-column:1/-1">Obs: <span style="color:var(--text)">'+c.obs+'</span></div>';
     var st=statusPagamentoCusto(c);
@@ -2357,7 +2598,10 @@ function renderAnimais(){
   var ft=document.getElementById('an-filtro-tipo')?document.getElementById('an-filtro-tipo').value:'';
   var fs=document.getElementById('an-filtro-status')?document.getElementById('an-filtro-status').value:'';
   var fl=document.getElementById('an-filtro-lote')?document.getElementById('an-filtro-lote').value:'';
+  var ftp=document.getElementById('an-filtro-tropa'); if(ftp){ var atualT=ftp.value; ftp.innerHTML='<option value="">Todas as tropas</option>'+tropasAtivas().map(function(t){ return '<option value="'+t.id+'">'+t.nome+'</option>'; }).join(''); ftp.value=atualT; }
+  var ftropa=ftp?ftp.value:'';
   var lista=state.animais.filter(function(a){
+    if(ftropa && String(tropaDoAnimal(a)?tropaDoAnimal(a).id:'')!==String(ftropa)) return false;
     if(busca&&!a.brinco.toLowerCase().includes(busca)&&!(a.raca||'').toLowerCase().includes(busca)) return false;
     if(ft&&a.tipo!==ft) return false;
     if(fs&&a.status!==fs) return false;
@@ -2390,6 +2634,7 @@ function renderAnimais(){
     ch+='<div class="animal-card-body"><div class="animal-info-row">';
     if(a.raca) ch+='<span>🐄 <strong>'+a.raca+'</strong></span>';
     if(a.peso) ch+='<span>⚖️ <strong>'+a.peso+'@</strong></span>';
+    var tpA=tropaDoAnimal(a); if(tpA) ch+='<span>🐂 <strong>'+tpA.nome+'</strong>'+(tpA.manga?' · 🌿 '+tpA.manga:'')+'</span>';
     var gA=gmdAnimalKg(a); if(gA!==null) ch+='<span>'+badgeGmd(gA)+'</span>';
     if(a.partoProximo) ch+='<span>🐣 <strong>'+fd(a.partoProximo)+'</strong></span>';
     ch+='</div>';
@@ -2421,6 +2666,7 @@ function renderAll(){
   else if(id==='suplementacao') renderSuplementacao();
   else if(id==='custos') renderCustos();
   else if(id==='projecao') calcularProjecao();
+  else if(id==='simulador') abrirSimulador();
   else if(id==='animais') renderAnimais();
   // Mantém o Dashboard sempre atualizado em segundo plano, mesmo fora dele,
   // para que os números já estejam corretos ao voltar pra essa aba.
@@ -2455,8 +2701,10 @@ function salvarLote(){
     mangaData:document.getElementById('r-manga-data').value||'',
     mangaDias:parseInt(document.getElementById('r-manga-dias').value)||0};
   var eid=document.getElementById('r-nome').dataset.editId;
-  if(eid){var idx=state.lotes.findIndex(function(l){return l.id==eid;});if(idx!==-1){lote.id=parseInt(eid);lote.historicoAluguel=state.lotes[idx].historicoAluguel||[];if(state.lotes[idx].tipoAnterior)lote.tipoAnterior=state.lotes[idx].tipoAnterior;if(_editandoEncerrado&&lote.qtd===0){lote.tipoAnterior=lote.tipo;lote.tipo='encerrado';}state.lotes[idx]=lote;}delete document.getElementById('r-nome').dataset.editId;}
+  if(eid){var idx=state.lotes.findIndex(function(l){return l.id==eid;});if(idx!==-1){lote.id=parseInt(eid);lote.historicoAluguel=state.lotes[idx].historicoAluguel||[];if(lote.tipo==='terceiro'&&state.lotes[idx].tipo==='terceiro'&&Math.abs((lote.aluguel||0)-(state.lotes[idx].aluguel||0))>=0.005){lote.historicoAluguel.push({id:Date.now(),data:new Date().toISOString().slice(0,10),valorAnterior:state.lotes[idx].aluguel||0,valorNovo:lote.aluguel||0,obs:'Alterado na edição do lote'});toast('💱 Mudança de aluguel registrada no histórico');}if(state.lotes[idx].tipoAnterior)lote.tipoAnterior=state.lotes[idx].tipoAnterior;if(_editandoEncerrado&&lote.qtd===0){lote.tipoAnterior=lote.tipo;lote.tipo='encerrado';}state.lotes[idx]=lote;}delete document.getElementById('r-nome').dataset.editId;}
   else state.lotes.push(lote);
+  if(!eid) migrarTropas();
+  else { var tsE=tropasDoLote(lote.id); if(tsE.length===1){ tsE[0].parcela.qtd=lote.qtd; tsE[0].tropa.manga=lote.manga||tsE[0].tropa.manga; tsE[0].tropa.mangaData=lote.mangaData||tsE[0].tropa.mangaData; tsE[0].tropa.mangaDias=lote.mangaDias||tsE[0].tropa.mangaDias; } else if(tsE.length>1){ var somaP=tsE.reduce(function(a,x){return a+x.parcela.qtd;},0); if(somaP!==lote.qtd){ tsE.sort(function(a,b){return b.parcela.qtd-a.parcela.qtd;}); tsE[0].parcela.qtd=Math.max(0,tsE[0].parcela.qtd+(lote.qtd-somaP)); removerTropasVazias(); } } }
   saveToFirebase();toast('✅ Lote salvo!');limparFormRebanho();renderRebanho();renderDashboard();
 }
 function editarLote(id){
@@ -2489,6 +2737,7 @@ function editarLote(id){
 function deletarLote(id){
   confirmarModal('Remover este lote?', '🗑️', 'Remover', function(){
     state.lotes=state.lotes.filter(function(l){return l.id!==id;});
+    (state.tropas||[]).forEach(function(t){ t.parcelas=(t.parcelas||[]).filter(function(p){ return String(p.loteId)!==String(id); }); }); removerTropasVazias();
     saveToFirebase();toast('🗑️ Lote removido.');renderRebanho();renderDashboard();
   });
 }
@@ -2535,20 +2784,20 @@ function salvarCusto(){
   var intervaloDias=parseInt(document.getElementById('c-dias').value)||0;
   if(freqSel==='dias' && intervaloDias<1){toast('Informe a cada quantos dias.','error');return;}
   var custo={id:Date.now(),desc:desc,cat:document.getElementById('c-cat').value,valor:valor,
-    freq:freqSel, intervaloDias: freqSel==='dias'?intervaloDias:null,
+    freq:freqSel, intervaloDias: freqSel==='dias'?intervaloDias:null, porCabeca: !!(document.getElementById('c-por-cabeca')&&document.getElementById('c-por-cabeca').checked),
     data:document.getElementById('c-data').value||new Date().toISOString().split('T')[0],
     obs:document.getElementById('c-obs').value};
   var eid=document.getElementById('c-desc').dataset.editId;
   if(eid){var idx=state.custos.findIndex(function(c){return c.id==eid;});if(idx!==-1){custo.id=parseInt(eid);state.custos[idx]=custo;}delete document.getElementById('c-desc').dataset.editId;}
   else state.custos.push(custo);
-  saveToFirebase();toast('✅ Custo salvo!');['c-desc','c-valor','c-data','c-obs','c-dias'].forEach(function(id){document.getElementById(id).value='';});document.getElementById('c-freq').value='mensal';toggleCampoDiasCusto();renderCustos();
+  saveToFirebase();toast('✅ Custo salvo!');['c-desc','c-valor','c-data','c-obs','c-dias'].forEach(function(id){document.getElementById(id).value='';});document.getElementById('c-freq').value='mensal';toggleCampoDiasCusto();if(document.getElementById('c-por-cabeca'))document.getElementById('c-por-cabeca').checked=false;renderCustos();
 }
 function editarCusto(id){
   openCollapse('form-custo');
   var c=state.custos.find(function(x){return x.id===id;});if(!c)return;
   document.getElementById('c-desc').value=c.desc;document.getElementById('c-desc').dataset.editId=id;
   document.getElementById('c-cat').value=c.cat;document.getElementById('c-valor').value=c.valor;
-  document.getElementById('c-freq').value=c.freq;document.getElementById('c-dias').value=c.intervaloDias||'';toggleCampoDiasCusto();document.getElementById('c-data').value=c.data;
+  document.getElementById('c-freq').value=c.freq;document.getElementById('c-dias').value=c.intervaloDias||'';toggleCampoDiasCusto();if(document.getElementById('c-por-cabeca'))document.getElementById('c-por-cabeca').checked=!!c.porCabeca;document.getElementById('c-data').value=c.data;
   document.getElementById('c-obs').value=c.obs||'';showSectionById('custos');window.scrollTo(0,0);
 }
 function deletarCusto(id){
@@ -2643,7 +2892,8 @@ function abrirAnimal(id){
   if(a.partoProximo) h+='<div><span style="font-size:.68rem;color:var(--clay);font-family:\'DM Mono\',monospace">PRÓXIMO PARTO</span><div style="font-size:.85rem;margin-top:.2rem;color:var(--gold)">'+fd(a.partoProximo)+'</div></div>';
   h+='</div>';
   if(a.obs) h+='<div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;padding:.7rem .9rem;margin-bottom:1rem;font-size:.8rem;color:var(--clay);font-style:italic">'+a.obs+'</div>';
-  if(a.marca) h+='<div style="font-size:.8rem;margin:-.4rem 0 .8rem">🔖 Marca permanente: <strong>'+a.marca+'</strong></div>';
+  var tpF=tropaDoAnimal(a); if(tpF) h+='<div style="font-size:.8rem;margin:-.4rem 0 .5rem">🐂 Tropa: <strong>'+tpF.nome+'</strong>'+(tpF.manga?' · 🌿 '+tpF.manga:'')+'</div>';
+  if(a.marca) h+='<div style="font-size:.8rem;margin:0 0 .8rem">🔖 Marca permanente: <strong>'+a.marca+'</strong></div>';
   if(a.brincosAnteriores&&a.brincosAnteriores.length) h+='<div style="font-size:.76rem;color:var(--clay);margin-bottom:.8rem">🏷️ Brincos anteriores: '+a.brincosAnteriores.map(function(b){ return '<span class="mono">'+b.brinco+'</span> (até '+fd(b.ate)+')'; }).join(' → ')+' → <span class="mono">'+a.brinco+'</span></div>';
   var psA=(a.pesagens||[]).slice().sort(function(x,y){ return y.data.localeCompare(x.data); });
   h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">';
@@ -2825,11 +3075,13 @@ function confirmarBaixa(){
   // Atualiza quantidade do lote
   var idx = state.lotes.findIndex(function(l){ return l.id === loteIdBaixa; });
   state.lotes[idx].qtd = lote.qtd - qtd;
+  ajustarParcelasAposSaida(loteIdBaixa, qtd, null); removerTropasVazias();
 
   saveToFirebase();
-  toast('📉 Baixa registrada — ' + qtd + ' cabeça(s) · Perda: ' + fmt(perda));
+  toast('📉 Baixa registrada — ' + qtd + ' cabeça(s)' + (lote.tipo==='terceiro'?'':' · Perda: ' + fmt(perda)));
   fecharModalBaixa();
   renderRebanho();renderDashboard();atualizarSelectsLotes();
+  if(lote.tipo==='terceiro'){ var lid=lote.id; confirmarModal('Saíram '+qtd+' cabeça(s) do '+lote.nome+'. O valor do aluguel mudou?','💱','Sim, registrar',function(){ abrirModalAluguel(lid); document.getElementById('aluguel-obs').value='Saída de '+qtd+' cabeça(s)'; }); }
 }
 
 // ===== LOTES ENCERRADOS (arquivo) =====
@@ -2937,11 +3189,29 @@ function abrirModalAluguel(loteId){
   var lote = state.lotes.find(function(l){ return l.id === loteId; });
   if(!lote) return;
   document.getElementById('aluguel-novo-valor').value = '';
+  document.getElementById('aluguel-valor-anterior').value = lote.aluguel||0;
   document.getElementById('aluguel-data').value = new Date().toISOString().split('T')[0];
   document.getElementById('aluguel-obs').value = '';
   document.getElementById('modal-aluguel-info').innerHTML =
     '<strong>' + lote.nome + '</strong> — Valor atual: ' + fmt(lote.aluguel||0) + '/mês';
+  renderHistAluguelModal(lote);
   document.getElementById('modal-aluguel').classList.add('open');
+}
+function renderHistAluguelModal(lote){
+  var el=document.getElementById('aluguel-hist-lista'); if(!el) return;
+  var hs=(lote.historicoAluguel||[]).slice().sort(function(a,b){ return (a.data||'').localeCompare(b.data||''); });
+  if(!hs.length){ el.innerHTML='<div style="font-size:.74rem;color:var(--clay)">Nenhuma alteração registrada ainda.</div>'; return; }
+  var h='<div style="font-size:.7rem;color:var(--clay);font-family:\'DM Mono\',monospace;margin-bottom:.3rem">ALTERAÇÕES JÁ REGISTRADAS</div>';
+  hs.forEach(function(x){ h+='<div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;border-top:1px solid var(--border);padding:.4rem 0;font-size:.8rem"><div>'+fmtDataBR(x.data)+' · '+fmt(x.valorAnterior||0)+' → <strong>'+fmt(x.valorNovo||0)+'</strong>'+(x.obs?'<br><span style="font-size:.7rem;color:var(--clay)">'+x.obs+'</span>':'')+'</div><button class="btn sm outline" onclick="excluirHistAluguel('+lote.id+','+x.id+')">🗑️</button></div>'; });
+  el.innerHTML=h;
+}
+function excluirHistAluguel(loteId, histId){
+  var lote=state.lotes.find(function(l){ return l.id===loteId; }); if(!lote) return;
+  var x=(lote.historicoAluguel||[]).find(function(h){ return h.id===histId; }); if(!x) return;
+  confirmarModal('Apagar a alteração '+fmt(x.valorAnterior||0)+' → '+fmt(x.valorNovo||0)+' de '+fmtDataBR(x.data)+'? O valor atual do lote ('+fmt(lote.aluguel||0)+') não muda.','🗑️','Apagar',function(){
+    lote.historicoAluguel=lote.historicoAluguel.filter(function(h){ return h.id!==histId; });
+    saveToFirebase(); toast('🗑️ Alteração apagada'); renderHistAluguelModal(lote); renderRebanho(); renderDashboard();
+  });
 }
 function fecharModalAluguel(){
   document.getElementById('modal-aluguel').classList.remove('open');
@@ -2953,9 +3223,13 @@ function confirmarAlteracaoAluguel(){
   var novoValorStr = document.getElementById('aluguel-novo-valor').value;
   if(novoValorStr===''){ toast('Informe o novo valor','error'); return; }
   var novoValor = parseFloat(novoValorStr)||0;
+  var vaStr = document.getElementById('aluguel-valor-anterior').value;
+  var valorAnterior = (vaStr===''?(lote.aluguel||0):(parseFloat(vaStr)||0));
+  if(Math.abs(novoValor-valorAnterior)<0.005){ toast('Novo valor igual ao anterior — nada a registrar','error'); return; }
   var data = document.getElementById('aluguel-data').value || new Date().toISOString().split('T')[0];
   var obs = document.getElementById('aluguel-obs').value.trim();
-  var valorAnterior = lote.aluguel||0;
+  var ultData=(lote.historicoAluguel||[]).reduce(function(m,h){ return (h.data&&h.data>m)?h.data:m; },'');
+  var retroativo = Math.abs(novoValor-(lote.aluguel||0))<0.005 || (ultData && data<ultData);
   if(!lote.historicoAluguel) lote.historicoAluguel = [];
   lote.historicoAluguel.push({
     id: Date.now(),
@@ -2964,40 +3238,36 @@ function confirmarAlteracaoAluguel(){
     valorNovo: novoValor,
     obs: obs
   });
-  lote.aluguel = novoValor;
+  if(!retroativo) lote.aluguel = novoValor;
   saveToFirebase();
-  toast('💱 Aluguel atualizado: ' + fmt(valorAnterior) + ' → ' + fmt(novoValor));
+  toast(retroativo ? '📜 Histórico registrado: ' + fmt(valorAnterior) + ' → ' + fmt(novoValor) + ' em ' + fmtDataBR(data) : '💱 Aluguel atualizado: ' + fmt(valorAnterior) + ' → ' + fmt(novoValor));
   fecharModalAluguel();
   renderRebanho();renderDashboard();
 }
 // Reconstrói os períodos de valor (contratoInicio -> mudanças registradas -> valor atual)
 // e soma a receita real de cada trecho, em vez de aplicar o valor atual a todo o prazo.
+// Parcelas do contrato: a 1ª vence 30 dias após o início e as seguintes a cada 30 dias.
+// Cada parcela vale o aluguel em vigor na data dela (histórico de alterações).
+function parcelasAluguelLote(lote, maxParcelas){
+  var n = Math.min(lote.contratoMeses||0, maxParcelas||lote.contratoMeses||0); if(!(n>0)) return [];
+  var ini = lote.contratoInicio ? new Date(lote.contratoInicio+'T00:00:00') : null; if(!ini || isNaN(ini.getTime())) return [];
+  var histRaw = lote.historicoAluguel ? (Array.isArray(lote.historicoAluguel)?lote.historicoAluguel:Object.values(lote.historicoAluguel)) : [];
+  var hist = histRaw.filter(function(h){ return h && h.data; }).sort(function(a,b){ return a.data.localeCompare(b.data); });
+  var valorInicial = hist.length ? (hist[0].valorAnterior!=null?hist[0].valorAnterior:(lote.aluguel||0)) : (lote.aluguel||0);
+  var hoje = new Date(); hoje.setHours(0,0,0,0);
+  var out=[];
+  for(var i=1;i<=n;i++){
+    var dt = new Date(ini.getTime() + i*30*86400000); var iso = dt.toISOString().slice(0,10);
+    var v = valorInicial; hist.forEach(function(h){ if(h.data <= iso) v = (h.valorNovo||0); });
+    out.push({ n:i, data:dt, iso:iso, valor:v, paga: dt<=hoje });
+  }
+  return out;
+}
 function calcularReceitaAluguelLote(lote, prazoLimiteMeses){
-  var valorAtual = lote.aluguel||0;
-  var contratoMeses = lote.contratoMeses || prazoLimiteMeses;
-  var mesesLimite = Math.min(contratoMeses, prazoLimiteMeses);
-  var histRaw = lote.historicoAluguel ? (Array.isArray(lote.historicoAluguel) ? lote.historicoAluguel : Object.values(lote.historicoAluguel)) : [];
-  var hist = histRaw.filter(function(h){ return h && h.data && !isNaN(new Date(h.data+'T00:00:00').getTime()); })
-    .sort(function(a,b){ return a.data.localeCompare(b.data); });
-  var dtInicio = lote.contratoInicio ? new Date(lote.contratoInicio+'T00:00:00') : null;
-  if(hist.length===0 || !dtInicio || isNaN(dtInicio.getTime())){
-    return valorAtual * mesesLimite;
-  }
-  var pontos = [{data: dtInicio, valor: (hist[0].valorAnterior!=null?hist[0].valorAnterior:valorAtual)}];
-  hist.forEach(function(h){ pontos.push({data: new Date(h.data+'T00:00:00'), valor: h.valorNovo||0}); });
-  var msPorMes = 30*24*60*60*1000;
-  var dtFimProjecao = new Date(dtInicio.getTime() + mesesLimite*msPorMes);
-  var total = 0;
-  for(var i=0;i<pontos.length;i++){
-    var ini = pontos[i].data < dtInicio ? dtInicio : pontos[i].data;
-    var fim = (i+1<pontos.length) ? pontos[i+1].data : dtFimProjecao;
-    if(fim < dtInicio) fim = dtInicio;
-    if(fim > dtFimProjecao) fim = dtFimProjecao;
-    if(fim <= ini) continue;
-    var mesesPeriodo = (fim.getTime()-ini.getTime())/msPorMes;
-    total += pontos[i].valor * mesesPeriodo;
-  }
-  return total;
+  var lim = Math.max(1, Math.ceil(prazoLimiteMeses||0));
+  var ps = parcelasAluguelLote(lote, lote.contratoMeses ? Math.min(lote.contratoMeses, lim) : lim);
+  if(!ps.length) return (lote.aluguel||0) * Math.min(lote.contratoMeses||lim, lim);
+  return ps.reduce(function(a,p){ return a+p.valor; },0);
 }
 
 // Atualiza impacto ao mudar campos
@@ -3685,39 +3955,32 @@ function renderDashboardVaqueiro(){
       lotesEl.innerHTML='<div style="color:var(--clay);font-size:.85rem">Nenhum lote cadastrado.</div>';
     } else {
       var lhtml='';
-      for(var li=0; li<state.lotes.length; li++){ var l=state.lotes[li];
-        if(l.tipo==='encerrado') continue;
-        var hoje = new Date(); hoje.setHours(0,0,0,0);
-        var mangaBadge='', diasInfo='';
-        if(l.manga){
-          if(l.mangaData && l.mangaDias){
-            var entrada = new Date(l.mangaData+'T00:00:00');
-            var diasPassados = Math.floor((hoje-entrada)/(1000*60*60*24));
-            var diasRestantes = l.mangaDias - diasPassados;
-            var cor = diasRestantes<0?'red':diasRestantes<=3?'yellow':'green';
-            var txt = diasRestantes<0?'Mover há '+Math.abs(diasRestantes)+' dias':diasRestantes===0?'Mover hoje!':diasRestantes+' dias';
-            mangaBadge='<span class="badge '+cor+'" style="margin-left:.5rem">'+txt+'</span>';
-          }
-        }
+      var tsV=tropasAtivas();
+      for(var ti=0; ti<tsV.length; ti++){ var t=tsV[ti];
+        var mangaBadge=mangaStatusTropa(t); var qV=tropaQtd(t);
+        var lotesTxt=(t.parcelas||[]).filter(function(p){return p.qtd>0;}).map(function(p){ return p.qtd+' do '+loteNome(p.loteId); }).join(' + ');
+        var lidPrincipal=(t.parcelas&&t.parcelas.length)?t.parcelas[0].loteId:'';
         lhtml+='<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.9rem;margin-bottom:.6rem">';
         lhtml+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">';
-        lhtml+='<div><strong style="font-size:.88rem;color:var(--text)">'+l.nome+'</strong>';
-        lhtml+='<div style="font-size:.75rem;color:var(--clay);margin-top:.2rem">'+l.qtd+' cabeças · '+l.tipo+'</div></div>';
+        lhtml+='<div><strong style="font-size:.88rem;color:var(--text)">🐂 '+t.nome+'</strong>';
+        lhtml+='<div style="font-size:.75rem;color:var(--clay);margin-top:.2rem">'+qV+' cabeças · '+lotesTxt+'</div></div>';
         lhtml+='<div style="display:flex;gap:.35rem">';
-        lhtml+='<button class="btn-solicitar-lote" data-lid="'+l.id+'" style="padding:.35rem .7rem;background:var(--gold-light);border:1.5px solid var(--gold-mid);border-radius:8px;color:var(--gold);font-size:.75rem;cursor:pointer;font-weight:600">✏️ Editar</button>';
+        lhtml+='<button class="btn-mover-tropa" data-tid="'+t.id+'" style="padding:.35rem .7rem;background:var(--green-light);border:1.5px solid var(--green-mid);border-radius:8px;color:var(--green);font-size:.75rem;font-weight:600;cursor:pointer">🌿 Mover</button>';
+        lhtml+='<button class="btn-solicitar-lote" data-lid="'+lidPrincipal+'" style="padding:.35rem .7rem;background:var(--gold-light);border:1.5px solid var(--gold-mid);border-radius:8px;color:var(--gold);font-size:.75rem;font-weight:600;cursor:pointer">📝 Solicitar</button>';
         lhtml+='</div></div>';
         lhtml+='<div style="font-size:.8rem;color:var(--text2)">';
-        lhtml += l.manga ? '🌿 <strong>'+l.manga+'</strong>'+mangaBadge : '<span style="color:var(--clay)">Sem manga definida</span>';
-        if(l.mangaData) lhtml+='<span style="color:var(--clay);font-size:.72rem;margin-left:.5rem">desde '+new Date(l.mangaData+'T00:00:00').toLocaleDateString('pt-BR')+'</span>';
+        lhtml += t.manga ? '🌿 <strong>'+t.manga+'</strong> '+mangaBadge : '<span style="color:var(--clay)">Sem manga definida</span>';
+        if(t.mangaData) lhtml+='<span style="color:var(--clay);font-size:.72rem;margin-left:.5rem">desde '+new Date(t.mangaData+'T00:00:00').toLocaleDateString('pt-BR')+'</span>';
         lhtml+='</div></div>';
       }
-      lotesEl.innerHTML=lhtml||'<div style="color:var(--clay);font-size:.85rem">Nenhum lote ativo.</div>';
+      var mvT=null;
+      lotesEl.innerHTML=lhtml||'<div style="color:var(--clay);font-size:.85rem">Nenhuma tropa ativa.</div>';
       // Wire buttons directly after innerHTML (Samsung fix)
-      var moverBtns = lotesEl.querySelectorAll('.btn-mover-lote');
+      var moverBtns = lotesEl.querySelectorAll('.btn-mover-tropa');
       for(var mi=0; mi<moverBtns.length; mi++){
         (function(btn){
           btn.addEventListener('click', function(){
-            abrirModalMover(parseInt(btn.getAttribute('data-lid')));
+            abrirModalTropaManga(parseInt(btn.getAttribute('data-tid')));
           });
         })(moverBtns[mi]);
       }
@@ -3917,67 +4180,7 @@ function abrirModalMover(loteId){
   });
 }
 
-function abrirModalDividir(loteId){
-  var l = state.lotes.find(function(x){ return x.id===loteId; });
-  if(!l) return;
-  var existing = document.getElementById('modal-dividir-dyn');
-  if(existing) existing.parentNode.removeChild(existing);
-  window.scrollTo(0,0);
-  var overlay = document.createElement('div');
-  overlay.id = 'modal-dividir-dyn';
-  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:1rem;box-sizing:border-box';
-  var box = document.createElement('div');
-  box.style.cssText = 'background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1.5rem;width:100%;max-width:340px;box-sizing:border-box';
-  var optsHtml = '<option value="">— Selecionar manga —</option>';
-  MANGAS_NOMES.forEach(function(n){ optsHtml += '<option value="'+n+'">'+n+'</option>'; });
-  var hoje = new Date().toISOString().split('T')[0];
-  box.innerHTML = '<div style="font-weight:700;font-size:1rem;color:var(--text);margin-bottom:.25rem">✂️ Dividir Lote</div>'+
-    '<div style="font-size:.82rem;color:var(--clay);margin-bottom:1rem">'+l.nome+' · <strong style="color:var(--text)">'+l.qtd+' cabeças</strong></div>'+
-    '<div style="background:var(--bg);border-radius:10px;padding:.9rem;margin-bottom:1rem">'+
-    '<div style="font-size:.72rem;font-weight:700;color:var(--clay);text-transform:uppercase;margin-bottom:.6rem">Novo Lote (cabeças a separar)</div>'+
-    '<input type="text" id="div-nome" placeholder="Nome do novo lote" style="width:100%;padding:.6rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.85rem;outline:none;margin-bottom:.5rem">'+
-    '<input type="number" id="div-qtd" placeholder="Qtd de cabeças" min="1" max="'+(l.qtd-1)+'" style="width:100%;padding:.6rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.85rem;outline:none;margin-bottom:.5rem">'+
-    '<select id="div-manga" style="width:100%;padding:.6rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.85rem;outline:none;margin-bottom:.5rem">'+optsHtml+'</select>'+
-    '<input type="date" id="div-data" value="'+hoje+'" style="width:100%;padding:.6rem;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:.85rem;outline:none">'+
-    '</div>'+
-    '<div style="display:flex;gap:.5rem">'+
-    '<button id="div-cancel" style="flex:1;padding:.75rem;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:.9rem;cursor:pointer">Cancelar</button>'+
-    '<button id="div-ok" style="flex:1;padding:.75rem;background:var(--sky);border:none;border-radius:10px;color:#fff;font-size:.9rem;font-weight:700;cursor:pointer">✂️ Dividir</button>'+
-    '</div>';
-  overlay.appendChild(box);
-  document.body.appendChild(overlay);
-  document.body.style.overflow='hidden';
-  document.getElementById('div-cancel').addEventListener('click',function(){
-    overlay.parentNode.removeChild(overlay); document.body.style.overflow='';
-  });
-  document.getElementById('div-ok').addEventListener('click',function(){
-    var nome = document.getElementById('div-nome').value.trim();
-    var qtd  = parseInt(document.getElementById('div-qtd').value);
-    var manga = document.getElementById('div-manga').value;
-    var data  = document.getElementById('div-data').value;
-    if(!nome) return toast('Informe o nome do novo lote','error');
-    if(!qtd || qtd<1 || qtd>=l.qtd) return toast('Quantidade inválida (1 a '+(l.qtd-1)+')','error');
-    // Update original lote
-    var idx = state.lotes.findIndex(function(x){ return x.id===loteId; });
-    state.lotes[idx].qtd = l.qtd - qtd;
-    // Create new lote
-    var novoLote = JSON.parse(JSON.stringify(l));
-    novoLote.id = Date.now();
-    novoLote.nome = nome;
-    novoLote.qtd = qtd;
-    novoLote.manga = manga||'';
-    novoLote.mangaData = data;
-    novoLote.mangaDias = l.mangaDias||30;
-    novoLote.eventos = [];
-    state.lotes.push(novoLote);
-    saveToFirebase();
-    toast('✅ Lote dividido! '+l.nome+': '+(l.qtd-qtd)+' cab. · '+nome+': '+qtd+' cab.');
-    overlay.parentNode.removeChild(overlay);
-    document.body.style.overflow='';
-    renderDashboardVaqueiro();
-    renderRebanho();
-  });
-}
+// (Dividir Lote removido: substituído pelas tropas — 🔀 no Mapa)
 
 
 // ===== LOTES TERCEIRO =====
@@ -4039,6 +4242,128 @@ function popularSelectLotes(selectId, excluirTerceiro){
   });
 }
 
+// ===== TROPAS (grupos de manejo: quem anda junto numa manga) =====
+// Tropa = {id, nome, manga, mangaData, mangaDias, parcelas:[{loteId, qtd, pesoAtual}], historico:[{data,texto}]}
+function tropasAtivas(){ return (state.tropas||[]).filter(function(t){ return (t.parcelas||[]).some(function(p){ return p.qtd>0; }); }); }
+function tropaQtd(t){ return (t.parcelas||[]).reduce(function(a,p){ return a+(p.qtd||0); },0); }
+function tropasDoLote(loteId){ return tropasAtivas().map(function(t){ var p=(t.parcelas||[]).find(function(x){ return String(x.loteId)===String(loteId) && x.qtd>0; }); return p?{tropa:t,parcela:p}:null; }).filter(Boolean); }
+function tropaPrincipalDoLote(loteId){ var ts=tropasDoLote(loteId); if(!ts.length) return null; ts.sort(function(a,b){ return b.parcela.qtd-a.parcela.qtd; }); return ts[0].tropa; }
+function loteNome(id){ var l=state.lotes.find(function(x){ return x.id==id; }); return l?l.nome:'lote '+id; }
+function tropaPesoMedioArroba(t){ var s=0,q=0; (t.parcelas||[]).forEach(function(p){ var l=state.lotes.find(function(x){return x.id==p.loteId;}); var pa=p.pesoAtual||(l?(l.pesoAtual||l.pesoEntrada||0):0); if(pa>0){ s+=pa*p.qtd; q+=p.qtd; } }); return q>0?s/q:null; }
+function tropaGmdKg(t){ var gs=[],qs=[]; (t.parcelas||[]).forEach(function(p){ var l=state.lotes.find(function(x){return x.id==p.loteId;}); if(!l) return; var g=calcularGMD(l); if(g!==null){ gs.push(g*15*p.qtd); qs.push(p.qtd); } }); var q=qs.reduce(function(a,b){return a+b;},0); return q>0?gs.reduce(function(a,b){return a+b;},0)/q:null; }
+// Cria uma tropa por lote ativo que ainda não está em nenhuma tropa (primeira abertura e lotes novos)
+function migrarTropas(){
+  var mudou=false; if(!state.tropas) state.tropas=[];
+  state.lotes.forEach(function(l){
+    if(l.tipo==='encerrado' || !(l.qtd>0)) return;
+    if(tropasDoLote(l.id).length) return;
+    state.tropas.push({ id:Date.now()+Math.floor(Math.random()*100000), nome:l.nome, manga:l.manga||'', mangaData:l.mangaData||null, mangaDias:l.mangaDias||null, parcelas:[{loteId:l.id, qtd:l.qtd, pesoAtual:l.pesoAtual||l.pesoEntrada||null}], historico:[{data:new Date().toISOString().slice(0,10), texto:'Tropa criada a partir do lote '+l.nome}] });
+    mudou=true;
+  });
+  return mudou;
+}
+// Mantém os campos de manga do lote iguais aos da tropa onde está a maior parte dele (mapa, vaqueiro e notificações continuam funcionando)
+function sincronizarLotesComTropas(){
+  state.lotes.forEach(function(l){
+    var t=tropaPrincipalDoLote(l.id); if(!t) return;
+    l.manga=t.manga||''; l.mangaData=t.mangaData||null; l.mangaDias=t.mangaDias||null;
+    var ts=tropasDoLote(l.id); var s=0,q=0; ts.forEach(function(x){ var pa=x.parcela.pesoAtual||l.pesoAtual||l.pesoEntrada||0; if(pa>0){ s+=pa*x.parcela.qtd; q+=x.parcela.qtd; } });
+    if(q>0) l.pesoAtual=Math.round(s/q*10)/10;
+  });
+}
+function ajustarParcelasAposSaida(loteId, qtdSaida, tropaId){
+  // Tira cabeças das parcelas do lote: da tropa indicada, ou da maior parcela
+  var ts=tropasDoLote(loteId); if(!ts.length) return;
+  if(tropaId){ ts.sort(function(a,b){ return (String(a.tropa.id)===String(tropaId)?-1:0)-(String(b.tropa.id)===String(tropaId)?-1:0); }); }
+  else ts.sort(function(a,b){ return b.parcela.qtd-a.parcela.qtd; });
+  var resta=qtdSaida;
+  ts.forEach(function(x){ if(resta<=0) return; var tira=Math.min(x.parcela.qtd,resta); x.parcela.qtd-=tira; resta-=tira; if(x.parcela.qtd<=0) x.tropa.parcelas=x.tropa.parcelas.filter(function(p){ return p!==x.parcela; }); });
+}
+// Tropa atual do animal: a que ele foi movido explicitamente, senão a tropa principal do lote dele
+function tropaDoAnimal(a){ if(!a) return null; if(a.tropaId){ var t=(state.tropas||[]).find(function(x){ return String(x.id)===String(a.tropaId) && tropaQtd(x)>0; }); if(t) return t; } return tropaPrincipalDoLote(a.loteId); }
+function registrarHistoricoTropa(t,texto){ if(!t.historico) t.historico=[]; t.historico.push({data:new Date().toISOString().slice(0,10), texto:texto}); }
+function removerTropasVazias(){ state.tropas=(state.tropas||[]).filter(function(t){ return tropaQtd(t)>0; }); }
+// ===== TROPAS: UI =====
+function mangaStatusTropa(t){
+  if(!t.mangaData||!t.mangaDias) return '';
+  var dias=Math.floor((Date.now()-new Date(t.mangaData+'T00:00:00'))/86400000); var rest=t.mangaDias-dias;
+  var cor=rest<0?'red':(rest<=3?'yellow':'green'); var txt=rest<0?'Mover há '+(-rest)+' dias':rest===0?'Mover hoje!':rest+' dias restantes';
+  return '<span class="badge '+cor+'">'+txt+'</span>';
+}
+function renderTropas(){ renderTropasEm(document.getElementById('tabela-tropas')); renderTropasEm(document.getElementById('tabela-tropas-mapa')); }
+function renderTropasEm(el){ if(!el) return;
+  var ts=tropasAtivas();
+  if(!ts.length){ el.innerHTML='<div class="empty"><div class="icon">🐂</div><p>Nenhuma tropa. Lotes novos criam a própria tropa.</p></div>'; return; }
+  var h='';
+  ts.forEach(function(t){
+    var q=tropaQtd(t), pm=tropaPesoMedioArroba(t), g=tropaGmdKg(t);
+    h+='<div id="tropa-card-'+t.id+'" style="border:1px solid var(--border);border-radius:12px;padding:.8rem .9rem;margin-bottom:.7rem;transition:outline .3s">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem"><div><strong style="font-size:.95rem">🐂 '+t.nome+'</strong><br><span style="font-size:.78rem;color:var(--clay)">🌿 '+(t.manga||'sem manga')+(t.mangaData?' · desde '+fmtDataBR(t.mangaData):'')+' '+mangaStatusTropa(t)+'</span></div>';
+    var dono=(typeof perfil==='undefined')||perfil==='dono';
+    if(dono) h+='<div style="display:flex;gap:.3rem;flex-wrap:wrap;justify-content:flex-end"><button class="btn sm outline" title="Pesar" onclick="pesarTropa('+t.id+')">⚖️</button><button class="btn sm outline" style="color:var(--gold);border-color:var(--gold)" title="Separar/mover" onclick="abrirModalTropaMover('+t.id+')">🔀</button><button class="btn sm outline" title="Mudar manga" onclick="abrirModalTropaManga('+t.id+')">🌿</button><button class="btn sm outline" title="Renomear" onclick="renomearTropa('+t.id+')">✏️</button></div></div>';
+    else h+='<div><button class="btn sm outline" title="Mudar manga" onclick="abrirModalTropaManga('+t.id+')">🌿 Mover</button></div></div>';
+    h+='<div style="font-size:.82rem;color:var(--clay);margin-top:.5rem;line-height:1.7">Cabeças: <strong style="color:var(--text)">'+q+'</strong> · '+(t.parcelas||[]).filter(function(p){return p.qtd>0;}).map(function(p){ return '<strong style="color:var(--text)">'+p.qtd+'</strong> do '+loteNome(p.loteId); }).join(' + ');
+    if(dono) h+='<br>Peso médio: <strong style="color:var(--text)">'+(pm!==null?fmtN(pm,1)+'@ ('+Math.round(pm*15)+' kg)':'—')+'</strong>'+(g!==null?' · GMD: <strong style="color:'+(g<0?'var(--red)':g<gmdMetaKg?'var(--gold)':'var(--green)')+'">'+fmtN(g,2)+' kg/dia</strong>':'');
+    h+='</div>';
+    if(t.historico&&t.historico.length) h+='<details style="margin-top:.3rem"><summary style="font-size:.72rem;color:var(--clay);cursor:pointer">histórico ('+t.historico.length+')</summary><div style="font-size:.72rem;color:var(--clay);line-height:1.6">'+t.historico.slice().reverse().map(function(x){ return fmtDataBR(x.data)+' · '+x.texto; }).join('<br>')+'</div></details>';
+    h+='</div>';
+  });
+  el.innerHTML=h;
+}
+function renomearTropa(id){ var t=state.tropas.find(function(x){return x.id===id;}); if(!t) return; var n=prompt('Nome da tropa:', t.nome); if(n&&n.trim()){ t.nome=n.trim(); saveToFirebase(); renderTropas(); } }
+function abrirModalNovaTropa(){ var ts=tropasAtivas(); if(!ts.length){ toast('Cadastre um lote primeiro','error'); return; } toast('Para criar uma tropa, use 🔀 em uma tropa existente e escolha "Nova tropa"'); }
+function optionsMangas(sel, atual){ var h='<option value="">— Selecionar manga —</option>'; MANGAS_NOMES.forEach(function(n){ h+='<option value="'+n+'"'+(n===atual?' selected':'')+'>'+n+'</option>'; }); sel.innerHTML=h; }
+var tropaIdMover=null;
+function abrirModalTropaMover(id){
+  var t=state.tropas.find(function(x){return x.id===id;}); if(!t) return; tropaIdMover=id;
+  document.getElementById('tm-titulo').textContent='🔀 Separar / mover de: '+t.nome;
+  document.getElementById('tm-parcelas').innerHTML=(t.parcelas||[]).filter(function(p){return p.qtd>0;}).map(function(p){ return '<div style="display:grid;grid-template-columns:1fr auto;gap:.4rem;align-items:center;font-size:.84rem;border-top:1px solid var(--border);padding:.4rem 0"><span>do '+loteNome(p.loteId)+' ('+p.qtd+' na tropa)</span><input type="number" id="tm-q-'+p.loteId+'" min="0" max="'+p.qtd+'" value="0" style="width:70px;padding:.3rem;text-align:center"></div>'; }).join('');
+  document.getElementById('tm-brincos').value=''; document.getElementById('tm-nome').value=''; document.getElementById('tm-data').value=new Date().toISOString().slice(0,10); document.getElementById('tm-dias').value=t.mangaDias||45;
+  optionsMangas(document.getElementById('tm-manga'), '');
+  var dest=document.getElementById('tm-tropa-dest'); dest.innerHTML=tropasAtivas().filter(function(x){return x.id!==id;}).map(function(x){ return '<option value="'+x.id+'">'+x.nome+' · '+tropaQtd(x)+' cab. · '+(x.manga||'sem manga')+'</option>'; }).join('')||'<option value="">— nenhuma outra tropa —</option>';
+  var rNova=document.querySelector('input[name="tm-dest"][value="nova"]'); if(rNova) rNova.checked=true; tmToggleDestino();
+  document.getElementById('modal-tropa-mover').classList.add('open');
+}
+function tmDestinoNova(){ var r=document.querySelector('input[name="tm-dest"]:checked'); return !r || r.value==='nova'; }
+function tmToggleDestino(){ var nova=tmDestinoNova(); document.getElementById('tm-nova').style.display=nova?'':'none'; document.getElementById('tm-existente').style.display=nova?'none':''; }
+function fecharModalTropaMover(){ document.getElementById('modal-tropa-mover').classList.remove('open'); tropaIdMover=null; }
+function confirmarTropaMover(){
+  var t=state.tropas.find(function(x){return x.id===tropaIdMover;}); if(!t) return;
+  var movs=[]; (t.parcelas||[]).forEach(function(p){ var el=document.getElementById('tm-q-'+p.loteId); var q=el?parseInt(el.value)||0:0; if(q>0){ if(q>p.qtd) q=p.qtd; movs.push({loteId:p.loteId,qtd:q}); } });
+  if(!movs.length) return toast('Informe quantas cabeças saem','error');
+  var nova=tmDestinoNova(); var dest;
+  if(nova){ var nome=document.getElementById('tm-nome').value.trim(); if(!nome) return toast('Dê um nome à nova tropa','error');
+    dest={ id:Date.now(), nome:nome, manga:document.getElementById('tm-manga').value||'', mangaData:document.getElementById('tm-data').value||new Date().toISOString().slice(0,10), mangaDias:parseInt(document.getElementById('tm-dias').value)||null, parcelas:[], historico:[] }; state.tropas.push(dest); }
+  else { var did=parseInt(document.getElementById('tm-tropa-dest').value); dest=state.tropas.find(function(x){return x.id===did;}); if(!dest) return toast('Escolha a tropa de destino','error'); }
+  movs.forEach(function(m){
+    var po=t.parcelas.find(function(p){return String(p.loteId)===String(m.loteId);}); po.qtd-=m.qtd;
+    var pd=dest.parcelas.find(function(p){return String(p.loteId)===String(m.loteId);}); if(pd) pd.qtd+=m.qtd; else dest.parcelas.push({loteId:m.loteId,qtd:m.qtd,pesoAtual:po.pesoAtual||null});
+    registrarHistoricoTropa(t, m.qtd+' do '+loteNome(m.loteId)+' → '+dest.nome); registrarHistoricoTropa(dest, m.qtd+' do '+loteNome(m.loteId)+' vindas de '+t.nome);
+  });
+  t.parcelas=t.parcelas.filter(function(p){return p.qtd>0;});
+  var brincos=document.getElementById('tm-brincos').value.split(/[,\s;]+/).map(function(s){return s.trim();}).filter(Boolean); var nMov=0;
+  brincos.forEach(function(b){ var a=animalPorBrinco(b); if(a){ a.tropaId=dest.id; nMov++; } });
+  removerTropasVazias(); sincronizarLotesComTropas();
+  saveToFirebase(); toast('🔀 '+movs.reduce(function(a,m){return a+m.qtd;},0)+' cabeça(s) → '+dest.nome+(nMov?' · '+nMov+' brinco(s) movido(s)':''));
+  fecharModalTropaMover(); renderRebanho(); renderDashboard(); if(typeof renderMapa==='function') renderMapa();
+}
+var tropaIdManga=null;
+function abrirModalTropaManga(id){ var t=state.tropas.find(function(x){return x.id===id;}); if(!t) return; tropaIdManga=id;
+  document.getElementById('tmg-info').innerHTML='<strong>'+t.nome+'</strong> · '+tropaQtd(t)+' cab. · hoje em <strong>'+(t.manga||'sem manga')+'</strong>';
+  optionsMangas(document.getElementById('tmg-manga'), t.manga||''); document.getElementById('tmg-data').value=new Date().toISOString().slice(0,10); document.getElementById('tmg-dias').value=t.mangaDias||45;
+  document.getElementById('modal-tropa-manga').classList.add('open'); }
+function fecharModalTropaManga(){ document.getElementById('modal-tropa-manga').classList.remove('open'); tropaIdManga=null; }
+function confirmarTropaManga(){ var t=state.tropas.find(function(x){return x.id===tropaIdManga;}); if(!t) return;
+  var m=document.getElementById('tmg-manga').value; if(!m) return toast('Escolha a manga','error');
+  registrarHistoricoTropa(t,'Manga: '+(t.manga||'—')+' → '+m); t.manga=m; t.mangaData=document.getElementById('tmg-data').value||new Date().toISOString().slice(0,10); t.mangaDias=parseInt(document.getElementById('tmg-dias').value)||null;
+  sincronizarLotesComTropas(); saveToFirebase(); toast('🌿 '+t.nome+' → '+m); fecharModalTropaManga(); renderRebanho(); renderDashboard(); if(typeof renderMapa==='function') renderMapa(); }
+function atualizarSelectTropaVenda(){ var wrap=document.getElementById('vd-tropa-wrap'), sel=document.getElementById('vd-tropa'); if(!wrap||!sel) return;
+  var loteId=parseInt(document.getElementById('vd-lote').value); var ts=tropasDoLote(loteId);
+  if(ts.length>1){ ts.sort(function(a,b){ return (b.parcela.pesoAtual||0)-(a.parcela.pesoAtual||0); }); sel.innerHTML=ts.map(function(x){ return '<option value="'+x.tropa.id+'">'+x.tropa.nome+' · '+x.parcela.qtd+' cab.'+(x.parcela.pesoAtual?' · '+fmtN(x.parcela.pesoAtual,1)+'@':'')+'</option>'; }).join(''); wrap.style.display=''; }
+  else { sel.innerHTML=''; wrap.style.display='none'; } }
+function pesarTropa(id){ showSectionById('rebanho'); var sel=document.getElementById('ps-tropa'); if(sel){ popularSelectTropas(); sel.value=String(id); } openCollapse('form-pesagem'); psLinhas=[]; renderPesagemLinhas(); var f=document.getElementById('form-pesagem'); if(f&&f.scrollIntoView) setTimeout(function(){ f.scrollIntoView({behavior:'smooth',block:'start'}); },150); }
+function popularSelectTropas(){ var sel=document.getElementById('ps-tropa'); if(!sel) return; var atual=sel.value; sel.innerHTML='<option value="">— Selecionar tropa —</option>'+tropasAtivas().map(function(t){ return '<option value="'+t.id+'">'+t.nome+' · '+tropaQtd(t)+' cab. ('+(t.parcelas||[]).map(function(p){return loteNome(p.loteId);}).join(' + ')+')</option>'; }).join(''); if(atual) sel.value=atual; }
+function pesagemContexto(){ var sel=document.getElementById('ps-tropa'); var t=sel&&sel.value?state.tropas.find(function(x){return String(x.id)===String(sel.value);}):null; if(!t) return null; return {tropa:t, loteIds:(t.parcelas||[]).map(function(p){return String(p.loteId);}), qtd:tropaQtd(t)}; }
 // ===== PESAGEM POR ANIMAL =====
 var psLinhas=[]; // {brinco, pesoKg, animalId, sugestoes}
 var KG_POR_ARROBA=15;
@@ -4085,8 +4410,9 @@ function badgeGmd(g){
 function sugestoesPorPeso(pesoKg, loteId, data, idxLinha){
   var usados={}; psLinhas.forEach(function(l,i){ if(i!==idxLinha && l.animalId) usados[l.animalId]=1; if(i!==idxLinha && l.brinco){ var a=animalPorBrinco(l.brinco); if(a) usados[a.id]=1; } });
   var cands=[];
+  var ctxS=pesagemContexto(); var loteIdsS=ctxS?ctxS.loteIds:[String(loteId)];
   state.animais.forEach(function(a){
-    if(String(a.loteId)!==String(loteId) || usados[a.id]) return;
+    if(loteIdsS.indexOf(String(a.loteId))<0 || usados[a.id]) return;
     if(a.status && a.status!=='ativo' && a.status!=='gestante' && a.status!=='lactacao') return;
     var u=ultimoPesoAnimal(a); if(!u) return;
     var g=gmdEntre(u.kg,u.data,pesoKg,data);
@@ -4103,7 +4429,7 @@ function onLinhaPesagem(i, campo, el){
 }
 function renderPesagemLinhas(){
   var wrap=document.getElementById('ps-linhas'); if(!wrap) return;
-  var loteId=parseInt(document.getElementById('ps-lote').value)||null;
+  var ctxL=pesagemContexto(); var loteId=ctxL?parseInt(ctxL.loteIds[0]):null;
   var data=document.getElementById('ps-data').value||new Date().toISOString().slice(0,10);
   if(!psLinhas.length){ wrap.innerHTML='<div style="font-size:.76rem;color:var(--clay);padding:.4rem 0">Nenhuma linha. Use "Colar lista" ou "➕ Linha". Para pesagem só pela média, use o campo abaixo.</div>'; renderPesagemResumo(); return; }
   var h='<div style="display:grid;grid-template-columns:78px 1fr auto 28px;gap:.4rem;font-size:.68rem;color:var(--clay);padding-bottom:.2rem"><div>Brinco</div><div>Peso (kg)</div><div>GMD</div><div></div></div>';
@@ -4112,7 +4438,7 @@ function renderPesagemLinhas(){
     var info='', gmdHtml='', aviso='';
     if(l.pesoKg>0){
       info=fmtN(l.pesoKg/KG_POR_ARROBA,1)+'@';
-      if(a){ var u=ultimoPesoAnimal(a); var g=u?gmdEntre(u.kg,u.data,l.pesoKg,data):null; gmdHtml=badgeGmd(g); if(a && String(a.loteId)!==String(loteId)) aviso='<span style="font-size:.68rem;color:var(--gold)"> · está em outro lote, será movido</span>'; }
+      if(a){ var u=ultimoPesoAnimal(a); var g=u?gmdEntre(u.kg,u.data,l.pesoKg,data):null; gmdHtml=badgeGmd(g); if(ctxL && ctxL.loteIds.indexOf(String(a.loteId))<0) aviso='<span style="font-size:.68rem;color:var(--gold)"> · de outro lote, entra nesta tropa</span>'; }
       else if(l.brinco){ gmdHtml='<span class="badge sky">novo</span>'; aviso='<span style="font-size:.68rem;color:var(--clay)"> · será cadastrado</span>'; }
       else gmdHtml='<span class="badge yellow">anônimo</span>';
     }
@@ -4136,61 +4462,59 @@ function renderPesagemLinhas(){
 }
 function renderPesagemResumo(){
   var el=document.getElementById('ps-resumo'); if(!el) return;
-  var loteId=parseInt(document.getElementById('ps-lote').value)||null; var lote=state.lotes.find(function(l){return l.id===loteId;});
-  var data=document.getElementById('ps-data').value||new Date().toISOString().slice(0,10);
+  var ctx=pesagemContexto(); var data=document.getElementById('ps-data').value||new Date().toISOString().slice(0,10);
   var pesados=psLinhas.filter(function(l){return l.pesoKg>0;});
   var chk=document.getElementById('ps-atualiza-lote'), av=document.getElementById('ps-aviso-parcial');
   if(!pesados.length){ el.innerHTML=''; if(av) av.style.display='none'; if(chk) chk.checked=true; return; }
   var media=pesados.reduce(function(a,l){return a+l.pesoKg;},0)/pesados.length;
-  var gs=[]; var fracos=0, perdendo=0, ident=0;
-  pesados.forEach(function(l){ var a=l.animalId?state.animais.find(function(x){return x.id===l.animalId;}):animalPorBrinco(l.brinco); if(!a && l.brinco) ident++; if(a){ ident++; var u=ultimoPesoAnimal(a); var g=u?gmdEntre(u.kg,u.data,l.pesoKg,data):null; if(g!==null){ gs.push(g); if(g<0) perdendo++; if(g<gmdMetaKg) fracos++; } } });
+  var gs=[]; var fracos=0, perdendo=0, ident=0; var porLote={};
+  pesados.forEach(function(l){ var a=l.animalId?state.animais.find(function(x){return x.id===l.animalId;}):animalPorBrinco(l.brinco); if(!a && l.brinco) ident++; if(a){ ident++; var k=String(a.loteId); (porLote[k]=porLote[k]||[]).push(l.pesoKg); var u=ultimoPesoAnimal(a); var g=u?gmdEntre(u.kg,u.data,l.pesoKg,data):null; if(g!==null){ gs.push(g); if(g<0) perdendo++; if(g<gmdMetaKg) fracos++; } } });
   var gmdLote=gs.length?gs.reduce(function(a,b){return a+b;},0)/gs.length:null;
   var h='<div style="font-size:.7rem;color:var(--clay);font-family:\'DM Mono\',monospace;margin-bottom:.3rem">RESUMO DESTA PESAGEM</div>';
-  h+='<div class="result-row"><span class="label">Animais pesados</span><span class="value">'+pesados.length+(lote?' de '+lote.qtd:'')+' · '+ident+' identificados</span></div>';
-  h+='<div class="result-row"><span class="label">Peso médio</span><span class="value">'+Math.round(media)+' kg · '+fmtN(media/KG_POR_ARROBA,1)+'@</span></div>';
+  h+='<div class="result-row"><span class="label">Animais pesados</span><span class="value">'+pesados.length+(ctx?' de '+ctx.qtd:'')+' · '+ident+' identificados</span></div>';
+  h+='<div class="result-row"><span class="label">Média da tropa</span><span class="value">'+Math.round(media)+' kg · '+fmtN(media/KG_POR_ARROBA,1)+'@</span></div>';
+  if(ctx && ctx.loteIds.length>1){ ctx.loteIds.forEach(function(lid){ var arr=porLote[lid]; var m=arr&&arr.length?arr.reduce(function(a,b){return a+b;},0)/arr.length:media; h+='<div class="result-row"><span class="label" style="font-size:.8rem">↳ '+loteNome(lid)+(arr&&arr.length?' ('+arr.length+' c/ brinco)':' (média da tropa)')+'</span><span class="value" style="font-size:.85rem">'+fmtN(m/KG_POR_ARROBA,1)+'@</span></div>'; }); }
   if(gmdLote!==null) h+='<div class="result-row"><span class="label">GMD dos identificados (meta '+gmdMetaKg+')</span><span class="value" style="color:'+(gmdLote<0?'var(--red)':gmdLote<gmdMetaKg?'var(--gold)':'var(--green)')+'">'+fmtN(gmdLote,2)+' kg/dia</span></div>';
   if(gs.length) h+='<div class="result-row"><span class="label">Abaixo da meta / perdendo peso</span><span class="value" style="color:var(--red)">'+fracos+' / '+perdendo+'</span></div>';
   el.innerHTML=h;
-  if(lote && chk && av){
-    var parcial=pesados.length<Math.ceil((lote.qtd||0)/2);
-    if(parcial){ chk.checked=false; av.style.display=''; av.textContent='⚠️ Só '+pesados.length+' de '+lote.qtd+' pesados. Usar essa média como peso do lote pode distorcer o prazo e o lucro. Marque acima se quiser atualizar mesmo assim.'; }
+  if(ctx && chk && av){
+    var parcial=pesados.length<Math.ceil((ctx.qtd||0)/2);
+    if(parcial){ chk.checked=false; av.style.display=''; av.textContent='⚠️ Só '+pesados.length+' de '+ctx.qtd+' pesados. Usar essa média como peso dos lotes pode distorcer o prazo e o lucro. Marque acima se quiser atualizar mesmo assim.'; }
     else { chk.checked=true; av.style.display='none'; }
   }
 }
 function tipoAnimalDoLote(lote){ var m={novilha:'novilha',vaca:'vaca',bezerro:'bezerro',cria_terra:'bezerro',touro:'touro'}; return m[lote.tipo]||'novilha'; }
 function salvarPesagem(){
-  var loteId = parseInt(document.getElementById('ps-lote').value);
-  var data   = document.getElementById('ps-data').value;
-  if(!loteId) return toast('Selecione um lote','error');
-  if(!data)   return toast('Informe a data','error');
-  var lote = state.lotes.find(function(l){ return l.id===loteId; }); if(!lote) return;
-  var obs=document.getElementById('ps-obs').value;
+  var ctx=pesagemContexto(); var data=document.getElementById('ps-data').value;
+  if(!ctx) return toast('Selecione uma tropa','error');
+  if(!data) return toast('Informe a data','error');
+  var t=ctx.tropa; var obs=document.getElementById('ps-obs').value;
   var pesados=psLinhas.filter(function(l){return l.pesoKg>0;});
   var mediaManual=parseFloat(document.getElementById('ps-media').value);
   var atualizar=document.getElementById('ps-atualiza-lote').checked;
-  var pesoArroba=null, nIdent=0, nNovos=0;
+  var nIdent=0, nNovos=0, porLote={}, mediaKg=null;
   if(pesados.length){
+    var lotePadrao=parseInt(ctx.loteIds[0]);
     pesados.forEach(function(l){
       var a=l.animalId?state.animais.find(function(x){return x.id===l.animalId;}):animalPorBrinco(l.brinco);
-      if(!a && l.brinco){
-        a={id:Date.now()+Math.floor(Math.random()*1000),brinco:l.brinco,loteId:loteId,tipo:tipoAnimalDoLote(lote),raca:'',peso:null,sexo:'femea',nascimento:null,entrada:data,status:'ativo',partoUltimo:null,partoProximo:null,obs:'Cadastrado na pesagem',marca:'',foto:null,eventos:[],pesagens:[],brincosAnteriores:[]};
-        state.animais.push(a); nNovos++;
-      }
-      if(a){
-        if(!a.pesagens) a.pesagens=[];
-        a.pesagens.push({id:Date.now()+Math.floor(Math.random()*1000),data:data,pesoKg:l.pesoKg,loteId:loteId});
-        a.peso=Math.round(l.pesoKg/KG_POR_ARROBA*10)/10; a.loteId=loteId; nIdent++;
-      }
+      if(!a && l.brinco){ var lp=state.lotes.find(function(x){return x.id===lotePadrao;}); a={id:Date.now()+Math.floor(Math.random()*1000),brinco:l.brinco,loteId:lotePadrao,tropaId:t.id,tipo:lp?tipoAnimalDoLote(lp):'novilha',raca:'',peso:null,sexo:'femea',nascimento:null,entrada:data,status:'ativo',partoUltimo:null,partoProximo:null,obs:'Cadastrado na pesagem',marca:'',foto:null,eventos:[],pesagens:[],brincosAnteriores:[]}; state.animais.push(a); nNovos++; }
+      if(a){ if(!a.pesagens) a.pesagens=[]; a.pesagens.push({id:Date.now()+Math.floor(Math.random()*1000),data:data,pesoKg:l.pesoKg,loteId:a.loteId,tropaId:t.id}); a.peso=Math.round(l.pesoKg/KG_POR_ARROBA*10)/10; a.tropaId=t.id; nIdent++; (porLote[String(a.loteId)]=porLote[String(a.loteId)]||[]).push(l.pesoKg); }
     });
-    pesoArroba=pesados.reduce(function(s,l){return s+l.pesoKg;},0)/pesados.length/KG_POR_ARROBA;
-  } else if(mediaManual>0){ pesoArroba=mediaManual; atualizar=true; }
-  else return toast('Informe os pesos ou a média do lote','error');
-  var pesoAnterior = lote.pesoAtual || lote.pesoEntrada || 0;
-  if(!state.pesagens) state.pesagens = [];
-  state.pesagens.push({ id: Date.now(), loteId: loteId, loteNome: lote.nome, peso: Math.round(pesoArroba*100)/100, pesoAnterior: pesoAnterior, ganho: Math.round((pesoArroba-pesoAnterior)*100)/100, data: data, obs: obs, animaisPesados: pesados.length||null, identificados: nIdent||null, atualizouLote: atualizar });
-  if(atualizar){ var idx = state.lotes.findIndex(function(l){ return l.id===loteId; }); state.lotes[idx].pesoAtual = Math.round(pesoArroba*10)/10; }
+    mediaKg=pesados.reduce(function(s,l){return s+l.pesoKg;},0)/pesados.length;
+  } else if(mediaManual>0){ mediaKg=mediaManual*KG_POR_ARROBA; atualizar=true; }
+  else return toast('Informe os pesos ou a média da tropa','error');
+  if(!state.pesagens) state.pesagens=[];
+  t.ultimaPesagem={data:data, mediaArroba:Math.round(mediaKg/KG_POR_ARROBA*100)/100, animais:pesados.length||null};
+  (t.parcelas||[]).forEach(function(p){
+    var lote=state.lotes.find(function(x){return x.id==p.loteId;}); if(!lote) return;
+    var arr=porLote[String(p.loteId)]; var mKg=arr&&arr.length?arr.reduce(function(a,b){return a+b;},0)/arr.length:mediaKg;
+    var pesoArroba=mKg/KG_POR_ARROBA; var pesoAnterior=p.pesoAtual||lote.pesoAtual||lote.pesoEntrada||0;
+    state.pesagens.push({ id:Date.now()+Math.floor(Math.random()*1000), loteId:lote.id, loteNome:lote.nome, tropaId:t.id, tropaNome:t.nome, peso:Math.round(pesoArroba*100)/100, pesoAnterior:pesoAnterior, ganho:Math.round((pesoArroba-pesoAnterior)*100)/100, data:data, obs:obs, animaisPesados:(arr?arr.length:null), identificados:(arr?arr.length:null), atualizouLote:atualizar, fonte:(arr&&arr.length?'brincos':'média da tropa') });
+    if(atualizar) p.pesoAtual=Math.round(pesoArroba*10)/10;
+  });
+  if(atualizar) sincronizarLotesComTropas();
   saveToFirebase();
-  toast('⚖️ Pesagem registrada'+(pesados.length?' · '+pesados.length+' animais'+(nNovos?' · '+nNovos+' cadastrados':''):'')+(atualizar?' · lote: '+fmtN(pesoArroba,1)+'@':' · média do lote não alterada'));
+  toast('⚖️ '+t.nome+': '+fmtN(mediaKg/KG_POR_ARROBA,1)+'@ média'+(pesados.length?' · '+pesados.length+' animais'+(nNovos?' · '+nNovos+' cadastrados':''):'')+(atualizar?'':' · lotes não alterados'));
   psLinhas=[]; document.getElementById('ps-media').value=''; document.getElementById('ps-obs').value='';
   renderPesagemLinhas(); renderHistoricoPesagens(); renderRebanho(); renderDashboard(); if(typeof renderAnimais==='function') renderAnimais();
 }
@@ -4296,6 +4620,7 @@ function salvarVenda(){
   // Update lote quantity
   var idx = state.lotes.findIndex(function(l){ return l.id===loteId; });
   state.lotes[idx].qtd = lote.qtd - qtd;
+  var vdTropaEl=document.getElementById('vd-tropa'); ajustarParcelasAposSaida(loteId, qtd, vdTropaEl&&vdTropaEl.value?vdTropaEl.value:null); removerTropasVazias();
   if(state.lotes[idx].qtd === 0){
     state.lotes[idx].tipoAnterior = state.lotes[idx].tipo;
     state.lotes[idx].tipo = 'encerrado';
@@ -4650,6 +4975,10 @@ function abrirModalRelatorio(){
 
     '<div id="tog-pagamentos" class="tog-item tog-on" style="display:flex;justify-content:space-between;align-items:center;padding:.6rem .75rem;border:1.5px solid var(--green-mid);border-radius:10px;margin-bottom:.5rem;cursor:pointer;background:var(--green-light)">'+
     '<span style="font-size:.85rem;font-weight:600">🧾 Pagamentos Realizados</span><span class="tog-dot" style="width:36px;height:20px;background:var(--green);border-radius:10px;display:flex;align-items:center;padding:2px;box-sizing:border-box"><span style="width:16px;height:16px;background:#FFF;border-radius:50%;margin-left:auto"></span></span></div>'+
+    '<div id="tog-tropas" class="tog-item tog-on" style="display:flex;justify-content:space-between;align-items:center;padding:.6rem .75rem;border:1.5px solid var(--green-mid);border-radius:10px;margin-bottom:.5rem;cursor:pointer;background:var(--green-light)">'+
+    '<span style="font-size:.85rem;font-weight:600">🐂 Tropas e Mangas</span><span class="tog-dot" style="width:36px;height:20px;background:var(--green);border-radius:10px;display:flex;align-items:center;padding:2px;box-sizing:border-box"><span style="width:16px;height:16px;background:#FFF;border-radius:50%;margin-left:auto"></span></span></div>'+
+    '<div id="tog-animais" class="tog-item tog-on" style="display:flex;justify-content:space-between;align-items:center;padding:.6rem .75rem;border:1.5px solid var(--green-mid);border-radius:10px;margin-bottom:.5rem;cursor:pointer;background:var(--green-light)">'+
+    '<span style="font-size:.85rem;font-weight:600">🏷️ Pesagens por Animal</span><span class="tog-dot" style="width:36px;height:20px;background:var(--green);border-radius:10px;display:flex;align-items:center;padding:2px;box-sizing:border-box"><span style="width:16px;height:16px;background:#FFF;border-radius:50%;margin-left:auto"></span></span></div>'+
 
     '<div style="display:flex;gap:.5rem;margin-top:1rem">'+
     '<button id="rel-cancelar" style="flex:1;padding:.75rem;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:.9rem;cursor:pointer;color:var(--text)">Cancelar</button>'+
@@ -4660,7 +4989,7 @@ function abrirModalRelatorio(){
   document.body.appendChild(overlay);
 
   // Wire toggles
-  var togIds = ['tog-resumo','tog-lotes','tog-supl','tog-custos','tog-pesagens','tog-vendas','tog-aluguel','tog-pagamentos'];
+  var togIds = ['tog-resumo','tog-lotes','tog-supl','tog-custos','tog-pesagens','tog-vendas','tog-aluguel','tog-pagamentos','tog-tropas','tog-animais'];
   for(var ti=0; ti<togIds.length; ti++){
     (function(id){
       var el = document.getElementById(id);
@@ -4698,7 +5027,9 @@ function abrirModalRelatorio(){
       pesagens: document.getElementById('tog-pesagens').classList.contains('tog-on'),
       vendas:   document.getElementById('tog-vendas').classList.contains('tog-on'),
       aluguel:  document.getElementById('tog-aluguel').classList.contains('tog-on'),
-      pagamentos: document.getElementById('tog-pagamentos').classList.contains('tog-on')
+      pagamentos: document.getElementById('tog-pagamentos').classList.contains('tog-on'),
+      tropas: document.getElementById('tog-tropas').classList.contains('tog-on'),
+      animais: document.getElementById('tog-animais').classList.contains('tog-on')
     };
     overlay.parentNode.removeChild(overlay);
     gerarRelatorioPDF(opts);
@@ -4740,7 +5071,7 @@ function gerarRelatorioPDF(opts){
   html += '<h1>🐄 Fazenda Gestão — Relatório</h1>';
   html += '<div class="sub">Gerado em: '+hoje+'</div>';
 
-  if(!opts) opts = {resumo:true,lotes:true,supl:true,custos:true,pesagens:true,vendas:true,aluguel:true,pagamentos:true};
+  if(!opts) opts = {resumo:true,lotes:true,supl:true,custos:true,pesagens:true,vendas:true,aluguel:true,pagamentos:true,tropas:true,animais:true};
 
   // KPIs resumo
   if(opts.resumo){
@@ -4808,11 +5139,11 @@ function gerarRelatorioPDF(opts){
   // Pesagens
   if(opts.pesagens && state.pesagens && state.pesagens.length > 0){
     html += '<h2>⚖️ Histórico de Pesagens</h2>';
-    html += '<table><tr><th>Lote</th><th>Data</th><th>Peso Anterior</th><th>Novo Peso</th><th>Ganho</th><th>Obs.</th></tr>';
+    html += '<table><tr><th>Lote</th><th>Tropa</th><th>Data</th><th>Peso Anterior</th><th>Novo Peso</th><th>Ganho</th><th>Obs.</th></tr>';
     var psort = state.pesagens.slice().sort(function(a,b){ return b.data.localeCompare(a.data); });
     psort.forEach(function(p){
       var corGanho = p.ganho >= 0 ? 'pos' : 'neg';
-      html += '<tr><td>'+p.loteNome+'</td><td>'+new Date(p.data+'T00:00:00').toLocaleDateString('pt-BR')+'</td>';
+      html += '<tr><td>'+p.loteNome+'</td><td>'+(p.tropaNome||'—')+(p.animaisPesados?'<br><span style="font-size:10px;color:#666">'+p.animaisPesados+' animal(is)'+(p.atualizouLote===false?' · parcial':'')+'</span>':'')+'</td><td>'+new Date(p.data+'T00:00:00').toLocaleDateString('pt-BR')+'</td>';
       html += '<td>'+fmtN(p.pesoAnterior,1)+'@</td><td>'+fmtN(p.peso,1)+'@</td>';
       html += '<td class="'+corGanho+'">'+(p.ganho>=0?'+':'')+fmtN(p.ganho,2)+'@</td>';
       html += '<td>'+(p.obs||'')+'</td></tr>';
@@ -4838,28 +5169,72 @@ function gerarRelatorioPDF(opts){
     html += '</table>';
   }
 
-  // Histórico de Aluguel (contratos com terceiros)
+  // Contratos de aluguel (todos os lotes de terceiro) + histórico de valores
   if(opts.aluguel){
-    var lotesComHistorico = state.lotes.filter(function(l){ return l.tipo==='terceiro' && l.historicoAluguel && l.historicoAluguel.length>0; });
-    if(lotesComHistorico.length > 0){
-      html += '<h2>💱 Histórico de Valor de Aluguel</h2>';
-      lotesComHistorico.forEach(function(l){
-        html += '<h3>'+l.nome+' <span class="badge">valor atual: '+fmt(l.aluguel||0)+'/mês</span></h3>';
-        html += '<table><tr><th>Data</th><th>Valor Anterior</th><th>Valor Novo</th><th>Observação</th></tr>';
-        var hsort = l.historicoAluguel.slice().sort(function(a,b){ return a.data.localeCompare(b.data); });
-        hsort.forEach(function(h){
-          html += '<tr><td>'+new Date(h.data+'T00:00:00').toLocaleDateString('pt-BR')+'</td>';
-          html += '<td>'+fmt(h.valorAnterior||0)+'/mês</td>';
-          html += '<td class="pos">'+fmt(h.valorNovo||0)+'/mês</td>';
-          html += '<td>'+(h.obs||'—')+'</td></tr>';
-        });
+    var terceiros = state.lotes.filter(function(l){ return l.tipo==='terceiro' && (l.qtd||0)>0; });
+    if(terceiros.length > 0){
+      html += '<h2>💱 Contratos de Aluguel (terceiros)</h2>';
+      html += '<table><tr><th>Lote</th><th>Cabeças</th><th>Valor atual</th><th>Início</th><th>Parcelas</th><th>Situação</th><th>Vence</th><th>Já recebido</th><th>Total previsto</th></tr>';
+      var totalContratos=0;
+      terceiros.forEach(function(l){
+        var st = (l.contratoInicio && l.contratoMeses) ? getContratoStatus(l) : null;
+        var sit = st ? (st.diasRestantes<0?'<span class="neg">'+st.txt+'</span>':st.txt) : '—';
+        var tot = st ? st.total : (l.aluguel||0)*(l.contratoMeses||0); totalContratos+=tot;
+        html += '<tr><td><strong>'+l.nome+'</strong></td><td>'+l.qtd+'</td><td>'+fmt(l.aluguel||0)+'/mês</td><td>'+(l.contratoInicio?fmtDataBR(l.contratoInicio):'—')+'</td><td>'+(st?st.pagas+' de ':'')+(l.contratoMeses||'—')+'</td><td>'+sit+'</td><td>'+(st&&st.dtFim?st.dtFim.toLocaleDateString('pt-BR'):'—')+'</td><td>'+(st?fmt(st.recebido):'—')+'</td><td class="pos">'+fmt(tot)+'</td></tr>';
+      });
+      html += '<tr><td colspan="8"><strong>TOTAL dos contratos</strong></td><td class="pos"><strong>'+fmt(totalContratos)+'</strong></td></tr></table>';
+      // Cronograma de parcelas de cada contrato
+      terceiros.forEach(function(l){
+        var st2=(l.contratoInicio&&l.contratoMeses)?getContratoStatus(l):null; if(!st2||!st2.parcelas.length) return;
+        html += '<h3>'+l.nome+' — parcelas</h3><div style="font-size:11px;line-height:1.9">';
+        html += st2.parcelas.map(function(p){ return '<span style="display:inline-block;margin:0 10px 4px 0;padding:2px 6px;border:1px solid '+(p.paga?'#2E7D4F':'#ccc')+';border-radius:6px;color:'+(p.paga?'#1B4D2E':'#666')+'">'+p.n+'ª '+p.data.toLocaleDateString('pt-BR')+' · '+fmt(p.valor)+(p.paga?' ✓':'')+'</span>'; }).join('');
+        html += '</div>';
+      });
+      terceiros.forEach(function(l){
+        var hs=(l.historicoAluguel||[]).slice().sort(function(a,b){ return (a.data||'').localeCompare(b.data||''); });
+        if(!hs.length) return;
+        html += '<h3>'+l.nome+' — alterações de valor</h3><table><tr><th>Data</th><th>Valor Anterior</th><th>Valor Novo</th><th>Observação</th></tr>';
+        hs.forEach(function(h){ html += '<tr><td>'+fmtDataBR(h.data)+'</td><td>'+fmt(h.valorAnterior||0)+'/mês</td><td class="pos">'+fmt(h.valorNovo||0)+'/mês</td><td>'+(h.obs||'—')+'</td></tr>'; });
         html += '</table>';
-        var receitaCalc = calcularReceitaAluguelLote(l, l.contratoMeses||12);
-        html += '<div style="font-size:11px;color:#666;margin-bottom:14px">Receita acumulada estimada do contrato (ponderada pelos valores de cada período): <strong style="color:#1B4D2E">'+fmt(receitaCalc)+'</strong></div>';
       });
     }
   }
-
+  // Tropas e mangas
+  if(opts.tropas){
+    var tsR = tropasAtivas();
+    if(tsR.length){
+      html += '<h2>🐂 Tropas e Mangas</h2>';
+      html += '<table><tr><th>Tropa</th><th>Manga</th><th>Desde</th><th>Prazo</th><th>Cabeças</th><th>Composição</th><th>Peso médio</th></tr>';
+      tsR.forEach(function(t){
+        var dr=''; if(t.mangaData&&t.mangaDias){ var r=t.mangaDias-Math.floor((Date.now()-new Date(t.mangaData+'T00:00:00'))/86400000); dr=r<0?'<span class="neg">vencido há '+(-r)+' d</span>':r+' d restantes'; }
+        var pm=tropaPesoMedioArroba(t);
+        html += '<tr><td><strong>'+t.nome+'</strong></td><td>'+(t.manga||'—')+'</td><td>'+(t.mangaData?fmtDataBR(t.mangaData):'—')+'</td><td>'+dr+'</td><td>'+tropaQtd(t)+'</td><td>'+(t.parcelas||[]).filter(function(p){return p.qtd>0;}).map(function(p){ return p.qtd+' do '+loteNome(p.loteId); }).join(' + ')+'</td><td>'+(pm!==null?fmtN(pm,1)+'@':'—')+'</td></tr>';
+      });
+      html += '</table>';
+      var hist=[]; tsR.forEach(function(t){ (t.historico||[]).forEach(function(x){ hist.push({data:x.data,tropa:t.nome,texto:x.texto}); }); });
+      if(hist.length){
+        hist.sort(function(a,b){ return (b.data||'').localeCompare(a.data||''); });
+        html += '<h3>Movimentações (separações, junções e mudanças de manga)</h3><table><tr><th>Data</th><th>Tropa</th><th>O que aconteceu</th></tr>';
+        hist.slice(0,60).forEach(function(x){ html += '<tr><td>'+fmtDataBR(x.data)+'</td><td>'+x.tropa+'</td><td>'+x.texto+'</td></tr>'; });
+        html += '</table>';
+      }
+    }
+  }
+  // Pesagens por animal
+  if(opts.animais){
+    var comPes = state.animais.filter(function(a){ return a.pesagens && a.pesagens.length; });
+    if(comPes.length){
+      html += '<h2>🏷️ Pesagens por Animal</h2>';
+      html += '<table><tr><th>Brinco</th><th>Lote</th><th>Tropa</th><th>Última pesagem</th><th>Peso</th><th>GMD atual</th><th>GMD médio</th><th>Nº pesagens</th></tr>';
+      comPes.slice().sort(function(a,b){ return String(a.brinco).localeCompare(String(b.brinco),undefined,{numeric:true}); }).forEach(function(a){
+        var ps=a.pesagens.slice().sort(function(x,y){ return y.data.localeCompare(x.data); }); var u=ps[0];
+        var g=gmdAnimalKg(a), gm=gmdMedioAnimalKg(a); var tp=tropaDoAnimal(a);
+        var fg=function(v){ return v===null?'—':'<span class="'+(v<0?'neg':(v<gmdMetaKg?'':'pos'))+'">'+(v>=0?'+':'')+fmtN(v,2)+'</span>'; };
+        html += '<tr><td><strong>'+a.brinco+'</strong>'+(a.brincosAnteriores&&a.brincosAnteriores.length?'<br><span style="font-size:10px;color:#666">antes: '+a.brincosAnteriores.map(function(b){return b.brinco;}).join(', ')+'</span>':'')+'</td><td>'+loteNome(a.loteId)+'</td><td>'+(tp?tp.nome:'—')+'</td><td>'+fmtDataBR(u.data)+'</td><td>'+u.pesoKg+' kg · '+fmtN(u.pesoKg/15,1)+'@</td><td>'+fg(g)+'</td><td>'+fg(gm)+'</td><td>'+ps.length+'</td></tr>';
+      });
+      html += '</table><div style="font-size:11px;color:#666;margin-bottom:14px">GMD em kg/dia · meta '+gmdMetaKg+' kg/dia · "GMD atual" = entre as duas últimas pesagens; "médio" = desde a primeira.</div>';
+    }
+  }
   // Pagamentos realizados (caixa)
   if(opts.pagamentos){
     var mesesPg = pagamentosPorMes();
@@ -5099,23 +5474,16 @@ function verificarAlertas(){
   var hoje = new Date(); hoje.setHours(0,0,0,0);
   var alertas = [];
 
-  // 1. Verificar mangas
-  state.lotes.forEach(function(l){
-    if(l.tipo==='encerrado') return;
-    if(!l.manga || !l.mangaData || !l.mangaDias) return;
-    var entrada = new Date(l.mangaData+'T00:00:00');
+  // 1. Verificar mangas (por tropa: é a tropa que muda de manga)
+  tropasAtivas().forEach(function(t){
+    if(!t.manga || !t.mangaData || !t.mangaDias) return;
+    var entrada = new Date(t.mangaData+'T00:00:00');
     var diasPassados = Math.floor((hoje - entrada)/(1000*60*60*24));
-    var diasRestantes = l.mangaDias - diasPassados;
+    var diasRestantes = t.mangaDias - diasPassados;
     if(diasRestantes < 0){
-      alertas.push({
-        titulo: '🔴 Mover Lote: '+l.nome,
-        corpo: 'Passou '+Math.abs(diasRestantes)+' dias do prazo na '+l.manga
-      });
+      alertas.push({ titulo: '🔴 Mover tropa: '+t.nome, corpo: 'Passou '+Math.abs(diasRestantes)+' dias do prazo na '+t.manga+' · '+tropaQtd(t)+' cab.' });
     } else if(diasRestantes <= 3){
-      alertas.push({
-        titulo: '🟡 Mover em breve: '+l.nome,
-        corpo: 'Faltam '+diasRestantes+' dia(s) na '+l.manga
-      });
+      alertas.push({ titulo: '🟡 Mover em breve: '+t.nome, corpo: 'Faltam '+diasRestantes+' dia(s) na '+t.manga+' · '+tropaQtd(t)+' cab.' });
     }
   });
 
@@ -5455,9 +5823,12 @@ function getContratoStatus(lote){
     ? 'Contrato vencido há '+Math.abs(diasRestantes)+' dias'
     : diasRestantes === 0
     ? 'Vence hoje!'
-    : 'Mês '+mesAtual+' de '+lote.contratoMeses+' · vence em '+diasRestantes+' dias';
+    : 'Parcela '+mesAtual+' de '+lote.contratoMeses+' · vence em '+diasRestantes+' dias';
   var subTxt = '1º pagamento: '+dtPrimeiro.toLocaleDateString('pt-BR')+' · Vence: '+dtFim.toLocaleDateString('pt-BR');
-  return { cor: cor, txt: txt, subTxt: subTxt, dtFim: dtFim, diasRestantes: diasRestantes, total: calcularReceitaAluguelLote(lote, lote.contratoMeses) };
+  var ps = parcelasAluguelLote(lote, lote.contratoMeses); var pagas = ps.filter(function(p){ return p.paga; }); var prox = ps.find(function(p){ return !p.paga; });
+  var recebido = pagas.reduce(function(a,p){ return a+p.valor; },0);
+  if(prox) subTxt += ' · Próx. parcela: '+prox.data.toLocaleDateString('pt-BR')+' ('+fmt(prox.valor)+')';
+  return { cor: cor, txt: txt, subTxt: subTxt, dtFim: dtFim, diasRestantes: diasRestantes, total: calcularReceitaAluguelLote(lote, lote.contratoMeses), parcelas: ps, pagas: pagas.length, recebido: recebido, proxima: prox||null };
 }
 
 
@@ -5470,7 +5841,7 @@ var MAPA_CONFIG = {
     { id:'manga-chegada',  nome:'Manga da Chegada', alq:'3,5',  points:'10,10 120,10 120,170 85,210 10,210',   cx:60,  cy:100, wr:102, wt:12 },
     { id:'manga-meio',     nome:'Manga do Meio',    alq:'3,5',  points:'120,10 235,10 235,170 120,170',         cx:177, cy:90,  wr:217, wt:12 },
     { id:'manga-alto',     nome:'Manga do Alto',    alq:'3,5',  points:'235,10 330,10 330,170 235,170',         cx:282, cy:90,  wr:312, wt:12 },
-    { id:'manga-pedra',    nome:'Manga da Pedra',   alq:'3,0',  points:'85,210 120,170 330,170 330,240 200,290 85,260', cx:210, cy:215, wr:312, wt:172 }
+    { id:'manga-pedra',    nome:'Manga da Pedra',   alq:'3,5',  points:'85,210 120,170 330,170 330,240 200,290 85,260', cx:210, cy:215, wr:312, wt:172 }
   ],
   // Block B - 4.25 alqueires
   b: [
@@ -5555,10 +5926,9 @@ function getMangaId(mangaNome){
 }
 
 function getMangaStatus(mangaId){
-  // Find lotes in this manga
-  var lotes = state.lotes.filter(function(l){
-    return l.tipo !== 'encerrado' && getMangaId(l.manga||'') === mangaId;
-  });
+  // Tropas nesta manga (cada tropa vira uma "linha" do mapa)
+  var tropas = tropasAtivas().filter(function(t){ return getMangaId(t.manga||'') === mangaId; });
+  var lotes = tropas.map(function(t){ return { nome:t.nome, qtd:tropaQtd(t), mangaData:t.mangaData, mangaDias:t.mangaDias, tipo:(t.parcelas||[]).every(function(p){ var l=state.lotes.find(function(x){return x.id==p.loteId;}); return l && l.tipo==='terceiro'; })?'terceiro':'proprio', tropaId:t.id }; });
   if(lotes.length === 0) return { classe:'svg-manga-vazia', lotes:[] };
   var hasAlerta = lotes.some(function(l){
     if(!l.mangaData || !l.mangaDias) return false;
@@ -5579,7 +5949,8 @@ function renderSVGBloco(svgId, mangas, viewH){
 
   mangas.forEach(function(m){
     var status = getMangaStatus(m.id);
-    html += '<polygon points="'+m.points+'" class="'+status.classe+'"/>';
+    var vencida = status.lotes.some(function(l){ if(!l.mangaData||!l.mangaDias) return false; var dr=l.mangaDias-Math.floor((Date.now()-new Date(l.mangaData+'T00:00:00'))/86400000); return dr<0; });
+    html += '<polygon points="'+m.points+'" class="'+(vencida?'svg-manga-vencida':status.classe)+'"'+(status.lotes.length?' onclick="irParaTropa('+status.lotes[0].tropaId+')" style="cursor:pointer"':'')+'/>';
 
         // Watermark for own lotes
     var temProprioLote = status.lotes.some(function(l){ return l.tipo !== 'terceiro'; });
@@ -5604,13 +5975,15 @@ function renderSVGBloco(svgId, mangas, viewH){
           var dr = l.mangaDias - Math.floor((hoje-entrada)/(1000*60*60*24));
           diasBadge = ' · '+dr+'d';
         }
-        html += '<text font-size="8" fill="#333" text-anchor="middle" x="'+m.cx+'" y="'+y+'">'+l.nome+'</text>';
+        html += '<text font-size="8" fill="#333" text-anchor="middle" x="'+m.cx+'" y="'+y+'">🐂 '+l.nome+'</text>';
         y += 11;
         html += '<text font-size="7.5" fill="#666" text-anchor="middle" x="'+m.cx+'" y="'+y+'">'+l.qtd+' cab.'+diasBadge+'</text>';
         y += 12;
       });
     }
-    html += '<text font-size="7.5" fill="#aaa" text-anchor="middle" font-style="italic" x="'+m.cx+'" y="'+(viewH-8)+'">≈'+m.alq+' alq.</text>';
+    // Medida no pé da própria manga (maior Y do polígono), e não no pé da imagem
+    var ysPol=m.points.split(' ').map(function(pt){ return parseFloat(pt.split(',')[1]); }); var yBase=Math.max.apply(null,ysPol)-6;
+    html += '<text font-size="7.5" fill="#6B6B6B" text-anchor="middle" font-style="italic" x="'+m.cx+'" y="'+yBase+'">≈'+m.alq+' alq.</text>';
   });
 
   // Dividers
@@ -5629,10 +6002,18 @@ function renderSVGBloco(svgId, mangas, viewH){
 }
 
 function renderMapa(){
+  var ts=tropasAtivas(); var cab=ts.reduce(function(a,t){return a+tropaQtd(t);},0);
+  var mover=ts.filter(function(t){ if(!t.mangaData||!t.mangaDias) return false; return t.mangaDias-Math.floor((Date.now()-new Date(t.mangaData+'T00:00:00'))/86400000)<=0; }).length;
+  var todasMangas=[].concat(MAPA_CONFIG.a,MAPA_CONFIG.b,MAPA_CONFIG.c); var ocupadas=todasMangas.filter(function(m){ return getMangaStatus(m.id).lotes.length>0; }).length;
+  var foraMapa=ts.filter(function(t){ return !t.manga || !todasMangas.some(function(m){ return getMangaId(t.manga)===m.id; }); });
+  var r=document.getElementById('mapa-resumo-tropas');
+  if(r) r.innerHTML='<div class="card" style="padding:.7rem .9rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:center;font-size:.82rem"><span>🐂 <strong>'+ts.length+'</strong> tropas</span><span>🐄 <strong>'+cab+'</strong> cabeças</span><span>🌿 <strong>'+ocupadas+'</strong> de '+todasMangas.length+' mangas ocupadas</span>'+(mover?'<span class="badge red">'+mover+' para mover</span>':'<span class="badge green">tudo no prazo</span>')+(foraMapa.length?'<span class="badge yellow">'+foraMapa.length+' fora do mapa</span>':'')+'</div>';
   renderSVGBloco('mapa-bloco-a', MAPA_CONFIG.a, 290);
   renderSVGBloco('mapa-bloco-b', MAPA_CONFIG.b, 170);
   renderSVGBloco('mapa-bloco-c', MAPA_CONFIG.c, 290);
+  var el=document.getElementById('tabela-tropas-mapa'); if(el){ var tmp=document.getElementById('tabela-tropas'); renderTropasEm(el); }
 }
+function irParaTropa(id){ var el=document.getElementById('tropa-card-'+id); if(el){ el.scrollIntoView({behavior:'smooth',block:'center'}); el.style.outline='3px solid var(--gold)'; setTimeout(function(){ el.style.outline=''; },1800); } }
 
 
 // ===== MONITORAMENTO DE SESSÕES =====
@@ -5830,7 +6211,7 @@ function selecionarFazenda(qual){
   try { localStorage.removeItem('fazenda_perfil'); } catch(e){}
 
   // Reset state completely
-  state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[], trocas:[], pagamentos:[] };
+  state = { lotes:[], insumos:[], custos:[], animais:[], baixas:[], pesagens:[], vendas:[], trocas:[], pagamentos:[], tropas:[] };
   stateNotas = { todos:[], notas:[], vacinas:[], lembretes:[] };
   stateAlertas = [];
 
