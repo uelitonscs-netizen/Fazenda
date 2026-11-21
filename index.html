@@ -663,6 +663,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
           <div class="field"><label>Suplementação por cabeça/mês (R$)</label><input type="number" id="sm-supl" step="0.01" oninput="calcularSimulador()"></div>
           <div class="field"><label>Sanidade por cabeça/mês (R$)</label><input type="number" id="sm-san" step="0.01" oninput="calcularSimulador()"></div>
           <div class="field"><label>Custo fixo por cabeça/mês (R$)</label><input type="number" id="sm-fixo" step="0.01" oninput="calcularSimulador()"></div>
+          <div class="field"><label>Pasto por cabeça/mês (R$) — aluguel que deixa de receber</label><input type="number" id="sm-pasto" step="0.01" oninput="calcularSimulador()"></div>
           <div class="field"><label>Custos extras do lote (R$) — frete, comissão…</label><input type="number" id="sm-extra" value="0" step="0.01" oninput="calcularSimulador()"></div>
         </div>
         <div id="sm-origem" style="font-size:.72rem;color:var(--clay);margin-top:.5rem;line-height:1.6"></div>
@@ -1063,6 +1064,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
 
     </div>
 
+    <div id="app-build" style="text-align:center;font-size:.68rem;color:var(--clay);font-family:'DM Mono',monospace;padding:.4rem 0 1.2rem;opacity:.8">build 2026-11-21b</div>
   </main>
 </div>
 
@@ -1601,27 +1603,30 @@ function renderCustoArroba(){
 function cabecasProprias(){ return state.lotes.filter(function(l){ return l.tipo!=='terceiro' && l.tipo!=='encerrado'; }).reduce(function(a,l){ return a+(l.qtd||0); },0); }
 function cabecasTodas(){ return state.lotes.filter(function(l){ return l.tipo!=='encerrado'; }).reduce(function(a,l){ return a+(l.qtd||0); },0); }
 function suplPorCabecaMes(){ var n=cabecasProprias(); return n>0 ? totalSupMensal()/n : 0; }
+// Pasto: aluguel médio por cabeça que os terceiros pagam hoje (o que se deixa de receber ao ocupar o pasto com gado próprio)
+function pastoPorCabecaMes(){ var ts=state.lotes.filter(function(l){ return l.tipo==='terceiro' && (parseFloat(l.aluguel)||0)>0 && (l.qtd||0)>0; }); var q=ts.reduce(function(a,l){ return a+(l.qtd||0); },0); return q>0 ? ts.reduce(function(a,l){ return a+(parseFloat(l.aluguel)||0); },0)/q : 0; }
 function fixoPorCabecaMes(){ var n=cabecasProprias(); return n>0 ? custoFixoMes()/n : 0; }
 function ultimoPrecoVendaArroba(){ var vs=(state.vendas||[]).slice().sort(function(a,b){ return (b.data||'').localeCompare(a.data||''); }); return vs.length?vs[0].preco:330; }
 function ultimoPrecoCompraArroba(){ var ls=lotesParaVenda().filter(function(l){ return l.precoCompra>0; }).sort(function(a,b){ return (b.data||'').localeCompare(a.data||''); }); return ls.length?ls[0].precoCompra:300; }
 function simuladorPadroes(){
   var g=function(id,v){ var el=document.getElementById(id); if(el) el.value=v; };
   g('sm-pc', Math.round(ultimoPrecoCompraArroba()*100)/100); g('sm-pv', ultimoPrecoVendaArroba()); g('sm-gmd', gmdPadraoKg);
-  g('sm-supl', Math.round(suplPorCabecaMes()*100)/100); g('sm-san', Math.round(custoPorCabecaMes()*100)/100); g('sm-fixo', Math.round(fixoPorCabecaMes()*100)/100);
+  g('sm-supl', Math.round(suplPorCabecaMes()*100)/100); g('sm-san', Math.round(custoPorCabecaMes()*100)/100); g('sm-fixo', Math.round(fixoPorCabecaMes()*100)/100); g('sm-pasto', Math.round(pastoPorCabecaMes()*100)/100);
   calcularSimulador();
 }
 function abrirSimulador(){ var pc=document.getElementById('sm-pc'); if(pc && !pc.value) simuladorPadroes(); else calcularSimulador(); }
 function calcularSimulador(){
   var el=document.getElementById('sm-resultado'); if(!el) return;
   var n=function(id){ return parseFloat(String((document.getElementById(id)||{}).value||'').replace(',','.'))||0; };
-  var qtd=n('sm-qtd'), pe=n('sm-pe'), pc=n('sm-pc'), pm=n('sm-pm'), pv=n('sm-pv'), gmd=n('sm-gmd'), supl=n('sm-supl'), san=n('sm-san'), fixo=n('sm-fixo'), extra=n('sm-extra');
+  var qtd=n('sm-qtd'), pe=n('sm-pe'), pc=n('sm-pc'), pm=n('sm-pm'), pv=n('sm-pv'), gmd=n('sm-gmd'), supl=n('sm-supl'), san=n('sm-san'), fixo=n('sm-fixo'), pasto=n('sm-pasto'), extra=n('sm-extra');
   var org=document.getElementById('sm-origem');
-  if(org) org.innerHTML='Suplementação: '+fmt(totalSupMensal())+'/mês ÷ '+cabecasProprias()+' cabeças próprias = '+fmt(suplPorCabecaMes())+' · Sanidade por cabeça (cadastro): '+fmt(custoPorCabecaMes())+'/cab/mês · Custos fixos (salário, vacina por campanha): '+fmt(custoFixoMes())+'/mês ÷ '+cabecasProprias()+' = '+fmt(fixoPorCabecaMes())+' · Ganho padrão '+gmdPadraoKg+' kg/dia · Último preço de venda '+fmt(ultimoPrecoVendaArroba())+'/@';
+  if(org) org.innerHTML='Suplementação: '+fmt(totalSupMensal())+'/mês ÷ '+cabecasProprias()+' cabeças próprias = '+fmt(suplPorCabecaMes())+' · Sanidade por cabeça (cadastro): '+fmt(custoPorCabecaMes())+'/cab/mês · Custos fixos (salário, vacina por campanha): '+fmt(custoFixoMes())+'/mês ÷ '+cabecasProprias()+' = '+fmt(fixoPorCabecaMes())+' · Pasto: aluguel médio dos terceiros '+fmt(pastoPorCabecaMes())+'/cab/mês (zere se sobra pasto)'+' · Ganho padrão '+gmdPadraoKg+' kg/dia · Último preço de venda '+fmt(ultimoPrecoVendaArroba())+'/@';
   if(!(qtd>0&&pe>0&&pm>pe&&pv>0&&gmd>0)){ el.innerHTML='<div style="font-size:.8rem;color:var(--clay)">Preencha cabeças, pesos (meta maior que entrada), preço de venda e ganho.</div>'; return; }
   var dias=Math.ceil((pm-pe)*15/gmd), meses=dias/30;
   var compra=qtd*pe*pc, receita=qtd*pm*pv, arrobasProd=qtd*(pm-pe);
   var custoSupl=qtd*supl*meses, custoSan=qtd*san*meses, custoFixo=qtd*fixo*meses;
-  var custoMarg=custoSupl+custoSan+extra, custoRateio=custoSupl+custoSan+custoFixo+extra;
+  var custoPasto=qtd*pasto*meses;
+  var custoMarg=custoSupl+custoSan+custoPasto+extra, custoRateio=custoSupl+custoSan+custoPasto+custoFixo+extra;
   var lucroMarg=receita-compra-custoMarg, lucroRateio=receita-compra-custoRateio;
   var invMarg=compra+custoMarg, invRateio=compra+custoRateio;
   var rentMesMarg=invMarg>0?(lucroMarg/invMarg)*100/meses:0, rentMesRateio=invRateio>0?(lucroRateio/invRateio)*100/meses:0;
@@ -1634,6 +1639,7 @@ function calcularSimulador(){
   h+=row('Venda projetada', fmt(receita)+' <span style="font-size:.72rem;color:var(--clay)">('+fmtN(arrobasProd,0)+'@ produzidas)</span>','pos');
   h+=row('Suplementação no período', fmt(custoSupl),'neg');
   if(custoSan>0) h+=row('Sanidade no período', fmt(custoSan),'neg');
+  if(custoPasto>0) h+=row('Pasto (aluguel que deixa de receber)', fmt(custoPasto),'neg');
   h+=row('Custos fixos rateados', fmt(custoFixo)+' <span style="font-size:.72rem;color:var(--clay)">(só no cenário com rateio)</span>','neg');
   if(extra>0) h+=row('Custos extras', fmt(extra),'neg');
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.9rem">';
@@ -1641,7 +1647,7 @@ function calcularSimulador(){
   h+=box('LUCRO MARGINAL','só o que aumenta de verdade',lucroMarg,rentMesMarg,custoArrobaMarg);
   h+=box('LUCRO COM RATEIO','pagando a parte dos custos fixos',lucroRateio,rentMesRateio,custoArrobaRateio);
   h+='</div>';
-  h+='<div style="font-size:.74rem;color:var(--clay);margin-top:.7rem;line-height:1.6">💡 <strong>Marginal</strong> responde "vale colocar mais gado na estrutura que já tenho?" (o vaqueiro ganha o mesmo com ou sem esse lote). <strong>Com rateio</strong> responde "esse lote paga a sua parte da fazenda?". Preço de venda de equilíbrio (lucro zero com rateio): <strong>'+fmt(pvEquilibrio)+'/@</strong>.</div>';
+  h+='<div style="font-size:.74rem;color:var(--clay);margin-top:.7rem;line-height:1.6">💡 <strong>Marginal</strong> responde "vale colocar mais gado na estrutura que já tenho?" (o vaqueiro ganha o mesmo com ou sem esse lote). <strong>Com rateio</strong> responde "esse lote paga a sua parte da fazenda?". O <strong>pasto</strong> entra nos dois: se o lote ocupa lugar de gado alugado, você deixa de receber esse aluguel (zere o campo se sobra pasto). Preço de venda de equilíbrio (lucro zero com rateio): <strong>'+fmt(pvEquilibrio)+'/@</strong>.</div>';
   el.innerHTML=h;
 }
 // ===== CICLO POR LOTE (entrada + prazo = venda prevista) =====
@@ -6593,7 +6599,7 @@ function confirmarModal(msg, icon, okLabel, callback) {
 // REGISTRAR SERVICE WORKER (PWA)
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('sw.js').catch(function(){});
+    navigator.serviceWorker.register('sw.js').then(function(r){ try{ r.update(); }catch(e){} }).catch(function(){});
   });
 }
 
