@@ -1,13 +1,8 @@
 // Fazenda Gestão — Service Worker
-var CACHE_NAME = 'fazenda-v8';
-var urlsToCache = ['./', './index.html', './manifest.json'];
+// Rede primeiro: sempre busca a versão nova; o cache só é usado para abrir sem internet.
+var CACHE_NAME = 'fazenda-v9';
 
 self.addEventListener('install', function(e){
-  e.waitUntil(
-    caches.open(CACHE_NAME).then(function(cache){
-      return cache.addAll(urlsToCache);
-    })
-  );
   self.skipWaiting();
 });
 
@@ -15,15 +10,20 @@ self.addEventListener('activate', function(e){
   e.waitUntil(
     caches.keys().then(function(keys){
       return Promise.all(keys.filter(function(k){ return k!==CACHE_NAME; }).map(function(k){ return caches.delete(k); }));
-    })
+    }).then(function(){ return self.clients.claim(); })
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', function(e){
+  var req = e.request;
+  if(req.method !== 'GET') return;
+  if(new URL(req.url).origin !== self.location.origin) return; // Firebase, fontes etc. seguem direto
   e.respondWith(
-    caches.match(e.request).then(function(response){
-      return response || fetch(e.request);
+    fetch(req, { cache: 'no-cache' }).then(function(r){
+      if(r && r.ok){ var c = r.clone(); caches.open(CACHE_NAME).then(function(ca){ ca.put(req, c); }); }
+      return r;
+    }).catch(function(){
+      return caches.match(req).then(function(m){ return m || caches.match('./index.html'); });
     })
   );
 });

@@ -1063,6 +1063,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
 
     </div>
 
+    <div id="app-build" style="text-align:center;font-size:.68rem;color:var(--clay);font-family:'DM Mono',monospace;padding:.4rem 0 1.2rem;opacity:.8">build 2026-11-21a</div>
   </main>
 </div>
 
@@ -6593,7 +6594,7 @@ function confirmarModal(msg, icon, okLabel, callback) {
 // REGISTRAR SERVICE WORKER (PWA)
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('sw.js').catch(function(){});
+    navigator.serviceWorker.register('sw.js').then(function(r){ try{ r.update(); }catch(e){} }).catch(function(){});
   });
 }
 
