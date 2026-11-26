@@ -532,6 +532,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
               <div class="form-grid">
                 <div class="field"><label>📅 Data de Início</label><input type="date" id="r-contrato-inicio" oninput="atualizarPreviewContrato()"></div>
                 <div class="field"><label>⏱️ Meses Contratados</label><input type="number" id="r-contrato-meses" placeholder="Ex: 2" min="1" step="1" oninput="atualizarPreviewContrato()"></div>
+                <div class="field"><label>💵 Pagamento do aluguel</label><select id="r-aluguel-pagamento" onchange="atualizarPreviewContrato()"><option value="depois">Depois dos 30 dias (no fim do mês)</option><option value="antes">Antes — adiantado (no início do mês)</option></select></div>
               </div>
               <div id="r-contrato-preview" style="font-size:.75rem;color:var(--green-mid);margin-top:.35rem;font-weight:600"></div>
             </div>
@@ -1064,7 +1065,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
 
     </div>
 
-    <div id="app-build" style="text-align:center;font-size:.68rem;color:var(--clay);font-family:'DM Mono',monospace;padding:.4rem 0 1.2rem;opacity:.8">build 2026-11-26a</div>
+    <div id="app-build" style="text-align:center;font-size:.68rem;color:var(--clay);font-family:'DM Mono',monospace;padding:.4rem 0 1.2rem;opacity:.8">build 2026-11-26b</div>
   </main>
 </div>
 
@@ -1780,9 +1781,12 @@ function saveToFirebase(){
   _saveTimer = setTimeout(function(){
     setSyncStatus('sync');
     salvandoFirebase=true;
-    db.ref(getFirebasePrefix()).set(state)
-    .then(function(){ setSyncStatus('ok'); salvandoFirebase=false; })
-    .catch(function(e){ setSyncStatus('off'); salvandoFirebase=false; toast('Erro ao salvar: '+e.message,'error'); });
+    var falhou=function(e){ setSyncStatus('off'); salvandoFirebase=false; toast('Erro ao salvar: '+(e&&e.message?e.message:e),'error'); };
+    try {
+      db.ref(getFirebasePrefix()).set(state)
+      .then(function(){ setSyncStatus('ok'); salvandoFirebase=false; })
+      .catch(falhou);
+    } catch(e){ falhou(e); } // o Firebase recusa na hora (ex.: campo vazio) — avisa em vez de travar a sincronização
   }, 800);
 }
 
@@ -2702,6 +2706,7 @@ function salvarLote(){
     aluguel:parseFloat(document.getElementById('r-aluguel').value)||0,
     contratoInicio:document.getElementById('r-contrato-inicio').value||'',
     contratoMeses:parseInt(document.getElementById('r-contrato-meses').value)||0,
+    aluguelPagamento:(isTerceiro && document.getElementById('r-aluguel-pagamento') && document.getElementById('r-aluguel-pagamento').value==='antes')?'antes':'depois',
     precoTipo:precoTipoAtual,
     precoOriginal:parseFloat(document.getElementById('r-preco-compra').value)||0,
     manga:document.getElementById('r-manga').value||'',
@@ -2711,7 +2716,7 @@ function salvarLote(){
   if(eid){var idx=state.lotes.findIndex(function(l){return l.id==eid;});if(idx!==-1){lote.id=parseInt(eid);lote.historicoAluguel=state.lotes[idx].historicoAluguel||[];if(lote.tipo==='terceiro'&&state.lotes[idx].tipo==='terceiro'&&Math.abs((lote.aluguel||0)-(state.lotes[idx].aluguel||0))>=0.005){lote.historicoAluguel.push({id:Date.now(),data:new Date().toISOString().slice(0,10),valorAnterior:state.lotes[idx].aluguel||0,valorNovo:lote.aluguel||0,obs:'Alterado na edição do lote'});toast('💱 Mudança de aluguel registrada no histórico');}if(state.lotes[idx].tipoAnterior)lote.tipoAnterior=state.lotes[idx].tipoAnterior;['dataSaida','aluguelEncerrado'].forEach(function(k){ if(state.lotes[idx][k]!=null) lote[k]=state.lotes[idx][k]; });if(_editandoEncerrado&&lote.qtd===0){lote.tipoAnterior=lote.tipo;lote.tipo='encerrado';}state.lotes[idx]=lote;}delete document.getElementById('r-nome').dataset.editId;}
   else state.lotes.push(lote);
   if(!eid) migrarTropas();
-  else { var tsE=tropasDoLote(lote.id); if(tsE.length===1){ tsE[0].parcela.qtd=lote.qtd; tsE[0].tropa.manga=lote.manga||tsE[0].tropa.manga; tsE[0].tropa.mangaData=lote.mangaData||tsE[0].tropa.mangaData; tsE[0].tropa.mangaDias=lote.mangaDias||tsE[0].tropa.mangaDias; } else if(tsE.length>1){ var somaP=tsE.reduce(function(a,x){return a+x.parcela.qtd;},0); if(somaP!==lote.qtd){ tsE.sort(function(a,b){return b.parcela.qtd-a.parcela.qtd;}); tsE[0].parcela.qtd=Math.max(0,tsE[0].parcela.qtd+(lote.qtd-somaP)); removerTropasVazias(); } } }
+  else { var tsE=tropasDoLote(lote.id); if(tsE.length===1){ tsE[0].parcela.qtd=lote.qtd; tsE[0].tropa.manga=lote.manga||tsE[0].tropa.manga||''; tsE[0].tropa.mangaData=lote.mangaData||tsE[0].tropa.mangaData||''; tsE[0].tropa.mangaDias=lote.mangaDias||tsE[0].tropa.mangaDias||0; } else if(tsE.length>1){ var somaP=tsE.reduce(function(a,x){return a+x.parcela.qtd;},0); if(somaP!==lote.qtd){ tsE.sort(function(a,b){return b.parcela.qtd-a.parcela.qtd;}); tsE[0].parcela.qtd=Math.max(0,tsE[0].parcela.qtd+(lote.qtd-somaP)); removerTropasVazias(); } } }
   saveToFirebase();toast('✅ Lote salvo!');limparFormRebanho();renderRebanho();renderDashboard();
 }
 function editarLote(id){
@@ -2726,6 +2731,7 @@ function editarLote(id){
   document.getElementById('r-manga-data').value=l.mangaData||'';
   document.getElementById('r-manga-dias').value=l.mangaDias||'';
   document.getElementById('r-aluguel').value=l.aluguel||'';
+  if(document.getElementById('r-aluguel-pagamento')) document.getElementById('r-aluguel-pagamento').value=(l.aluguelPagamento==='antes'?'antes':'depois');
   document.getElementById('r-contrato-inicio').value=l.contratoInicio||'';
   document.getElementById('r-contrato-meses').value=l.contratoMeses||'';
   document.getElementById('r-contrato-inicio').value=l.contratoInicio||'';
@@ -2748,7 +2754,7 @@ function deletarLote(id){
     saveToFirebase();toast('🗑️ Lote removido.');renderRebanho();renderDashboard();
   });
 }
-function limparFormRebanho(){['r-nome','r-qtd','r-prazo','r-peso-entrada','r-peso-atual','r-peso-meta','r-preco-compra','r-data','r-obs','r-manga-data','r-manga-dias','r-aluguel','r-contrato-inicio','r-contrato-meses'].forEach(function(id){var el=document.getElementById(id);if(el){el.value='';delete el.dataset.editId;}});}
+function limparFormRebanho(){['r-nome','r-qtd','r-prazo','r-peso-entrada','r-peso-atual','r-peso-meta','r-preco-compra','r-data','r-obs','r-manga-data','r-manga-dias','r-aluguel','r-contrato-inicio','r-contrato-meses'].forEach(function(id){var el=document.getElementById(id);if(el){el.value='';delete el.dataset.editId;}});var ap=document.getElementById('r-aluguel-pagamento');if(ap)ap.value='depois';}
 
 // ===== CRUD INSUMOS =====
 function salvarInsumo(){
@@ -3315,7 +3321,7 @@ function parcelasAluguelLote(lote, maxParcelas){
   var hoje = new Date(); hoje.setHours(0,0,0,0);
   var out=[];
   for(var i=1;i<=n;i++){
-    var dt = new Date(ini.getTime() + i*30*86400000); var iso = dt.toISOString().slice(0,10);
+    var dt = new Date(ini.getTime() + (aluguelAdiantado(lote) ? i-1 : i)*30*86400000); var iso = dt.toISOString().slice(0,10);
     var isoIni = new Date(ini.getTime() + (i-1)*30*86400000).toISOString().slice(0,10);
     // Fim de contrato: o mês que já tinha começado quando o gado saiu continua devido; só os meses seguintes zeram
     var v = valorInicial; hist.forEach(function(h){ if(h.fimContrato ? h.data <= isoIni : h.data <= iso) v = (h.valorNovo||0); });
@@ -3323,6 +3329,8 @@ function parcelasAluguelLote(lote, maxParcelas){
   }
   return out;
 }
+// Aluguel pago adiantado (no início de cada período de 30 dias) ou depois (no fim). Sem o campo = depois.
+function aluguelAdiantado(l){ return !!l && l.aluguelPagamento==='antes'; }
 // Lote de terceiro, ativo ou já encerrado (o aluguel que ele pagou continua contando)
 function eraTerceiro(l){ return !!l && (l.tipo==='terceiro' || (l.tipo==='encerrado' && l.tipoAnterior==='terceiro')); }
 function calcularReceitaAluguelLote(lote, prazoLimiteMeses){
@@ -5862,15 +5870,16 @@ function atualizarPreviewContrato(){
   var qtdMeses   = parseInt(meses.value)||0;
   if(!dataInicio || !qtdMeses){ prev.textContent=''; return; }
   var dtInicio    = new Date(dataInicio+'T00:00:00');
-  // First payment = 30 days after entry
-  var dtPrimeiro  = new Date(dtInicio.getTime() + 30*24*60*60*1000);
-  // Last payment = first payment + (meses-1)*30 days
-  var dtFim = new Date(dtPrimeiro.getTime() + (qtdMeses-1)*30*24*60*60*1000);
+  var adiant = (document.getElementById('r-aluguel-pagamento')||{}).value==='antes';
+  // 1º pagamento: no início (adiantado) ou 30 dias após a entrada
+  var dtPrimeiro  = new Date(dtInicio.getTime() + (adiant?0:30)*24*60*60*1000);
+  // Fim do contrato: início + meses × 30 dias
+  var dtFim = new Date(dtInicio.getTime() + qtdMeses*30*24*60*60*1000);
   var aluguel = parseFloat(document.getElementById('r-aluguel').value)||0;
   var total   = aluguel * qtdMeses;
   prev.innerHTML =
     '💰 1º pagamento: <strong>' + dtPrimeiro.toLocaleDateString('pt-BR') + '</strong>' +
-    ' · Vence: ' + dtFim.toLocaleDateString('pt-BR') +
+    ' · Vence: ' + dtFim.toLocaleDateString('pt-BR') + (adiant ? ' · pago adiantado' : '') +
     (total > 0 ? ' · Total: R$ ' + total.toFixed(2).replace('.',',') : '');
 }
 
@@ -5878,10 +5887,10 @@ function getContratoStatus(lote){
   if(!lote.contratoInicio || !lote.contratoMeses) return null;
   var hoje     = new Date(); hoje.setHours(0,0,0,0);
   var dtInicio = new Date(lote.contratoInicio+'T00:00:00');
-  // First payment = 30 days after entry
-  var dtPrimeiro = new Date(dtInicio.getTime() + 30*24*60*60*1000);
-  // Last payment = first payment + (meses-1)*30 days
-  var dtFim = new Date(dtPrimeiro.getTime() + (lote.contratoMeses-1)*30*24*60*60*1000);
+  // 1º pagamento: no início (adiantado) ou 30 dias após a entrada
+  var dtPrimeiro = new Date(dtInicio.getTime() + (aluguelAdiantado(lote)?0:30)*24*60*60*1000);
+  // Fim do contrato: início + meses × 30 dias (igual para os dois jeitos de pagar)
+  var dtFim = new Date(dtInicio.getTime() + lote.contratoMeses*30*24*60*60*1000);
   var diasRestantes = Math.ceil((dtFim - hoje)/(1000*60*60*24));
   var diasDesdePrimeiro = Math.floor((hoje - dtPrimeiro)/(1000*60*60*24));
   var mesAtual = Math.floor(diasDesdePrimeiro / 30) + 1;
@@ -5892,7 +5901,7 @@ function getContratoStatus(lote){
     : diasRestantes === 0
     ? 'Vence hoje!'
     : 'Parcela '+mesAtual+' de '+lote.contratoMeses+' · vence em '+diasRestantes+' dias';
-  var subTxt = '1º pagamento: '+dtPrimeiro.toLocaleDateString('pt-BR')+' · Vence: '+dtFim.toLocaleDateString('pt-BR');
+  var subTxt = '1º pagamento: '+dtPrimeiro.toLocaleDateString('pt-BR')+(aluguelAdiantado(lote)?' (adiantado)':'')+' · Vence: '+dtFim.toLocaleDateString('pt-BR');
   var ps = parcelasAluguelLote(lote, lote.contratoMeses); var pagas = ps.filter(function(p){ return p.paga; }); var prox = ps.find(function(p){ return !p.paga; });
   var recebido = pagas.reduce(function(a,p){ return a+p.valor; },0);
   if(prox) subTxt += ' · Próx. parcela: '+prox.data.toLocaleDateString('pt-BR')+' ('+fmt(prox.valor)+')';
