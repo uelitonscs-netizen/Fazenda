@@ -1064,7 +1064,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
 
     </div>
 
-    <div id="app-build" style="text-align:center;font-size:.68rem;color:var(--clay);font-family:'DM Mono',monospace;padding:.4rem 0 1.2rem;opacity:.8">build 2026-11-21b</div>
+    <div id="app-build" style="text-align:center;font-size:.68rem;color:var(--clay);font-family:'DM Mono',monospace;padding:.4rem 0 1.2rem;opacity:.8">build 2026-11-26a</div>
   </main>
 </div>
 
@@ -1127,6 +1127,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
             <option value="venda">💰 Venda (abre Registrar Venda)</option>
             <option value="descarte">🚫 Descarte</option>
             <option value="roubo">⚠️ Roubo/Extravio</option>
+            <option value="fim_contrato" id="opt-fim-contrato">🤝 Fim de contrato / gado retirado</option>
             <option value="outro">📝 Outro</option>
           </select>
         </div>
@@ -2174,7 +2175,7 @@ function renderDashboard(){
     var hz=horizonteOperacao();
     var mesesOp=Math.round(hz.meses*10)/10;
     var co=custoOperacionalProjetado(hz.meses);
-    var recAluguel=state.lotes.reduce(function(a,l){ if(l.tipo!=='terceiro') return a; return a + calcularReceitaAluguelLote(l, Math.max(pr,hz.meses)); },0);
+    var recAluguel=state.lotes.reduce(function(a,l){ if(!eraTerceiro(l)) return a; return a + calcularReceitaAluguelLote(l, Math.max(pr,hz.meses)); },0);
     var totalInv=cc+vr.custoCompra+estoqueComprado+co+cu2;
     var recTotal=rec+recAluguel+vr.receita;
     var luc=recTotal-totalInv;
@@ -2331,7 +2332,7 @@ function renderRebanho(){
   // Histórico de baixas
   var baixas=(state.baixas||[]).filter(function(b){return true;});
   if(baixas.length>0){
-    var motivoLabel={morte:'💀 Morte',venda:'💰 Venda',descarte:'🚫 Descarte',roubo:'⚠️ Roubo',outro:'📝 Outro'};
+    var motivoLabel={morte:'💀 Morte',venda:'💰 Venda',descarte:'🚫 Descarte',roubo:'⚠️ Roubo',outro:'📝 Outro',fim_contrato:'🤝 Fim de contrato'};
     var bh='';
     baixas.slice().reverse().forEach(function(b){
       var loteNome=state.lotes.find(function(l){return l.id==b.loteId;});
@@ -2345,7 +2346,7 @@ function renderRebanho(){
       bh+='<div style="font-size:.85rem;font-weight:600;margin-bottom:.4rem">'+(loteNome?loteNome.nome:(b.loteNome||'—'))+'</div>';
       bh+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem;font-size:.78rem;color:var(--clay)">';
       bh+='<div>Qtd: <strong style="color:var(--text)">'+b.qtd+' cab.</strong></div>';
-      bh+='<div>Perda: <strong style="color:#e74c3c">'+fmt(b.perda)+'</strong></div>';
+      if(b.motivo!=='fim_contrato') bh+='<div>Perda: <strong style="color:#e74c3c">'+fmt(b.perda)+'</strong></div>';
       if(b.obs) bh+='<div style="grid-column:1/-1">Obs: <span style="color:var(--text)">'+b.obs+'</span></div>';
       bh+='</div></div>';
     });
@@ -2516,7 +2517,7 @@ function calcularProjecao(){
   }, 0);
 
   var recAluguel=state.lotes.reduce(function(a,l){
-    if(l.tipo!=='terceiro') return a;
+    if(!eraTerceiro(l)) return a;
     return a + calcularReceitaAluguelLote(l, prazoMedio);
   },0);
 
@@ -2555,7 +2556,7 @@ function calcularProjecao(){
   var cens=[{nome:'Pessimista',preco:290,peso:13,prazo:12},{nome:'Moderado',preco:320,peso:14,prazo:10},{nome:'Otimista',preco:360,peso:15,prazo:8}];
   var ch='';
   cens.forEach(function(c){
-    var recAlugC=state.lotes.reduce(function(a,l){ if(l.tipo!=='terceiro') return a; return a + calcularReceitaAluguelLote(l, c.prazo); },0);
+    var recAlugC=state.lotes.reduce(function(a,l){ if(!eraTerceiro(l)) return a; return a + calcularReceitaAluguelLote(l, c.prazo); },0);
     var r=receitaProjetadaVenda(c.peso,c.preco,c.peso/14)+recAlugC+vr.receita,cu2=cc+vr.custoCompra+ei+custoOperacionalProjetado(c.prazo)+custoUnicoTotal(),l=r-cu2,roi2=cu2>0?(l/cu2)*100:0;
     var cor=l>=0?'pos':'neg',bg=c.nome==='Pessimista'?'red':c.nome==='Moderado'?'yellow':'green';
     ch+='<div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:.9rem;margin-bottom:.75rem">';
@@ -2707,7 +2708,7 @@ function salvarLote(){
     mangaData:document.getElementById('r-manga-data').value||'',
     mangaDias:parseInt(document.getElementById('r-manga-dias').value)||0};
   var eid=document.getElementById('r-nome').dataset.editId;
-  if(eid){var idx=state.lotes.findIndex(function(l){return l.id==eid;});if(idx!==-1){lote.id=parseInt(eid);lote.historicoAluguel=state.lotes[idx].historicoAluguel||[];if(lote.tipo==='terceiro'&&state.lotes[idx].tipo==='terceiro'&&Math.abs((lote.aluguel||0)-(state.lotes[idx].aluguel||0))>=0.005){lote.historicoAluguel.push({id:Date.now(),data:new Date().toISOString().slice(0,10),valorAnterior:state.lotes[idx].aluguel||0,valorNovo:lote.aluguel||0,obs:'Alterado na edição do lote'});toast('💱 Mudança de aluguel registrada no histórico');}if(state.lotes[idx].tipoAnterior)lote.tipoAnterior=state.lotes[idx].tipoAnterior;if(_editandoEncerrado&&lote.qtd===0){lote.tipoAnterior=lote.tipo;lote.tipo='encerrado';}state.lotes[idx]=lote;}delete document.getElementById('r-nome').dataset.editId;}
+  if(eid){var idx=state.lotes.findIndex(function(l){return l.id==eid;});if(idx!==-1){lote.id=parseInt(eid);lote.historicoAluguel=state.lotes[idx].historicoAluguel||[];if(lote.tipo==='terceiro'&&state.lotes[idx].tipo==='terceiro'&&Math.abs((lote.aluguel||0)-(state.lotes[idx].aluguel||0))>=0.005){lote.historicoAluguel.push({id:Date.now(),data:new Date().toISOString().slice(0,10),valorAnterior:state.lotes[idx].aluguel||0,valorNovo:lote.aluguel||0,obs:'Alterado na edição do lote'});toast('💱 Mudança de aluguel registrada no histórico');}if(state.lotes[idx].tipoAnterior)lote.tipoAnterior=state.lotes[idx].tipoAnterior;['dataSaida','aluguelEncerrado'].forEach(function(k){ if(state.lotes[idx][k]!=null) lote[k]=state.lotes[idx][k]; });if(_editandoEncerrado&&lote.qtd===0){lote.tipoAnterior=lote.tipo;lote.tipo='encerrado';}state.lotes[idx]=lote;}delete document.getElementById('r-nome').dataset.editId;}
   else state.lotes.push(lote);
   if(!eid) migrarTropas();
   else { var tsE=tropasDoLote(lote.id); if(tsE.length===1){ tsE[0].parcela.qtd=lote.qtd; tsE[0].tropa.manga=lote.manga||tsE[0].tropa.manga; tsE[0].tropa.mangaData=lote.mangaData||tsE[0].tropa.mangaData; tsE[0].tropa.mangaDias=lote.mangaDias||tsE[0].tropa.mangaDias; } else if(tsE.length>1){ var somaP=tsE.reduce(function(a,x){return a+x.parcela.qtd;},0); if(somaP!==lote.qtd){ tsE.sort(function(a,b){return b.parcela.qtd-a.parcela.qtd;}); tsE[0].parcela.qtd=Math.max(0,tsE[0].parcela.qtd+(lote.qtd-somaP)); removerTropasVazias(); } } }
@@ -3017,9 +3018,13 @@ function abrirModalBaixa(loteId){
   document.getElementById('baixa-peso').value = lote.pesoAtual || '';
   document.getElementById('baixa-obs').value = '';
   document.getElementById('baixa-motivo').value = 'morte';
+  var optFim = document.getElementById('opt-fim-contrato');
+  var ehTerc = lote.tipo === 'terceiro';
+  if(optFim){ optFim.hidden = !ehTerc; optFim.disabled = !ehTerc; }
+  if(ehTerc){ document.getElementById('baixa-motivo').value = 'fim_contrato'; document.getElementById('baixa-qtd').value = String(lote.qtd||1); }
   document.getElementById('modal-baixa-info').innerHTML =
     '<strong>' + lote.nome + '</strong> — ' + lote.qtd + ' cabeças · ' +
-    fmtN(lote.pesoAtual) + '@ atual · Preço compra: ' + fmt(lote.precoCompra) + '/@';
+    (ehTerc ? 'Terceiro · Aluguel: ' + fmt(lote.aluguel||0) + '/mês' : fmtN(lote.pesoAtual) + '@ atual · Preço compra: ' + fmt(lote.precoCompra) + '/@');
   atualizarImpactoBaixa();
   document.getElementById('modal-baixa').classList.add('open');
 }
@@ -3029,16 +3034,26 @@ function atualizarImpactoBaixa(){
   if(!lote) return;
   var qtd = parseInt(document.getElementById('baixa-qtd').value) || 1;
   var peso = parseFloat(document.getElementById('baixa-peso').value) || lote.pesoEntrada;
-  var perda = qtd * peso * lote.precoCompra;
+  var ehTerc = lote.tipo === 'terceiro';
+  var perda = ehTerc ? 0 : qtd * peso * (lote.precoCompra||0);
   var novaQtd = lote.qtd - qtd;
   var el = document.getElementById('baixa-impacto');
-  el.innerHTML =
-    '<div style="background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.3);border-radius:10px;padding:.9rem 1rem">' +
-    '<div style="font-size:.78rem;color:var(--clay);margin-bottom:.5rem;font-family:\'DM Mono\',monospace">IMPACTO DA BAIXA</div>' +
-    '<div class="result-row"><span class="label">Cabeças após baixa</span><span class="value">' + novaQtd + ' (era ' + lote.qtd + ')</span></div>' +
-    '<div class="result-row"><span class="label">Perda financeira</span><span class="value neg">' + fmt(perda) + '</span></div>' +
-    '<div style="font-size:.72rem;color:var(--clay);margin-top:.4rem">Calculado: ' + qtd + ' cab. × ' + fmtN(peso) + '@ × ' + fmt(lote.precoCompra) + '/@</div>' +
-    '</div>';
+  var h = '<div style="background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.3);border-radius:10px;padding:.9rem 1rem">' +
+    '<div style="font-size:.78rem;color:var(--clay);margin-bottom:.5rem;font-family:\'DM Mono\',monospace">IMPACTO DA BAIXA</div>';
+  if(novaQtd < 0){
+    h += '<div style="font-size:.82rem;color:var(--red)">⚠️ O lote só tem ' + lote.qtd + ' cabeça(s).</div></div>';
+    el.innerHTML = h; return;
+  }
+  h += '<div class="result-row"><span class="label">Cabeças após baixa</span><span class="value">' + novaQtd + ' (era ' + lote.qtd + ')</span></div>';
+  if(!ehTerc){
+    h += '<div class="result-row"><span class="label">Perda financeira</span><span class="value neg">' + fmt(perda) + '</span></div>' +
+      '<div style="font-size:.72rem;color:var(--clay);margin-top:.4rem">Calculado: ' + qtd + ' cab. × ' + fmtN(peso) + '@ × ' + fmt(lote.precoCompra) + '/@</div>';
+  }
+  if(novaQtd === 0){
+    h += '<div style="font-size:.76rem;color:var(--text);margin-top:.5rem;line-height:1.5">📁 O lote vai para <strong>Lotes encerrados</strong>, com todo o histórico guardado.' +
+      (ehTerc ? ' O aluguel passa a <strong>R$ 0</strong> a partir da data da saída (o que já foi recebido continua contando).' : '') + '</div>';
+  }
+  el.innerHTML = h + '</div>';
 }
 
 function fecharModalBaixa(){
@@ -3057,16 +3072,19 @@ function confirmarBaixa(){
 
   if(motivo === 'venda'){ onMotivoBaixaChange(); return; }
 
-  if(qtd >= lote.qtd){
-    toast('Quantidade maior ou igual ao lote. Use deletar lote se quiser remover tudo.','error');
+  if(qtd < 1 || qtd > lote.qtd){
+    toast('Quantidade inválida: o lote tem ' + lote.qtd + ' cabeça(s).','error');
     return;
   }
+  if(!data) data = new Date().toISOString().split('T')[0];
 
-  var perda = qtd * peso * lote.precoCompra;
+  var ehTerc = lote.tipo === 'terceiro';
+  var perda = ehTerc ? 0 : qtd * peso * (lote.precoCompra||0);
+  var encerra = (lote.qtd - qtd) === 0;
 
   // Registra baixa no histórico
   if(!state.baixas) state.baixas = [];
-  state.baixas.push({
+  var registroBaixa = {
     id: Date.now(),
     loteId: loteIdBaixa,
     loteNome: lote.nome,
@@ -3076,18 +3094,34 @@ function confirmarBaixa(){
     perda: perda,
     data: data,
     obs: obs
-  });
+  };
+  state.baixas.push(registroBaixa);
 
   // Atualiza quantidade do lote
   var idx = state.lotes.findIndex(function(l){ return l.id === loteIdBaixa; });
   state.lotes[idx].qtd = lote.qtd - qtd;
   ajustarParcelasAposSaida(loteIdBaixa, qtd, null); removerTropasVazias();
+  if(encerra){
+    // Lote zerado: vai para os encerrados (nada é apagado)
+    if(ehTerc){
+      // Fim do contrato: aluguel passa a 0 a partir da saída; o que já foi recebido continua no histórico
+      var hid = Date.now() + 1;
+      if(!Array.isArray(lote.historicoAluguel)) lote.historicoAluguel = lote.historicoAluguel ? Object.values(lote.historicoAluguel) : [];
+      lote.historicoAluguel.push({ id: hid, data: data, valorAnterior: lote.aluguel||0, valorNovo: 0, fimContrato: true, obs: 'Fim de contrato — gado retirado' + (obs ? ': ' + obs : '') });
+      lote.aluguelEncerrado = lote.aluguel||0;
+      lote.dataSaida = data;
+      lote.aluguel = 0;
+      registroBaixa.histAluguelId = hid;
+    }
+    lote.tipoAnterior = lote.tipo;
+    lote.tipo = 'encerrado';
+  }
 
   saveToFirebase();
-  toast('📉 Baixa registrada — ' + qtd + ' cabeça(s)' + (lote.tipo==='terceiro'?'':' · Perda: ' + fmt(perda)));
+  toast(encerra ? '📁 ' + lote.nome + ' encerrado — histórico guardado em Lotes encerrados' : '📉 Baixa registrada — ' + qtd + ' cabeça(s)' + (ehTerc?'':' · Perda: ' + fmt(perda)));
   fecharModalBaixa();
   renderRebanho();renderDashboard();atualizarSelectsLotes();
-  if(lote.tipo==='terceiro'){ var lid=lote.id; confirmarModal('Saíram '+qtd+' cabeça(s) do '+lote.nome+'. O valor do aluguel mudou?','💱','Sim, registrar',function(){ abrirModalAluguel(lid); document.getElementById('aluguel-obs').value='Saída de '+qtd+' cabeça(s)'; }); }
+  if(ehTerc && !encerra){ var lid=lote.id; confirmarModal('Saíram '+qtd+' cabeça(s) do '+lote.nome+'. O valor do aluguel mudou?','💱','Sim, registrar',function(){ abrirModalAluguel(lid); document.getElementById('aluguel-obs').value='Saída de '+qtd+' cabeça(s)'; }); }
 }
 
 // ===== LOTES ENCERRADOS (arquivo) =====
@@ -3123,6 +3157,11 @@ function htmlLotesEncerrados(lista){
     if(r.vendidas>0) partes.push(r.vendidas+' vendida(s) · '+fmt(r.receita));
     if(r.baixas>0) partes.push(r.baixas+' por baixa');
     if(partes.length) h+='Saídas: <strong style="color:var(--text)">'+partes.join(' · ')+'</strong><br>';
+    if(eraTerceiro(l)){
+      var _recAlug = calcularReceitaAluguelLote(l, l.contratoMeses||120);
+      h+='Contrato de aluguel'+(l.aluguelEncerrado?': <strong style="color:var(--text)">'+fmt(l.aluguelEncerrado)+'/mês</strong>':'')+(l.dataSaida?' · gado retirado em '+fmtDataBR(l.dataSaida):'')+'<br>';
+      h+='Aluguel do período: <strong style="color:var(--green-mid)">'+fmt(_recAlug)+'</strong><br>';
+    }
     if(l.data) h+='Entrada: '+new Date(l.data+'T00:00:00').toLocaleDateString('pt-BR');
     if(l.manga) h+=(l.data?' · ':'')+'Última manga: '+l.manga;
     h+='</div></div>';
@@ -3143,6 +3182,11 @@ function atualizarSelectsLotes(){
 // "Venda" no modal de baixa: leva ao formulário Registrar Venda, que grava receita e lucro
 function onMotivoBaixaChange(){
   var motivoEl = document.getElementById('baixa-motivo');
+  if(motivoEl && motivoEl.value === 'fim_contrato'){
+    var lt = state.lotes.find(function(l){ return l.id === loteIdBaixa; });
+    if(lt){ document.getElementById('baixa-qtd').value = String(lt.qtd||1); atualizarImpactoBaixa(); }
+    return;
+  }
   if(!motivoEl || motivoEl.value !== 'venda') return;
   var lote = state.lotes.find(function(l){ return l.id === loteIdBaixa; });
   if(!lote) return;
@@ -3181,6 +3225,14 @@ function desfazerBaixa(baixaId){
     if(lote){
       lote.qtd = (lote.qtd||0) + (b.qtd||0);
       if(lote.tipo === 'encerrado' && lote.qtd > 0 && lote.tipoAnterior) lote.tipo = lote.tipoAnterior;
+      if(b.histAluguelId){
+        // Desfaz o fim de contrato: volta o aluguel e tira o registro de R$ 0 do histórico
+        var hs = Array.isArray(lote.historicoAluguel) ? lote.historicoAluguel : (lote.historicoAluguel ? Object.values(lote.historicoAluguel) : []);
+        var hx = hs.find(function(h){ return h && h.id === b.histAluguelId; });
+        lote.historicoAluguel = hs.filter(function(h){ return !(h && h.id === b.histAluguelId); });
+        lote.aluguel = lote.aluguelEncerrado != null ? lote.aluguelEncerrado : (hx ? (hx.valorAnterior||0) : (lote.aluguel||0));
+        delete lote.aluguelEncerrado; delete lote.dataSaida;
+      }
     }
     state.baixas = state.baixas.filter(function(x){ return x.id !== baixaId; });
     saveToFirebase();
@@ -3264,14 +3316,24 @@ function parcelasAluguelLote(lote, maxParcelas){
   var out=[];
   for(var i=1;i<=n;i++){
     var dt = new Date(ini.getTime() + i*30*86400000); var iso = dt.toISOString().slice(0,10);
-    var v = valorInicial; hist.forEach(function(h){ if(h.data <= iso) v = (h.valorNovo||0); });
+    var isoIni = new Date(ini.getTime() + (i-1)*30*86400000).toISOString().slice(0,10);
+    // Fim de contrato: o mês que já tinha começado quando o gado saiu continua devido; só os meses seguintes zeram
+    var v = valorInicial; hist.forEach(function(h){ if(h.fimContrato ? h.data <= isoIni : h.data <= iso) v = (h.valorNovo||0); });
     out.push({ n:i, data:dt, iso:iso, valor:v, paga: dt<=hoje });
   }
   return out;
 }
+// Lote de terceiro, ativo ou já encerrado (o aluguel que ele pagou continua contando)
+function eraTerceiro(l){ return !!l && (l.tipo==='terceiro' || (l.tipo==='encerrado' && l.tipoAnterior==='terceiro')); }
 function calcularReceitaAluguelLote(lote, prazoLimiteMeses){
   var lim = Math.max(1, Math.ceil(prazoLimiteMeses||0));
   var ps = parcelasAluguelLote(lote, lote.contratoMeses ? Math.min(lote.contratoMeses, lim) : lim);
+  if(!ps.length && lote.dataSaida){
+    // Sem datas de contrato: conta os meses da entrada até a saída do gado, no valor que valia antes da saída
+    var ini=new Date((lote.contratoInicio||lote.data||lote.dataSaida)+'T00:00:00'), fim=new Date(lote.dataSaida+'T00:00:00');
+    var mesesAte=Math.max(0, Math.ceil((fim-ini)/(30*86400000)));
+    return (lote.aluguelEncerrado||0) * Math.min(mesesAte, lote.contratoMeses||mesesAte, lim);
+  }
   if(!ps.length) return (lote.aluguel||0) * Math.min(lote.contratoMeses||lim, lim);
   return ps.reduce(function(a,p){ return a+p.valor; },0);
 }
