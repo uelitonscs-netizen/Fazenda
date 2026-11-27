@@ -349,6 +349,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
     <div id="dashboard" class="section active">
 
       <div class="kpi-grid" id="kpi-grid"></div>
+      <div class="card"><div class="card-title">🧂 Suplementação da época</div><div id="supl-epoca"></div></div>
       <div class="two-col">
         <div class="card">
           <div class="card-title">📦 Estoque de Suplementação</div>
@@ -444,7 +445,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
           <div class="collapse-body" id="form-insumo">
             <div class="form-grid">
               <div class="field"><label>Produto</label><input type="text" id="s-nome" placeholder="Ex: Sal Mineral 80"></div>
-              <div class="field"><label>Tipo</label><select id="s-tipo"><option value="sal">Sal Mineral</option><option value="racao">Ração / Concentrado</option><option value="volumoso">Volumoso</option><option value="outro">Outro</option></select></div>
+              <div class="field"><label>Tipo</label><select id="s-tipo"><option value="sal">Sal Mineral</option><option value="proteinado">Sal Proteinado</option><option value="racao">Ração / Concentrado</option><option value="volumoso">Volumoso</option><option value="outro">Outro</option></select></div>
               <div class="field"><label>Qtd de Sacos</label><input type="number" id="s-qtd" placeholder="30"></div>
               <div class="field"><label>Kg por Saco</label><input type="number" id="s-kg-saco" placeholder="30"></div>
               <div class="field"><label>Preço por Saco (R$)</label><input type="number" id="s-preco" placeholder="126" step="0.01"></div>
@@ -694,6 +695,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
           <div class="kpi-value" id="vaq-total-cabecas">—</div>
         </div>
       </div>
+      <div class="card"><div class="card-title">🧂 Suplementação da época</div><div id="vaq-supl-epoca"></div></div>
       <div id="vaq-grupos-rebanho"></div>
       <div class="card">
         <div class="card-title">🌿 Lotes e Mangas</div>
@@ -986,6 +988,23 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
       </div>
 
       <div class="config-group">
+        <div class="config-group-title">🧂 Suplementação por época</div>
+        <div style="padding:.6rem 1.1rem 1rem">
+          <div style="font-size:.76rem;color:var(--clay);margin-bottom:.6rem;line-height:1.5">Calendário de Ataléia como padrão. O app avisa quando trocar o sal mineral pelo proteinado e quando voltar.</div>
+          <div class="form-grid">
+            <div class="field"><label>Seca começa em</label><select id="se-seca" onchange="salvarSuplEpoca()"><option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option><option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option><option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option></select></div>
+            <div class="field"><label>Chuvas voltam em</label><select id="se-chuva" onchange="salvarSuplEpoca()"><option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option><option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option><option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option></select></div>
+            <div class="field"><label>Começar proteinado antes da seca (semanas)</label><input type="number" id="se-antecipar" min="0" step="1" onchange="salvarSuplEpoca()"></div>
+            <div class="field"><label>Dose do proteinado (g por kg de peso/dia)</label><input type="number" id="se-dose" min="0.1" step="0.1" onchange="salvarSuplEpoca()"></div>
+            <div class="field"><label>Kg por saco do proteinado</label><input type="number" id="se-kgsaco" min="1" step="1" onchange="salvarSuplEpoca()"></div>
+            <div class="field"><label>Chuva para considerar firme (mm em 30 dias)</label><input type="number" id="se-limiar" min="10" step="10" onchange="salvarSuplEpoca()"></div>
+          </div>
+          <label style="display:flex;align-items:center;gap:.5rem;font-size:.82rem;margin-top:.6rem"><input type="checkbox" id="se-usarchuva" onchange="salvarSuplEpoca()"> Usar a chuva real da fazenda (Open-Meteo, localização aproximada)</label>
+          <button class="btn sm outline" style="margin-top:.7rem" onclick="restaurarSuplEpocaPadrao()">↺ Voltar ao padrão de Ataléia</button>
+        </div>
+      </div>
+
+      <div class="config-group">
         <div class="config-group-title">📊 Relatórios &amp; Dados</div>
         <div class="config-item" id="cfg-relatorio">
           <div class="config-item-left">
@@ -1072,7 +1091,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(212,168,83,.03)
 
     </div>
 
-    <div id="app-build" style="text-align:center;font-size:.68rem;color:var(--clay);font-family:'DM Mono',monospace;padding:.4rem 0 1.2rem;opacity:.8">build 2026-11-27a</div>
+    <div id="app-build" style="text-align:center;font-size:.68rem;color:var(--clay);font-family:'DM Mono',monospace;padding:.4rem 0 1.2rem;opacity:.8">build 2026-11-27b</div>
   </main>
 </div>
 
@@ -1405,6 +1424,171 @@ function salvarCustoTerra(){
   else if(!(v>=0)){ toast('Valor inválido','error'); atualizarCfgCustoTerra(); return; }
   else { custoTerraCfg=v; ref.set(v).catch(function(){ toast('Erro ao salvar custo da terra','error'); }); toast('🌱 Custo da terra salvo: '+fmt(v)+'/cab/mês'); }
   atualizarCfgCustoTerra(); renderCustoArroba();
+}
+// ===== SUPLEMENTAÇÃO POR ÉPOCA (sal mineral × proteinado) =====
+// Calendário editável em Config (salvo por fazenda) + chuva real da fazenda (Open-Meteo, localização arredondada).
+var SUPL_EPOCA_PADRAO = { secaMes:5, chuvaMes:10, anteciparSem:4, doseProt:1, kgSacoProt:30, limiarChuva:100, usarChuva:true };
+var suplEpocaCfg = JSON.parse(JSON.stringify(SUPL_EPOCA_PADRAO)), _suplEpocaRef = null;
+var MESES_NOME = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+function carregarSuplEpoca(){
+  if(_suplEpocaRef) _suplEpocaRef.off();
+  _suplEpocaRef = db.ref('config/suplEpoca_' + getFirebasePrefix());
+  _suplEpocaRef.on('value', function(snap){
+    var v = snap.val() || {}; var c = JSON.parse(JSON.stringify(SUPL_EPOCA_PADRAO));
+    Object.keys(c).forEach(function(k){ if(v[k]!==undefined && v[k]!==null){ var n=parseFloat(v[k]); c[k] = (k==='usarChuva') ? !!v[k] : ((n>0 || (k==='anteciparSem' && n===0)) ? n : c[k]); } });
+    suplEpocaCfg = c; atualizarCfgSuplEpoca(); renderSuplEpoca();
+  });
+}
+function atualizarCfgSuplEpoca(){
+  var c = suplEpocaCfg, set = function(id,v){ var el=document.getElementById(id); if(el && document.activeElement!==el){ if(el.type==='checkbox') el.checked=!!v; else el.value=v; } };
+  set('se-seca', c.secaMes); set('se-chuva', c.chuvaMes); set('se-antecipar', c.anteciparSem); set('se-dose', c.doseProt); set('se-kgsaco', c.kgSacoProt); set('se-limiar', c.limiarChuva); set('se-usarchuva', c.usarChuva);
+}
+function salvarSuplEpoca(){
+  var g = function(id,def){ var el=document.getElementById(id); var v=el?parseFloat(String(el.value).replace(',','.')):NaN; return (v>0)?v:def; };
+  var d = SUPL_EPOCA_PADRAO;
+  var c = { secaMes: Math.round(g('se-seca',d.secaMes)), chuvaMes: Math.round(g('se-chuva',d.chuvaMes)), anteciparSem: (function(){ var el=document.getElementById('se-antecipar'); var v=el?parseInt(el.value):NaN; return (v>=0)?v:d.anteciparSem; })(),
+    doseProt: g('se-dose',d.doseProt), kgSacoProt: g('se-kgsaco',d.kgSacoProt), limiarChuva: g('se-limiar',d.limiarChuva),
+    usarChuva: !!(document.getElementById('se-usarchuva')||{}).checked };
+  if(c.secaMes===c.chuvaMes){ toast('O mês da seca e o da volta das chuvas precisam ser diferentes','error'); atualizarCfgSuplEpoca(); return; }
+  suplEpocaCfg = c;
+  db.ref('config/suplEpoca_'+getFirebasePrefix()).set(c).then(function(){ toast('🧂 Calendário de suplementação salvo'); }).catch(function(){ toast('Erro ao salvar calendário','error'); });
+  if(c.usarChuva) carregarChuva(false);
+  renderSuplEpoca();
+}
+function restaurarSuplEpocaPadrao(){
+  suplEpocaCfg = JSON.parse(JSON.stringify(SUPL_EPOCA_PADRAO)); atualizarCfgSuplEpoca();
+  db.ref('config/suplEpoca_'+getFirebasePrefix()).remove().catch(function(){});
+  toast('↺ Calendário padrão de Ataléia'); renderSuplEpoca();
+}
+// --- chuva real (Open-Meteo): últimos 92 dias, guardado no aparelho por 6 h
+var chuvaDados = null, _chuvaCarregando = false, CHUVA_CACHE = 'fazenda_chuva_v1';
+function carregarChuva(forcar){
+  if(!suplEpocaCfg.usarChuva || _chuvaCarregando) return;
+  try { var c = JSON.parse(localStorage.getItem(CHUVA_CACHE)||'null'); if(c && c.dias && !forcar && (Date.now()-c.ts) < 6*3600000){ chuvaDados = c; renderSuplEpoca(); return; } if(c && c.dias && !chuvaDados) chuvaDados = c; } catch(e){}
+  var lat = (typeof FAZENDA_LAT==='number'?FAZENDA_LAT:-17.94).toFixed(2), lon = (typeof FAZENDA_LON==='number'?FAZENDA_LON:-41.22).toFixed(2);
+  var url = 'https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&daily=precipitation_sum&past_days=92&forecast_days=1&timezone=America%2FSao_Paulo';
+  _chuvaCarregando = true;
+  fetch(url).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).then(function(j){
+    var hojeIso = isoLocal(new Date()), dias = [];
+    (j.daily && j.daily.time || []).forEach(function(d,i){ if(d < hojeIso){ var mm = j.daily.precipitation_sum[i]; dias.push({ d:d, mm:(typeof mm==='number'?mm:0) }); } });
+    chuvaDados = { ts: Date.now(), dias: dias };
+    try { localStorage.setItem(CHUVA_CACHE, JSON.stringify(chuvaDados)); } catch(e){}
+  }).catch(function(e){ if(chuvaDados) chuvaDados.erro = true; else chuvaDados = { ts:0, dias:[], erro:true }; })
+  .then(function(){ _chuvaCarregando = false; renderSuplEpoca(); });
+}
+function fmtInt(x){ return Math.round(x||0).toLocaleString('pt-BR'); }
+function isoLocal(d){ var p=function(n){return n<10?'0'+n:n;}; return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+function somaChuva(dias, ateIso, n){ var ate = new Date(ateIso+'T00:00:00').getTime(), de = ate - n*86400000; return dias.reduce(function(a,x){ var t=new Date(x.d+'T00:00:00').getTime(); return a + ((t>de && t<=ate) ? x.mm : 0); },0); }
+// 1º dia em que a chuva acumulada de 30 dias passou do limiar (a partir de 'desdeIso')
+function dataChuvaFirmou(dias, desdeIso, limiar){ for(var i=0;i<dias.length;i++){ if(dias[i].d < desdeIso) continue; if(somaChuva(dias, dias[i].d, 30) >= limiar) return dias[i].d; } return null; }
+// --- fase do ano
+function suplEpocaFase(hoje){
+  var c = suplEpocaCfg, DIA = 86400000; hoje = hoje || new Date(); hoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  var ciclos = [-1,0,1].map(function(k){
+    var Y = hoje.getFullYear()+k;
+    var B = new Date(Y, c.secaMes-1, 1), A = new Date(B.getTime() - c.anteciparSem*7*DIA);
+    var C = new Date(c.chuvaMes > c.secaMes ? Y : Y+1, c.chuvaMes-1, 1);
+    return { A:A, B:B, C:C, Dcal: new Date(C.getTime()+28*DIA), Dmax: new Date(C.getTime()+60*DIA) };
+  });
+  var dias = (c.usarChuva && chuvaDados && chuvaDados.dias) ? chuvaDados.dias : [];
+  var r = { hoje:hoje, chuva30:null, chuva7:null, temChuva: dias.length>0, chuvaErro: !!(chuvaDados&&chuvaDados.erro) };
+  if(dias.length){ var ult = dias[dias.length-1].d; r.chuva30 = somaChuva(dias, ult, 30); r.chuva7 = somaChuva(dias, ult, 7); }
+  for(var i=0;i<ciclos.length;i++){
+    var z = ciclos[i];
+    if(hoje >= z.A && hoje < z.B){ r.fase='entrada'; r.proxima=z.B; r.ciclo=z; break; }
+    if(hoje >= z.B && hoje < z.C){ r.fase='seca'; r.proxima=z.C; r.ciclo=z; break; }
+    if(hoje >= z.C && hoje < z.Dmax){
+      // volta das chuvas: com dados de chuva, espera a chuva firmar + 14 dias de rebrota; sem dados, 4 semanas após o mês das chuvas
+      var volta;
+      if(dias.length){ var desde = isoLocal(new Date(z.C.getTime()-30*DIA)); var f = dataChuvaFirmou(dias, desde, c.limiarChuva); r.chuvaFirmou = f; volta = f ? new Date(new Date(f+'T00:00:00').getTime()+14*DIA) : null; }
+      else volta = z.Dcal;
+      if(volta && hoje >= volta){ continue; }
+      r.fase='volta'; r.voltaMineral = volta; r.ciclo=z; break;
+    }
+  }
+  if(!r.fase){ r.fase='aguas'; var prox = ciclos.map(function(z){return z.A;}).filter(function(d){ return d>hoje; }).sort(function(a,b){return a-b;})[0]; r.proxima = prox; }
+  r.diasProxima = r.proxima ? Math.ceil((r.proxima - hoje)/DIA) : null;
+  r.usar = r.fase==='aguas' ? 'mineral' : 'proteinado';
+  return r;
+}
+// --- consumo estimado e estoque
+function suplEpocaConsumo(){
+  var c = suplEpocaCfg;
+  var ls = state.lotes.filter(function(l){ return l.tipo!=='terceiro' && l.tipo!=='encerrado' && (l.qtd||0)>0; });
+  var cab = ls.reduce(function(a,l){ return a+l.qtd; },0);
+  var kgPV = ls.reduce(function(a,l){ return a + l.qtd*(parseFloat(l.pesoAtual)||parseFloat(l.pesoEntrada)||0)*15; },0);
+  var protKgMes = kgPV * c.doseProt/1000 * 30;
+  var ehProt = function(i){ return i.tipo==='proteinado' || /protein/i.test(i.nome||''); };
+  var prot = state.insumos.filter(ehProt), mineral = state.insumos.filter(function(i){ return !ehProt(i) && i.tipo==='sal'; });
+  var protSacos = prot.reduce(function(a,i){ return a+sacosRestantes(i); },0);
+  var protKg = prot.reduce(function(a,i){ return a+sacosRestantes(i)*(parseFloat(i.kgSaco)||c.kgSacoProt); },0);
+  var minSacos = mineral.reduce(function(a,i){ return a+sacosRestantes(i); },0);
+  var minSacosMes = mineral.reduce(function(a,i){ return a+consumoEfetivo(i); },0);
+  return { cab:cab, kgPV:kgPV, protKgDia: protKgMes/30, protKgMes:protKgMes, protSacosMes: protKgMes/c.kgSacoProt, protSacos:protSacos, protKg:protKg,
+    protMeses: protKgMes>0 ? protKg/protKgMes : null, minSacos:minSacos, minSacosMes:minSacosMes, minMeses: minSacosMes>0 ? minSacos/minSacosMes : null, temProt: prot.length>0, temMineral: mineral.length>0 };
+}
+// --- avisos (usados no quadro e na notificação)
+function suplEpocaAvisos(f, k){
+  var av = [], c = suplEpocaCfg;
+  if(f.fase==='aguas' && f.diasProxima!==null && f.diasProxima<=21) av.push('⏰ Faltam '+f.diasProxima+' dia(s) para começar o proteinado ('+fmtDataBR(isoLocal(f.proxima))+').');
+  if(f.fase==='aguas' && f.chuva30!==null && f.diasProxima!==null && f.diasProxima<=45 && f.chuva30 < 30) av.push('☀️ Choveu só '+fmtInt(f.chuva30)+' mm em 30 dias: a seca pode estar adiantada. Considere começar o proteinado antes.');
+  var precisaProt = f.fase!=='aguas' || (f.diasProxima!==null && f.diasProxima<=30);
+  if(precisaProt && k.protKgMes>0){
+    if(!k.temProt || k.protSacos < 0.5) av.push('🛒 Sem proteinado em estoque. Precisa de ~'+fmtInt(Math.ceil(k.protSacosMes))+' sacos de '+c.kgSacoProt+' kg por mês.');
+    else if(k.protMeses!==null && k.protMeses < 1) av.push('🛒 Proteinado dá para ~'+Math.max(1,Math.round(k.protMeses*30))+' dias. Precisa de ~'+fmtInt(Math.ceil(k.protSacosMes))+' sacos/mês.');
+  }
+  if(f.fase==='aguas' && k.temMineral && k.minMeses!==null && k.minMeses < 1) av.push('🛒 Sal mineral dá para ~'+Math.max(0,Math.round(k.minMeses*30))+' dias.');
+  return av;
+}
+function htmlSuplEpoca(paraDono){
+  if(!dadosCarregados) return '';
+  var f = suplEpocaFase(), k = suplEpocaConsumo(), c = suplEpocaCfg;
+  var info = {
+    aguas:    { ic:'🌧️', nome:'Águas',            cor:'var(--green-mid)', txt:'Use <strong>sal mineral</strong>. O pasto tem proteína; o gado precisa só de mineral.' },
+    entrada:  { ic:'🍂', nome:'Entrada da seca',  cor:'#C47F00',          txt:'Hora de <strong>começar o proteinado</strong>. O capim está perdendo qualidade; trocar antes evita o gado perder peso.' },
+    seca:     { ic:'☀️', nome:'Seca',             cor:'#C0392B',          txt:'Use <strong>proteinado</strong>. Sem proteína o gado para de ganhar e pode perder peso.' },
+    volta:    { ic:'🌦️', nome:'Volta das chuvas', cor:'#C47F00',          txt:'<strong>Mantenha o proteinado</strong> até o pasto rebrotar; depois volte ao sal mineral.' }
+  }[f.fase];
+  var h = '<div style="display:flex;align-items:center;gap:.7rem;margin-bottom:.5rem"><div style="font-size:2rem">'+info.ic+'</div><div><div style="font-size:.7rem;color:var(--clay);font-family:\'DM Mono\',monospace">ÉPOCA ATUAL</div><div style="font-size:1.15rem;font-weight:700;color:'+info.cor+'">'+info.nome+' · '+(f.usar==='mineral'?'Sal mineral':'Proteinado')+'</div></div></div>';
+  h += '<div style="font-size:.84rem;line-height:1.6;margin-bottom:.5rem">'+info.txt+'</div>';
+  var lin = [];
+  if(f.fase==='aguas' && f.proxima) lin.push('Próxima troca: <strong>começar o proteinado em '+fmtDataBR(isoLocal(f.proxima))+'</strong> ('+f.diasProxima+' dias)');
+  if(f.fase==='entrada' || f.fase==='seca') lin.push('Seca até ~<strong>'+MESES_NOME[c.chuvaMes-1]+'</strong>; aí o app espera a chuva firmar para mandar voltar ao mineral');
+  if(f.fase==='volta'){
+    if(f.temChuva) lin.push(f.chuvaFirmou ? 'A chuva firmou em <strong>'+fmtDataBR(f.chuvaFirmou)+'</strong>: volte ao sal mineral a partir de <strong>'+fmtDataBR(isoLocal(f.voltaMineral))+'</strong> (2 semanas de rebrota)' : 'Esperando a chuva firmar: <strong>'+fmtInt(f.chuva30)+' de '+fmtInt(c.limiarChuva)+' mm</strong> em 30 dias');
+    else lin.push('Sem dados de chuva: pelo calendário, volte ao mineral em <strong>'+fmtDataBR(isoLocal(f.voltaMineral))+'</strong>');
+  }
+  if(c.usarChuva){
+    if(f.temChuva) lin.push('🌧️ Chuva na fazenda: <strong>'+fmtInt(f.chuva30)+' mm</strong> em 30 dias · '+fmtInt(f.chuva7)+' mm em 7 dias'+(f.chuvaErro?' <span style="color:var(--clay)">(sem internet: dado guardado)</span>':''));
+    else if(f.chuvaErro) lin.push('🌧️ Não deu para buscar a chuva agora (sem internet?). Usando só o calendário.');
+    else lin.push('🌧️ Buscando dados de chuva…');
+  }
+  if(paraDono && k.cab>0){
+    if(f.usar==='proteinado' || (f.diasProxima!==null && f.diasProxima<=30))
+      lin.push('Proteinado ('+fmtN(c.doseProt,1)+' g/kg de peso/dia): <strong>~'+fmtInt(k.protKgDia)+' kg/dia · '+fmtInt(Math.ceil(k.protSacosMes))+' sacos/mês</strong> para '+k.cab+' cab. (~'+fmtN(k.kgPV/k.cab/15,1)+' @ média) · estoque: '+(k.temProt?fmtN(k.protSacos,1)+' sacos':'nenhum cadastrado'));
+    if(f.usar==='mineral' && k.temMineral) lin.push('Sal mineral: '+fmtN(k.minSacosMes,1)+' sacos/mês · estoque: '+fmtN(k.minSacos,1)+' sacos');
+  }
+  if(lin.length) h += '<div style="font-size:.76rem;color:var(--clay);line-height:1.8">'+lin.join('<br>')+'</div>';
+  var av = suplEpocaAvisos(f,k); if(!paraDono) av = av.filter(function(a){ return a.indexOf('🛒')!==0; });
+  if(av.length) h += '<div style="margin-top:.6rem;background:#FFF8E1;border:1px solid #C47F00;border-radius:8px;padding:.5rem .7rem;font-size:.8rem;color:#7A5200;line-height:1.6">'+av.join('<br>')+'</div>';
+  if(paraDono) h += '<div style="font-size:.68rem;color:var(--clay);margin-top:.5rem">Meses, dose e chuva ajustáveis em ⚙️ Config · confirme a dose no rótulo do produto.</div>';
+  return h;
+}
+function renderSuplEpoca(){
+  var a = document.getElementById('supl-epoca'); if(a) a.innerHTML = htmlSuplEpoca(true) || '<div style="font-size:.8rem;color:var(--clay)">Carregando…</div>';
+  var b = document.getElementById('vaq-supl-epoca'); if(b) b.innerHTML = htmlSuplEpoca(false) || '';
+}
+function verificarAvisoSuplEpoca(alertas){
+  if(!dadosCarregados) return;
+  var f = suplEpocaFase(), av = suplEpocaAvisos(f, suplEpocaConsumo());
+  if(perfil!=='dono') av = av.filter(function(a){ return a.indexOf('🛒')!==0; });
+  var chave = isoLocal(new Date())+'|'+f.fase+'|'+av.length;
+  var ult = null; try { ult = localStorage.getItem('fazenda_supl_aviso'); } catch(e){}
+  if(chave === ult) return;
+  if(av.length || (ult && ult.split('|')[1] !== f.fase)){
+    alertas.push({ titulo: '🧂 '+(f.usar==='mineral'?'Época de sal mineral':'Época de proteinado'), corpo: av.length ? av.join(' ') : 'A época mudou: confira a suplementação.' });
+  }
+  try { localStorage.setItem('fazenda_supl_aviso', chave); } catch(e){}
 }
 function salvarPrazoDashboard(){
   var elP=document.getElementById('dash-prazo'); if(!elP) return;
@@ -1861,6 +2045,8 @@ function startListening(){
   carregarGmdPadrao();
   carregarGmdMeta();
   carregarCustoTerra();
+  carregarSuplEpoca();
+  carregarChuva(false);
   // Force logout listener — checks if other sessions were terminated
   var minhaSessaoId = localStorage.getItem('fazenda_sessao_id');
 
@@ -2160,6 +2346,7 @@ function applyPerfilUI(){
 
 // ===== RENDERS =====
 function renderDashboard(){
+  try { renderSuplEpoca(); } catch(e){ console.warn('supl epoca', e); }
   var totalCabecas=state.lotes.reduce(function(a,l){return a+l.qtd;},0);
   var novilhas=state.lotes.filter(function(l){return l.tipo==='novilha';});
   var totalNovilhas=novilhas.reduce(function(a,l){return a+l.qtd;},0);
@@ -4039,6 +4226,7 @@ function _executarLoginBiometria(credData){
 
 // ===== DASHBOARD VAQUEIRO =====
 function renderDashboardVaqueiro(){
+  try { renderSuplEpoca(); } catch(e){ console.warn('supl epoca', e); }
   var totalCabecas = state.lotes.reduce(function(a,l){ return a+l.qtd; }, 0);
   var porTipo = {};
   state.lotes.forEach(function(l){
@@ -5403,7 +5591,7 @@ function gerarRelatorioPDF(opts){
 
 // ===== CONFIG TAB =====
 function initConfigTab(){
-  atualizarCfgCustoTerra();
+  atualizarCfgCustoTerra(); atualizarCfgSuplEpoca();
   // Biometria
   var cfgBio = document.getElementById('cfg-biometria');
   if(cfgBio) cfgBio.addEventListener('click', registrarBiometria);
@@ -5627,6 +5815,9 @@ function verificarAlertas(){
       alertas.push({ titulo: '🟡 Mover em breve: '+t.nome, corpo: 'Faltam '+diasRestantes+' dia(s) na '+t.manga+' · '+tropaQtd(t)+' cab.' });
     }
   });
+
+  // Suplementação por época (sal mineral × proteinado)
+  try { verificarAvisoSuplEpoca(alertas); } catch(e){}
 
   // 2. Verificar vacinas
   var vacinas = (stateNotas && stateNotas.vacinas) ? stateNotas.vacinas : [];
